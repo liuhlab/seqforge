@@ -332,6 +332,11 @@ def test_status_counts_each_units_ending_and_each_passs_cost_and_time_per_unit(
         "unfinished": 1,
         "held": 1,
     }
+    # Each unit whose latest outcome is no ending, with the reason the engine gave and its pass.
+    u4, u9 = out["not_done"]
+    assert (u4["key"], u4["ending"], u4["pass"]) == ("u4", "unfinished", 3)
+    assert "ceiling_reached" in u4["reason"]
+    assert u9 == {"key": "u9", "ending": "held", "reason": "no text for u9", "pass": 3}
     first, second, third = out["passes"]
     assert (first["pass_id"], first["label"], first["store_build"]) == (1, "echo", None)
     assert first["models"]["writer"]["name"] == ECHO_WEAK.name
@@ -378,7 +383,7 @@ def _gateway_address_unset(monkeypatch: pytest.MonkeyPatch, fake: FakeGateway) -
 
 
 @pytest.mark.parametrize("gateway_down", [_gateway_refusing_connections, _gateway_address_unset])
-def test_status_reads_a_task_with_the_gateway_down(
+def test_status_reads_a_task_with_the_gateway_down_and_while_a_pass_holds_it(
     gateway_down: Callable[[pytest.MonkeyPatch, FakeGateway], None],
     echo_kind: Any,
     echo_gateway: FakeGateway,
@@ -389,7 +394,9 @@ def test_status_reads_a_task_with_the_gateway_down(
     gateway_down(monkeypatch, echo_gateway)
     sent = len(echo_gateway.record)
 
-    code, out = seqforge("pass", "status", "echo")
+    # A pass in another process holds the task: a read takes no hold, so it reads all the same.
+    with Task(TASK, gateway=echo_gateway.client(), reviews=REVIEWS):
+        code, out = seqforge("pass", "status", "echo")
 
     assert code == 0, out
     assert out["counts"] == {
@@ -410,16 +417,14 @@ _READS_TASK = [
 ]
 
 
-@pytest.mark.parametrize("argv", [pytest.param(list(PASS_START), id="pass-start"), *_READS_TASK])
-def test_a_task_another_process_holds_exits_3_naming_the_holder(
-    argv: list[str],
+def test_a_pass_on_a_task_another_process_holds_exits_3_naming_the_holder(
     echo_kind: Any,
     echo_gateway: FakeGateway,
 ) -> None:
     assert seqforge(*PASS_START)[0] == 0
     sent = len(echo_gateway.record)
     with Task(TASK, gateway=echo_gateway.client(), reviews=REVIEWS):
-        code, out = seqforge(*argv)
+        code, out = seqforge(*PASS_START)
 
     assert code == 3
     assert out["stopped"] == "task_in_use"

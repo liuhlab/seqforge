@@ -25,7 +25,7 @@ import threading
 from pathlib import Path
 from typing import Any
 
-from labllm import Held, Inputs, Outcome, Role, Task, Unit, UnitKind
+from labllm import Held, Inputs, Outcome, Role, TaskReader, Unit, UnitKind
 
 from ..passes.kinds import Built, Kind, name_of
 from .bounds import FORMAT, check_bounds
@@ -218,7 +218,7 @@ def bounds_file(outcome: Outcome) -> dict[str, Any]:
     return bounds
 
 
-def write_bounds(task: Task, kind: UnitKind, out: Path, name: str) -> dict[str, dict[str, Any]]:
+def write_bounds(task: TaskReader, kind: str, out: Path, name: str) -> dict[str, dict[str, Any]]:
     """Write ``<out>/<key>/<name>`` for each study with an answer, and say how each study ended.
 
     A refused study gets no file, and its reason instead; a file already on disk is never

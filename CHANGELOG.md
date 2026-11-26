@@ -21,7 +21,10 @@ release's git tag (`v2026.7.1` is version `2026.7.1`), which hatch-vcs reads at 
 - `seqforge pass status <kind>` reports where a kind's task stands: how many units have each
   ending, a person's review included, and, for each pass, its models, store build, ceiling and
   spend, with the total, median and 90th percentile of its dollars, requests and seconds per unit.
-  It reads the task folder only, so it works with the gateway down.
+  Its `not_done` list names each unit whose latest outcome is unfinished or held, with the reason
+  and the pass, such as a study held for a missing bounds file. It reads the task folder only and
+  takes no hold, so it works with the gateway down and while a pass runs; so do
+  `study write-bounds` and `study write-reading`.
 - seqforge now depends on liulab-llms (2026.11.2 or later), from PyPI.
 
 ### Changed

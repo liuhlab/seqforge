@@ -44,19 +44,3 @@ def make_gateway() -> Gateway:
         return Gateway(repo=REPO)
     except GatewayUnreachable as exc:
         raise SetupRefused(f"no gateway address: {exc}") from exc
-
-
-class _NoGateway:
-    def send(self, path: str, body: bytes) -> tuple[int, bytes]:
-        raise ConnectionRefusedError("this command reaches no gateway")
-
-
-def offline_gateway() -> Gateway:
-    """A client that reaches no gateway, for a command that only reads a task.
-
-    Opening a task takes a gateway client, which a read never calls, so a command that reads one
-    works with the gateway down or ``$LABLLM_GATEWAY`` unset.
-    """
-    from labllm import Gateway
-
-    return Gateway(repo=REPO, transport=_NoGateway())

@@ -23,13 +23,11 @@ import pytest
 import yaml
 from labdata.ontology import SnapshotData, SourceTerm, build_tiny_store
 from labdata.store.model import Link, Record
-from labllm import Task
 from labllm.testing import FakeGateway, Price
 from typer.testing import CliRunner
 
 import gateway_kit
 from seqforge.cli import app
-from seqforge.passes.status import read_only_kind
 from seqforge.study import bounding, closed, reader
 from seqforge.study.lists import guide_text
 from seqforge.study.reading import check_reading, read_reading
@@ -834,31 +832,46 @@ def test_both_jobs_run_on_a_folder_that_is_not_the_standard_set_and_join_through
     assert reading["read"] == ["records", "abstract", "full_text"]
 
 
-def test_a_study_whose_bounds_file_is_missing_or_fails_its_check_is_held_with_the_reason(
+def test_a_study_held_for_its_bounds_or_its_paper_store_is_named_with_the_reason_by_pass_status(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """GSE10's bounds file has three fields and no format number, which the format check rejects;
-    GSE20 has no bounds file. Each study is held before a model is asked, and its reason names
-    the check's problems or the missing file."""
+    """GSE10's bounds file names its paper, and no paper store is set up; GSE20 has no bounds file;
+    GSE30's has three fields and no format number, which the format check rejects. Each study is
+    held before a model is asked. `pass status` names each with the reason, reading the task alone:
+    no store opens and no gateway client is built."""
+    import labdata
+    import labdata.papers
+    from labdata.exceptions import StoreNotConfiguredError
+
     studies = tmp_path / "studies"
-    (studies / "GSE10").mkdir(parents=True)
-    three = {"study": "GSE10", "series": [{"id": "GSE10"}], "papers": []}
-    (studies / "GSE10" / "bounds.yaml").write_text(yaml.safe_dump(three))
+    for key in ("GSE10", "GSE30"):
+        (studies / key).mkdir(parents=True)
+    (studies / "GSE10" / "bounds.yaml").write_text(_bounds("GSE10"))
+    three = {"study": "GSE30", "series": [{"id": "GSE30"}], "papers": []}
+    (studies / "GSE30" / "bounds.yaml").write_text(yaml.safe_dump(three))
     fake = _serve(monkeypatch, tmp_path)
-    (tmp_path / "keys.txt").write_text("GSE10\nGSE20\n")
+
+    def no_store(root: Any = None) -> Any:
+        raise StoreNotConfiguredError("no store is set up")
+
+    monkeypatch.setattr(labdata.papers, "open_paper_store", no_store)
+    (tmp_path / "keys.txt").write_text("GSE10\nGSE20\nGSE30\n")
 
     started = _start(reader.KIND_NAME, studies, "--keys", "keys.txt")
     assert started.exit_code == 0, started.output
-    task = Path(json.loads(started.stdout)["task"])
-    with Task(task, gateway=fake.client(repo="seqforge"), reviews=task / "reviews") as opened:
-        kind = read_only_kind(reader.KIND_NAME)
-        held = {key: opened.outcomes(kind, key)[-1] for key in ("GSE10", "GSE20")}
+    monkeypatch.setattr(labdata, "open_store", no_store)
+    monkeypatch.delenv("LABDATA_ONTOLOGIES")
+    gateway_kit.forbidden(monkeypatch)
+    status = runner.invoke(app, ["pass", "status", reader.KIND_NAME])
 
-    assert json.loads(started.stdout)["counts"]["held"] == 2
+    assert status.exit_code == 0, status.output
+    assert json.loads(started.stdout)["counts"]["held"] == 3
     assert fake.record == []
-    assert {outcome.ending for outcome in held.values()} == {"held"}
-    assert "format: expected 1, missing" in str(held["GSE10"].reason)
-    assert "no bounds file" in str(held["GSE20"].reason)
+    held = {unit.pop("key"): unit for unit in json.loads(status.stdout)["not_done"]}
+    assert {(unit["ending"], unit["pass"]) for unit in held.values()} == {("held", 1)}
+    assert "no paper store is configured" in held["GSE10"]["reason"]
+    assert "no bounds file for GSE20" in held["GSE20"]["reason"]
+    assert "format: expected 1, missing" in held["GSE30"]["reason"]
 
 
 @pytest.mark.parametrize(

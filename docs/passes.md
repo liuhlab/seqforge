@@ -99,15 +99,28 @@ the gateway's cache at no cost, and `cache_hits` counts them. After a stop at th
 seqforge pass status <kind>
 ```
 
-This reads the kind's task and prints one JSON object. It sends nothing to the gateway, so it works
-with the gateway down, and wherever the task folder is. It takes `--task DIR` as `pass start` does.
+This reads the kind's task and prints one JSON object. It sends nothing to the gateway, and it opens
+none of the stores the kind reads, so it works with the gateway down, and wherever the task folder
+is. It takes no hold on the task, so it also works while a pass runs. It takes `--task DIR` as
+`pass start` does.
 
 | Field | Value |
 | --- | --- |
 | `kind`, `task` | The kind, and the task folder |
 | `units` | How many units any pass of the kind has recorded |
 | `counts` | Each unit's current ending: settled, unsettled, refused or dropped, a person's review included. Then the units whose latest outcome is unfinished or held. A unit settled once and unfinished in a later pass counts under both |
+| `not_done` | Each unit whose latest outcome is unfinished or held, in key order: its `key`, that `ending`, the outcome's `reason`, and the `pass` it came from |
 | `passes` | Every pass of the kind, oldest first |
+
+`not_done` lists every such unit, with no cap. A held study's `reason` says what it lacks, such as
+its bounds file. To see only the held units, filter the list with the JSON tool `jq`:
+
+```bash
+seqforge pass status study-reading | jq '.not_done[] | select(.ending == "held")'
+```
+
+A refused or unsettled unit is not in `not_done`. `study write-bounds` and `study write-reading`
+list each of those, with each refused study's reason.
 
 Each pass gives its `pass_id`, `label`, `kind_version`, `models`, `store_build`, `ceiling_usd`,
 `stopped`, its `counts`, and what it spent: `spent_usd`, `first_cost_usd`, `requests` and
@@ -122,8 +135,8 @@ pass. An answer from the cache counts, and a held unit or one the pass never sta
 | Exit | When |
 | --- | --- |
 | 0 | The report is on stdout |
-| 2 | An unknown kind, or a folder that holds no task. One line on stderr says which |
-| 3 | A running pass holds the task, and `message` names it. That pass's stderr is the live view |
+| 2 | An unknown kind, a folder that holds no task, or a task that a pass stopped in the middle of a write. One line on stderr says which. For the last, run the pass again with `pass start`, which repairs the task |
+| 3 | A pass's write kept the read waiting, and `message` says so. Run it again |
 
 ## Send the hard units to a stronger model
 
