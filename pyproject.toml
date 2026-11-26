@@ -425,7 +425,7 @@ warn_unreachable = true
 plugins = ["pydantic.mypy"]
 # The scope lives here, not in the `typecheck` task: an editor's language server never reads a task
 # string. `test_nothing_tracked_escapes_the_type_checker` holds it open at both ends.
-files = ["src", "tests", "scripts", "skills", "prototypes"]
+files = ["src", "tests", "scripts", "skills"]
 # The gitignored scratch harnesses, and nothing else — that guard fails if an exclusion ever hides a
 # file git is tracking.
 exclude = ['^tests/_[^/]*_test\.py$', '^tests/_test_[^/]*\.py$']
@@ -447,12 +447,6 @@ follow_imports = "skip"
 [[tool.mypy.overrides]]
 module = ["conformance"]
 disallow_untyped_calls = false
-
-# The reading page's build script is a throwaway prototype, written untyped. It sits under a
-# declared root so that it is seen, and its errors are waived here until the page is kept or dropped.
-[[tool.mypy.overrides]]
-module = ["build_page"]
-ignore_errors = true
 
 [tool.pydantic-mypy]
 init_forbid_extra = true

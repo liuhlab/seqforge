@@ -79,7 +79,7 @@ _BATCH = 100
 #: those four words is a copy that can drift from the one the models enforce.
 _LEVELS: tuple[str, ...] = get_args(RecordLevel)
 
-SOURCE = "ncbi-sra+biosample"
+SOURCE = "ncbi-sra"
 
 
 def _efetch(db: str, ids: list[str], **params: str) -> str:

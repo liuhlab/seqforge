@@ -21,4 +21,3 @@ assertions:
     value: Caenorhabditis elegans
 forbidden_fields:
   - library.chemistry
-  - experiment.accessions

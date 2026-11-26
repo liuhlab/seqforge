@@ -12,7 +12,7 @@ from pathlib import Path
 import typer
 import yaml
 
-from ..standard_set import BOUNDS, STUDY, default_set_dir
+from ..study.folder import BOUNDS, STUDY, default_set_dir, pick_entries
 from .root import standard_set_app
 
 _DIR = typer.Option(None, "--dir", help="Folder of study folders (default: evals/standard-set).")
@@ -22,13 +22,15 @@ _DIR = typer.Option(None, "--dir", help="Folder of study folders (default: evals
 def standard_set_list(set_dir: Path | None = _DIR) -> None:
     """List the standard set: one object per study, from its ``<id>/study.yaml`` and ``bounds.yaml``.
 
-    Each object gives the study's record identifiers, the reason it was picked and its bounds, as
-    its bounds file holds them.
+    The studies are the pick's, in the pick's order, as the jobs read them. Each object gives the
+    study's record identifiers, the reason it was picked and its bounds, as its bounds file holds
+    them.
     """
     root = set_dir or default_set_dir()
     payload = []
-    for path in sorted(root.glob(f"*/{STUDY}")):
-        study = yaml.safe_load(path.read_text())
+    for key in pick_entries(root):
+        path = root / key / STUDY
+        study = yaml.safe_load(path.read_text(encoding="utf-8"))
         payload.append(
             {
                 "id": study["id"],
@@ -39,7 +41,7 @@ def standard_set_list(set_dir: Path | None = _DIR) -> None:
                 "bounds_from": study["bounds_from"],
                 "reason_picked": " ".join(study["reason_picked"].split()),
                 "records": study["records"],
-                "bounds": yaml.safe_load(path.with_name(BOUNDS).read_text()),
+                "bounds": yaml.safe_load(path.with_name(BOUNDS).read_text(encoding="utf-8")),
             }
         )
     typer.echo(json.dumps(payload, indent=2))

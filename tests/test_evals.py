@@ -4517,5 +4517,5 @@ def test_a_case_commits_its_record_set_under_either_name_and_never_both(tmp_path
             "    parent: lib01\n", "    parent: lib01\n    attributes: {tissue: gut}\n"
         )
     )
-    with pytest.raises(CaseError, match="never in a typed slot"):
+    with pytest.raises(CaseError, match="never what a sample was"):
         load_case(case_dir)
