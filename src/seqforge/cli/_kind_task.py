@@ -74,12 +74,16 @@ def for_kind(
         # Waiting never clears it; a writing open, which every pass makes, repairs the task.
         said = (
             f"a pass on {folder} stopped in the middle of a write, and a read cannot undo it: "
-            f"run the pass again with seqforge pass start {name}, which repairs the task"
+            f"run the pass again with seqforge pass start {name}, which repairs the task; it also "
+            "runs every unit not yet answered, so it can spend up to its --ceiling-usd"
         )
         return _StageOut(said, 2, err=True)
-    except (TaskInUse, TaskBusy) as exc:
-        # In use: raised only by opening the task to run a pass, or by a pass whose hold another
-        # process took over. Busy: raised only by a read.
-        stopped = "task_in_use" if isinstance(exc, TaskInUse) else "task_busy"
-        held = {"kind": name, "task": str(folder), "stopped": stopped}
+    except TaskInUse as exc:
+        # Raised only by opening the task to run a pass, or by a pass whose hold another process
+        # took over.
+        held = {"kind": name, "task": str(folder), "stopped": "task_in_use"}
+        return _StageOut({**held, "message": str(exc)}, 3)
+    except TaskBusy as exc:
+        # Raised only by a read: a pass's write kept it waiting.
+        held = {"kind": name, "task": str(folder), "stopped": "task_busy"}
         return _StageOut({**held, "message": str(exc)}, 3)

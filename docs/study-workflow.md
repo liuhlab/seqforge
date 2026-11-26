@@ -99,9 +99,12 @@ one is yes and the other no. Each claim is `inferred`, and its text gives Jev's 
 the two questions. A kept paper has no probability in the file, so the task keeps it.
 
 **What it writes.** `seqforge study write-bounds --out <folder>` writes each study's answer as
-`<folder>/<ID>/bounds.yaml`, or under the name that `--name` gives. It never overwrites a file. For
-the standard set, the job's file is `job-bounds.yaml`, beside the set's own `bounds.yaml`. Each
-study ends in one of three ways:
+`<folder>/<ID>/bounds.yaml`, or under the name that `--name` gives. It never overwrites a file.
+Run it once the pass has ended. While a pass runs it does not refuse: it writes the answers that
+the task holds so far, so a study that the pass has not reached gets an earlier pass's answer, if
+one gave it. To take the new answer, delete that file and run the command again. For the standard
+set, the job's file is `job-bounds.yaml`, beside the set's own `bounds.yaml`. Each study ends in
+one of three ways:
 
 | Ending | When | File |
 | --- | --- | --- |
@@ -209,7 +212,8 @@ is the UTC day the pass opened the store, because the store names its snapshots 
 **What it writes.** `seqforge study write-reading --out <folder>` writes each study's answer as
 `<folder>/<ID>/reading.yaml`, or under the name that `--name` gives. It never overwrites a file,
 and it writes no file whose exact text the format check rejects: it writes the others and exits 3,
-as `write-bounds` does. For the standard set, the job's file is `job-reading.yaml`, beside the five worked examples. Each
+as `write-bounds` does. Like `write-bounds`, it does not refuse while a pass runs, so run it once
+the pass has ended. For the standard set, the job's file is `job-reading.yaml`, beside the five worked examples. Each
 study ends in one of three ways:
 
 | Ending | When | File |
