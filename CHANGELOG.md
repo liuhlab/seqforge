@@ -34,6 +34,9 @@ release's git tag (`v2026.7.1` is version `2026.7.1`), which hatch-vcs reads at 
   liulab-llms's: the whole reply is JSON, or the reply holds exactly one fenced block. The reading
   job used to take the first JSON object anywhere in the reply, so a writer's answer with an object
   among prose and no fence is now asked for once more. Needs `liulab-llms>=2026.11.9`.
+- The study reading job asks Jev each sample's label values once. The second asking, with the
+  options reversed, holds only the sample's level on each factor, the one answer it compares, so
+  each second request is shorter. How a study ends does not change.
 - Python 3.13 is now the minimum supported version (`requires-python = ">=3.13"`). Every pixi
   environment already ran 3.13, so the old 3.12 floor had no test behind it.
 - The package version now comes from the git tag, through hatch-vcs. The release wheel is built

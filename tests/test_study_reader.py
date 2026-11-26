@@ -427,7 +427,9 @@ TRUTH = {
 VARIED = {"treatment": (0.9, 0.8), "genotype": (0.5, 0.1)}
 #: The level of each factor Jev calls a study's reference.
 BASELINES = ("young", "vehicle", "wild type", "fed")
-#: The samples whose level Jev leaves unanswered, in both askings, and whose tissue.
+#: The samples whose level Jev answers with an option it was not offered, in both askings, and
+#: whose tissue it leaves out. Jev's second asking of a sample holds only its levels, and a reply
+#: with no answer in it is an outage the engine retries, not an answer.
 NO_LEVEL, NO_TISSUE = ("GSM93",), ("GSM92",)
 
 
@@ -469,7 +471,7 @@ def _choose(asked: str, options: dict[str, str], sample: str | None) -> tuple[st
         return first, 0.95 if options[first].startswith(("UBERON", "WBbt")) else 0.6
     assert sample is not None
     if sample in NO_LEVEL and re.match(r"Which \w+ does `sample` have\?", asked):
-        return None
+        return "a level not offered", 0.9
     if sample in NO_TISSUE and asked.startswith("What is the tissue of `sample`"):
         return None
     for k, text in options.items():
@@ -583,9 +585,20 @@ def test_a_study_is_read_into_a_reading_that_passes_the_check_beside_the_sets_ow
 ) -> None:
     """The writer lists, Jev picks, code writes a file the format check accepts, beside the set's
     own reading and never over it. Only sequenced samples get a row; a factor level no sample is at
-    is dropped; the models are named as the pass ran them."""
-    set_dir, said, _ = read
+    is dropped; the models are named as the pass ran them. Jev is asked about each sample twice:
+    the first asking carries its level and label questions, and the second, with the options
+    reversed, its level questions only, because only the level is compared."""
+    set_dir, said, fake = read
     reading = _reading(set_dir, "GSE10")
+    carried = []
+    for form in _sent(fake):
+        named = form["route"] != "chat" and re.match(r"`sample` is (GSM1\d)\.", form["description"])
+        if named:
+            asked = form["questions"].values()
+            second = all(next(iter(q["criteria"])) == "na" for q in asked)
+            level = re.compile(r"Which \w+ does `sample` have\?")
+            kinds = {"level" if level.match(q["instructions"]) else "label" for q in asked}
+            carried.append((named.group(1), second, sorted(kinds)))
 
     assert said["GSE10"] == {"ending": "settled", "file": "written"}
     assert (set_dir / "GSE10" / "reading.yaml").read_text() == "the standard set's own\n"
@@ -602,6 +615,11 @@ def test_a_study_is_read_into_a_reading_that_passes_the_check_beside_the_sets_ow
         "probabilities": "typesafe/jev-1.14.0",
     }
     assert reading["read"] == ["records", "abstract", "full_text"]
+    assert sorted(carried) == [
+        (g, second, ["level"] if second else ["label", "level"])
+        for g in ("GSM11", "GSM12", "GSM13")
+        for second in (False, True)
+    ]
 
 
 def test_a_claim_is_quoted_only_from_a_passage_code_found_and_terms_come_from_a_clear_pick(
@@ -684,8 +702,9 @@ def test_a_probability_of_exactly_one_half_is_neither_yes_nor_no_and_leaves_the_
 def test_a_question_jev_leaves_unanswered_is_an_unknown_claim_and_leaves_the_study_unsettled(
     read: tuple[Path, dict[str, Any], FakeGateway],
 ) -> None:
-    """Jev leaves GSM93's diet unanswered, in both askings. Its claim is unknown with no
-    probability, and two missing answers do not agree: the study is unsettled, naming the sample.
+    """Jev answers GSM93's diet with an option it was not offered, in both askings, so neither is
+    an answer. Its claim is unknown with no probability, and two missing answers do not agree: the
+    study is unsettled, naming the sample.
     GSM92's tissue and whether the diet's levels are ordered, each asked once and left unanswered,
     are named too."""
     set_dir, said, _ = read
