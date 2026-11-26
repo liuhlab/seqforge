@@ -45,7 +45,9 @@ module is split, uses one context's words:
 
 Every context shares the paths below, and none of them has words of its own:
 
-- `cli/` — one module per command group, each in the words of the package it fronts
+- `cli/` — one module per command group, each in the words of the package it fronts; the `io`
+  group has two, `io.py` for the network verbs and `workflows.py` for the steps a compiled pipeline
+  runs
 - `models/` — the Pydantic models that every stage exchanges
 - `hooks/` — the agent hook guards, which turn the rules into checks
 - `assets/` — the style tokens that the workspace report and the eval report share
