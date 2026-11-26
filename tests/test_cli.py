@@ -2741,7 +2741,7 @@ def test_io_records_prints_each_submitted_files_md5_size_and_uri(
     ]
 
 
-@pytest.mark.parametrize("lacks", ["a BioSample", "the whole store"])
+@pytest.mark.parametrize("lacks", ["an SRA package", "the whole store"])
 @pytest.mark.parametrize("verb", ["run", "manifest fill"])
 def test_offline_an_accession_reads_the_labs_store_and_refuses_one_it_lacks(
     stored_pilot: StubStore,
@@ -2776,7 +2776,7 @@ def test_offline_an_accession_reads_the_labs_store_and_refuses_one_it_lacks(
         monkeypatch.setattr(labdata, "open_store", unconfigured)
         lacking = "no labdata store is configured"
     else:
-        lacking = next(a for a in stored_pilot.texts if a.startswith("SAMN"))
+        lacking = next(a for a in stored_pilot.texts if a.startswith("SRX"))
         del stored_pilot.texts[lacking]
     with pytest.raises(RemoteError, match=lacking):
         load("PRJNA1027859")
