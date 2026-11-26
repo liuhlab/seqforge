@@ -1,4 +1,4 @@
-"""What every pass command opens before it acts: the task.
+"""What every pass command opens before it acts: the task, to run a pass on it or only to read it.
 
 Each refuses a setup it cannot use with :class:`SetupRefused`, whose message is the one line the
 command prints before it exits 2. A kind opens the stores it reads itself, when a pass builds it.
@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from labllm import Gateway, Task, UnknownLayout
+from labllm import Gateway, NoTask, Task, TaskReader, UnknownLayout
 
 from . import SetupRefused
 
@@ -31,17 +31,19 @@ def open_task[T: Task](cls: type[T], folder: Path, *, gateway: Gateway) -> T:
         raise SetupRefused(str(exc)) from exc
 
 
-#: The file liulab-llms keeps a task's state in, inside the task's folder.
-STATE_FILENAME = "state.sqlite"
+def read_task(folder: Path, kind: str) -> TaskReader:
+    """Open the task in ``folder`` only to read it: no gateway, no hold, and nothing made.
 
-
-def require_task(folder: Path, kind: str) -> None:
-    """Refuse a folder that holds no task.
-
-    Opening a task makes one where there is none, so a command that only reads a task checks
-    first, rather than read an empty one it just made.
+    Its reads go by the kind's name, so nothing is built from the kind's code. Its reviews count,
+    read from :data:`REVIEWS_DIRNAME`. A folder that holds no task, whose refusal says how to start
+    the pass of the kind named ``kind``, and a state file this liulab-llms cannot read, are setup
+    refusals.
     """
-    if not (folder / STATE_FILENAME).is_file():
+    try:
+        return TaskReader(folder, reviews=folder / REVIEWS_DIRNAME)
+    except NoTask as exc:
         raise SetupRefused(
             f"no task in {folder}: run seqforge pass start {kind} first, or give --task DIR"
-        )
+        ) from exc
+    except UnknownLayout as exc:
+        raise SetupRefused(str(exc)) from exc

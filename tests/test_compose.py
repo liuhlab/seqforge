@@ -37,7 +37,6 @@ from conftest import (
     planning_route,
     plate_of,
     solo_block,
-    stage_reference,
     star_modules,
     write_fastq_gz,
 )
@@ -2075,8 +2074,9 @@ def test_a_composed_plate_runs_end_to_end_at_small_n_and_recovers_its_injected_c
 # that compose tolerated a one-read layout, never that the module can plan it.
 
 
+@pytest.mark.slow
 def test_a_single_end_plate_deposit_compiles_end_to_end(
-    synth_plate_se: SynthDataset, tmp_path: Path, real_wiring_gate: None
+    synth_plate_se: SynthDataset, tmp_path: Path, snakemake_program: None
 ) -> None:
     """A plate sequenced single-end, from one FASTQ to a Snakefile: resolve -> fill -> compose -> plan.
 
@@ -2094,9 +2094,14 @@ def test_a_single_end_plate_deposit_compiles_end_to_end(
     **`gate["wiring"].status == "pass"` is the point of the whole test.** Everything above it is text off
     disk and would hold just as well of a composer that emitted a placement the module goes on to
     raise over — which is precisely the state ADR-0035 removes, and the state the shipped `se` read
-    set would otherwise have unlocked. That gate spawns `snakemake -n -p`, so it is the DAG builder's
+    set would otherwise have unlocked. That gate runs `snakemake -n -p`, so it is the DAG builder's
     own answer to "can this pipeline be planned at all", taken over the mate-less shape. It is the
     difference between "compose tolerated a one-read layout" and "the module can actually plan it".
+
+    **It is also the one test whose gate starts the `snakemake` program**, as compose does outside
+    this suite; every other gate plans in the worker. So it proves the gate's own command line, and
+    it is `slow` because no start of the program fits the per-test limit on every machine. The
+    unbroken half of the next test keeps the mate-less verdict in the per-change lanes.
     """
     manifest, reg = synth_plate_se.manifest, synth_plate_se.registry
     assert manifest.library.chemistry.value == ["smartseq3"]
@@ -2140,11 +2145,8 @@ def test_a_plate_the_dag_builder_cannot_plan_would_be_caught(
     the gate's reach and not the layout.
 
     The break goes into a copy of the composed directory, so the two verdicts are two gates over two
-    directories that differ by that one key, and they run at the same time: back to back, the two
-    spawns were this test's whole time limit.
+    directories that differ by that one key.
     """
-    from concurrent.futures import ThreadPoolExecutor
-
     from seqforge.compose.gates import REASON_TAIL_LINES, wiring_gate
 
     manifest, reg = synth_plate_se.manifest, synth_plate_se.registry
@@ -2160,13 +2162,10 @@ def test_a_plate_the_dag_builder_cannot_plan_would_be_caught(
     del config["read_files_in"]["umi_cdna"]
     config_path.write_text(yaml.safe_dump(config, sort_keys=True))
 
-    stage_reference(pipeline_dir)  # once, before the threads: `_stand_up`'s cache holds no lock
-    with ThreadPoolExecutor(max_workers=1) as pool:
-        red = pool.submit(wiring_gate, broken, p)
-        assert wiring_gate(pipeline_dir, p).status == "pass", (
-            "the unbroken single-end plate must plan, or the red below says nothing"
-        )
-        verdict = red.result()
+    assert wiring_gate(pipeline_dir, p).status == "pass", (
+        "the unbroken single-end plate must plan, or the red below says nothing"
+    )
+    verdict = wiring_gate(broken, p)
     assert verdict.status == "fail", (
         "a plate whose tagged read the module cannot name dies while the DAG is being built, and "
         "the gate called it a pass"

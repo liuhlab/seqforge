@@ -188,22 +188,23 @@ def pass_status(
         None, "--task", help="The task's folder. Default: seqforge/passes/<kind>/ here."
     ),
 ) -> None:
-    """Report where a kind's task stands, and what each of its passes cost per unit, as JSON.
+    """Report where a kind's task stands, what each pass cost per unit, and each unit not done.
 
-    It reads the task's state and its reviews only, so it works with the gateway down. Exit 0 with
-    the report; 2 for an unknown kind or a folder that holds no task; 3 when a running pass holds
-    the task, whose stderr is then the live view.
+    It prints one JSON object. It reads the task's state and its reviews only, and takes no hold,
+    so it works with the gateway down and while a pass runs. `not_done` names each unit whose
+    latest outcome is unfinished or held, with that outcome's reason and its pass. Exit 0 with the
+    report; 2 for an unknown kind, a folder that holds no task, or a task a pass stopped in the
+    middle of a write; 3 when a pass's write kept the read waiting, so a rerun reads.
     """
     _emit(_pass_status(name=kind, task=task))
 
 
 def _pass_status(*, name: str, task: Path | None) -> _StageOut:
-    from ..passes.status import read_only_kind, task_status
+    from ..passes.status import task_status
 
     def run(setup: KindTask) -> _StageOut:
-        setup.require_task()
         with setup.read() as opened:
-            report = task_status(opened, read_only_kind(setup.kind.name))
+            report = task_status(opened, setup.kind.name)
         return _StageOut({"kind": setup.kind.name, "task": str(setup.folder), **report}, 0)
 
     return for_kind(name, task=task, body=run)
@@ -226,7 +227,7 @@ def _read_keys(path: Path) -> list[str]:
 
 def _parse_endings(text: str) -> list[str]:
     """``unsettled,refused`` -> the endings; each must be one liulab-llms keeps a current one of."""
-    from labllm.state import ENDINGS
+    from labllm import ENDINGS
 
     endings = [e.strip() for e in text.split(",") if e.strip()]
     if not endings or set(endings) - set(ENDINGS):

@@ -13,8 +13,7 @@ import time
 from collections.abc import Iterable, Mapping
 
 import typer
-from labllm import Model, PassResult, Task, UnitEnd, UnitKind
-from labllm.state import NOT_ENDINGS, PASS_ENDINGS
+from labllm import NOT_ENDINGS, PASS_ENDINGS, Model, PassResult, Task, UnitEnd, UnitKind
 
 #: The fewest seconds between two progress lines.
 EVERY_S = 30.0

@@ -1,8 +1,9 @@
-"""Where a kind's task stands: each unit's current ending, and each pass's cost and time per unit.
+"""Where a kind's task stands: each unit's ending, each unit not done, each pass's cost per unit.
 
 Read through liulab-llms's public reads of a task only -- its passes, every key it has seen, each
-unit's outcomes, the keys of each current ending -- never its state file's tables. Nothing here
-calls the gateway, so a task reads the same with the gateway down.
+unit's outcomes, the keys of each current ending -- never its state file's tables. Each read goes
+by the kind's name, so nothing is built from the kind's code, and nothing here calls the gateway:
+a task reads the same with the gateway down and with none of the stores a kind reads.
 
 A task can hold about 200,000 units. So the units are read in one walk over their keys, each unit's
 outcomes once; the endings come from one read per ending, and each figure is sorted once.
@@ -17,8 +18,7 @@ from collections import defaultdict
 from collections.abc import Callable
 from typing import Any
 
-from labllm import Inputs, Pass, Task, Unit, UnitCost, UnitKind
-from labllm.state import ENDINGS, NOT_ENDINGS
+from labllm import ENDINGS, NOT_ENDINGS, Pass, TaskReader, UnitCost
 
 #: Each per-unit figure of a pass, and how it is read from one unit's cost.
 FIGURES: dict[str, Callable[[UnitCost], float]] = {
@@ -29,46 +29,41 @@ FIGURES: dict[str, Callable[[UnitCost], float]] = {
 }
 
 
-def read_only_kind(name: str) -> UnitKind:
-    """A unit kind that is only its name, for reading a task of the kind named ``name``.
-
-    A task's reads go by the kind's name. Reading with this instead of the kind's own unit kind means
-    status builds nothing from the kind's code, so it needs neither liulab-data's store nor any input
-    the kind loads: it reads a task anywhere its folder is.
-    """
-
-    def load(key: str) -> Inputs:
-        raise RuntimeError(f"pass status reads {name!r}'s task; it loads no unit ({key!r})")
-
-    def run(u: Unit) -> Any:
-        raise RuntimeError(f"pass status reads {name!r}'s task; it runs no unit ({u.key!r})")
-
-    return UnitKind(name=name, version="", roles={}, load=load, run=run, answer_schema={})
-
-
-def task_status(task: Task, kind: UnitKind) -> dict[str, Any]:
-    """The kind's units by current ending and by latest outcome, and each of its passes.
+def task_status(task: TaskReader, kind: str) -> dict[str, Any]:
+    """The units of the kind named ``kind`` by current ending and by latest outcome, and its passes.
 
     ``counts`` gives every unit's current ending, a person's review applied, and, apart from that,
     the units whose latest outcome is unfinished or held: a unit settled before and then unfinished
-    in a later pass counts under both. Each pass's ``per_unit`` covers the units that called a model
-    in it -- a cache replay included, a held unit or one the pass never started not.
+    in a later pass counts under both. ``not_done`` names each of those last units, in key order,
+    with that outcome's ending, its reason and its pass; it has no cap, so a caller filters it.
+    Each pass's ``per_unit`` covers the units that called a model in it -- a cache replay included,
+    a held unit or one the pass never started not.
     """
     counts = dict.fromkeys((*ENDINGS, *NOT_ENDINGS), 0)
     for ending in ENDINGS:
         counts[ending] = len(task.keys(kind, endings=(ending,)))
     costs: dict[int, list[UnitCost]] = defaultdict(list)
+    not_done: list[dict[str, Any]] = []
     keys = task.keys(kind)
     for key in keys:
         outcomes = task.outcomes(kind, key)
-        if outcomes and outcomes[-1].ending in NOT_ENDINGS:
-            counts[outcomes[-1].ending] += 1
+        if outcomes and (latest := outcomes[-1]).ending in NOT_ENDINGS:
+            counts[latest.ending] += 1
+            not_done.append(
+                {
+                    "key": key,
+                    "ending": latest.ending,
+                    "reason": latest.reason,
+                    "pass": latest.stamp.pass_id,
+                }
+            )
         for outcome in outcomes:
             if outcome.cost is not None and outcome.cost.seconds is not None:
                 costs[outcome.stamp.pass_id].append(outcome.cost)
     return {
         "units": len(keys),
         "counts": counts,
+        "not_done": not_done,
         "passes": [
             {
                 **pass_json(p),
