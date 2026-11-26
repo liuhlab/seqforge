@@ -10,7 +10,7 @@ from pathlib import Path
 
 import pytest
 
-from seqforge.io.archive import parse_bioproject_set, parse_sra_package_set
+from seqforge.io.archive import SOURCE, parse_bioproject_set, parse_sra_package_set
 from seqforge.models.blocker import BlockerCode
 from seqforge.models.observation import FileIdentity
 from seqforge.models.records import ArchiveRecordSet
@@ -490,7 +490,7 @@ def test_an_archive_set_fusing_its_runs_under_one_biosample_is_silent() -> None:
     from seqforge.models.records import ArchiveRecord
 
     records = ArchiveRecordSet(
-        source="ncbi-sra+biosample",
+        source=SOURCE,
         query="PRJNA1027859",
         io_version="2026.7.0",
         records=[

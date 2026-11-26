@@ -84,7 +84,7 @@ pixi run -- seqforge io records PRJNA1027859
 {
   "records": "seqforge/records/PRJNA1027859.json",
   "query": "PRJNA1027859",
-  "source": "ncbi-sra+biosample",
+  "source": "ncbi-sra",
   "n": { "project": 1, "sample": 6, "experiment": 6, "run": 6 }
 }
 ```

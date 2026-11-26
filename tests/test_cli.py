@@ -2691,10 +2691,11 @@ def _one_submitted_run() -> object:
     The values are ADR-0033's own worked example, so a reader can put the printed JSON next to the
     `<SRAFile>` element it came from.
     """
+    from seqforge.io.archive import SOURCE
     from seqforge.models.records import ArchiveRecord, ArchiveRecordSet, SubmittedFile
 
     return ArchiveRecordSet(
-        source="ncbi-sra+biosample",
+        source=SOURCE,
         query="SRR19886090",
         records=[
             ArchiveRecord(

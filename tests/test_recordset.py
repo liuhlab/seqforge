@@ -19,6 +19,7 @@ from typing import Any
 import pytest
 import yaml
 
+from seqforge.io.archive import SOURCE
 from seqforge.models.blocker import BlockerCode
 from seqforge.models.records import (
     ArchiveRecord,
@@ -389,7 +390,7 @@ def test_an_archive_cache_still_loads_unchanged(tmp_path: Path) -> None:
     four levels, a writer stamp — and a round trip is the assertion: a dropped key is an inequality.
     """
     original = ArchiveRecordSet(
-        source="ncbi-sra+biosample",
+        source=SOURCE,
         query="PRJNA1027859",
         io_version="2026.7.1",
         records=[
