@@ -154,7 +154,6 @@ def harvest_extract(
     ceiling_usd: float = typer.Option(
         DEFAULT_CEILING_USD,
         "--ceiling-usd",
-        min=0,
         help="The most this run may spend, in dollars. The gateway refuses a request that would "
         "cross it, and harvest stops with exit 3.",
     ),
