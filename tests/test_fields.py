@@ -15,15 +15,25 @@ from __future__ import annotations
 
 
 def test_the_allowlist_is_exact_match_not_a_prefix_rule() -> None:
-    """A prefix rule ("anything under experiment.") would re-open the hole it exists to close."""
-    from seqforge.harvest.fields import is_permitted
+    """A prefix rule ("anything under experiment.") would re-open the hole it exists to close.
 
-    assert is_permitted("experiment.organism")
-    assert not is_permitted("experiment.organism.extra")
+    Asked of the widest document there is, a paper handed over as an instruction: what it may not set,
+    no document may.
+    """
+    from seqforge.harvest.fields import permitted_for
+
+    def permitted(field: str) -> bool:
+        return permitted_for(field, "dataset", "instruction")
+
+    assert permitted("experiment.organism")
+    assert not permitted("experiment.organism.extra")
     # What a sample WAS is a study reading's to say: no sample attribute is assertable at all.
-    assert not is_permitted("experiment.samples.tissue")
-    assert not is_permitted("experiment.anything.you.can.name")
-    assert not is_permitted("library.chemistry.value")
+    assert not permitted("experiment.samples.tissue")
+    # The accession list comes from the record set, and the wrong-paper guard finds accessions in the
+    # text with its own pattern: no code reads an accession claim, so none is asked or kept.
+    assert not permitted("experiment.accessions")
+    assert not permitted("experiment.anything.you.can.name")
+    assert not permitted("library.chemistry.value")
 
 
 def test_only_an_experiment_record_is_asked_anything() -> None:

@@ -55,7 +55,7 @@ def _records(*, taxid: str = "6239", query: str = "PRJNA111111") -> ArchiveRecor
     return ArchiveRecordSet(source="test", query=query, records=[project, sample])
 
 
-_DATASET_SUBJECT = [DocumentSubject(doc_sha256=_PAPER, scope="dataset", subject=None)]
+_DATASET_SUBJECT = [DocumentSubject(doc_sha256=_PAPER, scope="dataset")]
 
 
 def test_a_matching_paper_raises_nothing() -> None:
@@ -152,7 +152,7 @@ def test_a_record_rendered_document_is_never_a_wrong_pdf_risk() -> None:
     # "foreign" accession and a contradicting assay in its text are not checked.
     conflicts, blockers = check_provenance(
         assertions=[_assert("library.chemistry", "bulk-rnaseq", doc="e" * 64)],
-        subjects=[DocumentSubject(doc_sha256="e" * 64, scope="experiment", subject="SRX1")],
+        subjects=[DocumentSubject(doc_sha256="e" * 64, scope="experiment")],
         records=_records(),
         winning_techs={"10x-3p-gex-v3"},
         specs=_SPECS,
@@ -174,8 +174,8 @@ def test_dataset_document_texts_reads_only_dataset_scoped_docs_by_hash_suffix(
     (docdir / f"sample-SRS1-{other[:12]}.txt").write_text("a record-rendered doc")
 
     subjects = [
-        DocumentSubject(doc_sha256=_PAPER, scope="dataset", subject=None),
-        DocumentSubject(doc_sha256=other, scope="sample", subject="SRS1"),
+        DocumentSubject(doc_sha256=_PAPER, scope="dataset"),
+        DocumentSubject(doc_sha256=other, scope="sample"),
     ]
     texts = _dataset_document_texts(tmp_path, subjects)
     assert texts == {_PAPER: "the paper body"}  # the sample-scoped doc is not returned

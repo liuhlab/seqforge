@@ -17,7 +17,7 @@ from email.message import Message
 import pytest
 
 from seqforge.io import taxonomy
-from seqforge.io.taxonomy import Taxon, TaxonomyUnavailable, resolve, seed_names
+from seqforge.io.taxonomy import Taxon, TaxonomyUnavailable, resolve
 
 #: A canned NCBI efetch (taxonomy) payload for taxid 6239, in the shape `fetch_taxon` parses: the
 #: scientific name and rank, plus the <Synonym>/<GenbankCommonName>/<CommonName> names the round trip's
@@ -190,6 +190,5 @@ def test_seed_ranks_are_deliberate_not_accidental() -> None:
     carries both because the sacCer3 fixtures use the strain -- and neither is silently promoted to
     the other, because quietly changing a caller's rank is how a wrong reference reaches a corpus.
     """
-    seed = seed_names()
-    assert seed["saccharomyces cerevisiae"] == 4932
-    assert seed["saccharomyces cerevisiae s288c"] == 559292
+    assert resolve("Saccharomyces cerevisiae", offline=True) == 4932
+    assert resolve("Saccharomyces cerevisiae S288C", offline=True) == 559292

@@ -2,9 +2,17 @@
 
 ``score`` answers "what is this library?" from bytes. This answers "which sample is each file?" from
 records. They are siblings rather than one stage because they have the same ways of being wrong and
-therefore need the same discipline: both can refuse outright. What they must never do is talk to each
-other — see "the line", below. What a sample WAS (its tissue, strain or treatment) is not this
-stage's question: a study reading holds those.
+therefore need the same discipline: both can refuse outright. What a sample WAS (its tissue, strain
+or treatment) is not this stage's question: a study reading holds those.
+
+**This resolver is never shown the probe**, and the two must never talk to each other. The tempting
+version reads the probe's output too ("the reads are 28+94, so the protocol paragraph saying 28+94 is
+corroborated"), and it is wrong twice. A probe-sighted reader would settle ties the probe itself
+created and log the wrong reason: nothing records corroboration, so the manifest would say "asserted"
+for a fact a byte decided, and the rung provenance would be a lie. And read lengths say nothing about
+which sample a file is: the join is made by names the record declares, and the probe has nothing to
+add to it. The chemistry hypothesis is the legitimate half of the same idea and goes the other way:
+prose steers which whitelist ``score`` checks first, and never enters the evidence matrix.
 
 **The join is code's, at every level.** run -> experiment -> sample -> project comes out of the
 record, by accession; record-run -> file-on-disk comes out of the run accession in the filename or
@@ -45,11 +53,6 @@ from ..models.records import ArchiveRecord, ArchiveRecordSet, SubmittedFile
 from ..models.resolve import MetadataResolution, ResolvedSample
 from .group import run_key
 
-#: What a document is ABOUT — set by code from which record produced it, never by the model and never
-#: from the filename. ``dataset`` is a document handed to us for the whole pile of files (a paper, a
-#: README); the others name one record.
-DocScope = str
-
 
 @dataclass(frozen=True)
 class DocumentSubject:
@@ -62,9 +65,9 @@ class DocumentSubject:
     """
 
     doc_sha256: str
-    scope: DocScope
-    #: The record's accession, when the scope names one. ``None`` for a dataset-level document.
-    subject: str | None = None
+    #: What the document is ABOUT, as :data:`seqforge.harvest.fields.DocScope` names it. ``dataset``
+    #: is one a human handed us; the guard asks nothing else of it.
+    scope: str
 
 
 def resolve_metadata(
@@ -76,8 +79,8 @@ def resolve_metadata(
 
     Takes ``FileIdentity`` rather than ``Observation`` on purpose. This stage needs a basename and a
     sha256 and nothing else, and being handed the probe's output would mean *promising* not to read
-    the signals in it. A signature that cannot see them keeps the promise structurally — see
-    :func:`_the_line` for why it is worth keeping.
+    the signals in it. A signature that cannot see them keeps the promise structurally — the module
+    docstring says why it is worth keeping.
     """
     samples, join_notes, blockers = _join(files, records)
     return MetadataResolution(
@@ -399,32 +402,10 @@ def _organism(records: ArchiveRecordSet | None) -> EvidencedTaxid | None:
 def _looks_like_accession(value: str) -> bool:
     import re
 
-    from ..models.base import Accession  # noqa: F401  (documents where the pattern is owned)
-
     return bool(re.match(r"^([SED]R[RXPS]\d+|GS[EM]\d+|PRJ[A-Z]{2}\d+|SAM[NED][A-Z]?\d+)$", value))
 
 
-def _the_line() -> str:
-    """Why this resolver is not shown the probe. Kept as prose because it is a design commitment.
-
-    The tempting version of this module reads the probe's output too — "the reads are 28+94, so the
-    protocol paragraph saying 28+94 is corroborated". Two reasons not to, and the second is the cheap
-    one:
-
-    1. A probe-sighted reader would settle ties the probe itself created, and log the wrong reason.
-       Nothing records corroboration, so the manifest would say "asserted" for a fact that a byte
-       actually decided, and the rung provenance would be a lie.
-    2. Read lengths say nothing about which sample a file is. The join is made by names the record
-       declares, and the probe has zero bits to contribute to it.
-
-    The chemistry hypothesis is the *legitimate* half of the same idea, and it goes the other way:
-    prose steers which whitelist ``score`` checks first, and never enters the evidence matrix.
-    """
-    return __doc__ or ""
-
-
 __all__ = [
-    "DocScope",
     "DocumentSubject",
     "resolve_metadata",
 ]
