@@ -57,11 +57,14 @@ class SampleView(_View):
 
 
 class AssayLabelView(_View):
-    """A chemistry spelled three ways — our key, EFO's CURIE, EFO's words."""
+    """A chemistry spelled three ways — our key, its assay's ontology id, and the ontology's words.
+
+    ``name`` is ``None`` when the ontology store was not there to ask.
+    """
 
     chemistry: str
     curie: str
-    name: str
+    name: str | None = None
 
 
 class ElementView(_View):

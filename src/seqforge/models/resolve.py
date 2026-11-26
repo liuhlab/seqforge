@@ -114,7 +114,7 @@ class MetadataResolution(BaseModel):
 
     samples: list[ResolvedSample] = Field(default_factory=list)
     project: ArchiveProject | None = None
-    #: The organism, when a record or a document declares it. ``None`` means nobody said, and the
+    #: The organism, when the records declare it. ``None`` means nobody said, and the
     #: caller must supply it — never a default, because a wrong taxid aligns cleanly against the wrong
     #: genome and nothing downstream ever asks again.
     organism: EvidencedTaxid | None = None

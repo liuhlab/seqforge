@@ -1,10 +1,10 @@
 # The standard set
 
-**Provisional.** The standard set is the 50 small GEO studies that later work is built and checked
-on: 17 on aging, 17 on neurodegeneration and 16 on *C. elegans*. A study's **bounds** say which GEO
-Series and which papers belong to it. Each study's bounds are in a file of their own, in a
-[written format](../../docs/formats/bounds.md) that a command checks. The format of the other
-files can still change.
+The standard set is the 50 small GEO studies that later work is built and checked on: 17 on
+aging, 17 on neurodegeneration and 16 on *C. elegans*. A study's **bounds** say which GEO Series
+and which papers belong to it. Each study's bounds are in a file of their own, in a
+[written format](../../docs/formats/bounds.md) that a command checks. A study's reading has a
+[written format](../../docs/formats/reading.md) of its own.
 
 This folder holds:
 

@@ -84,9 +84,9 @@ _Avoid_: estimate, preview, dry run (that is the flag that prints one), schedule
 `compose`'s output, which is a Snakemake plan
 
 **Collapse**:
-Reading several archive records through one **Document**: the runs of one sample become one
-document, and near-identical records at one level fold onto one *exemplar* whose non-shared spans
-are marked. What a collapse never does is drop a byte.
+Reading several archive records through one **Document**: near-identical records at one level
+fold onto one *exemplar* whose non-shared spans are marked. What a collapse never does is drop a
+byte.
 _Avoid_: dedup (that is byte-equality, and it misses records differing only in an accession), merge,
 cluster, summarize; and never for `reduce_dataset`'s partition into assays
 

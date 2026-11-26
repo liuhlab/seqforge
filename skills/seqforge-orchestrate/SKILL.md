@@ -113,8 +113,8 @@ you:
 | code | meaning | what you do |
 |---|---|---|
 | 0 | OK | continue |
-| 1 | ERROR (a bug or IO — e.g. no LLM provider) | report it; do not retry blindly |
-| 2 | USAGE (or a genome is missing) | fix the command; supply what it names |
+| 1 | ERROR (a bug or IO — e.g. a model reply that cannot be used) | report it; do not retry blindly |
+| 2 | USAGE (a bad option, no gateway address, a request the gateway rejects, or a missing genome) | fix the command; supply what it names |
 | 3 | BLOCKED — a `Blocker` | **stop.** Read `remedy`; it is actionable by contract |
 | 4 | NEEDS_HUMAN — open `Conflict`/question | **stop and ask the human.** Never pick |
 

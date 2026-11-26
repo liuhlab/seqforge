@@ -1,11 +1,16 @@
-"""``io`` — the only network + onlist surface (pooch-cached, sha256-verified).
+"""``io`` — the network and onlist surface (pooch-cached, sha256-verified).
 
-Milestone 0 ships the **onlist registry** (``resolve``'s Tier B needs it): width-generic packed
-whitelists, a hit-rate test (forward + reverse-complement + offset scan), set-intersection for the
-confusability check, and a synthetic-onlist path for the pilot fixtures. The remote surface is live:
-``resolve_accession`` (accession -> run inventory), ``peek`` (bounded range-read diagnostic), and
-``probe_remote`` (range-read -> :class:`~seqforge.models.observation.Observation`, so a library is
-fingerprinted straight from a URL with no local file, issue #39) — see :mod:`seqforge.io.remote`.
+- :mod:`.onlist` — the **onlist registry** (``resolve``'s Tier B needs it): width-generic packed
+  whitelists, a hit-rate test (forward + reverse-complement + offset scan), set-intersection for the
+  confusability check, and a synthetic-onlist path for the pilot fixtures.
+- :mod:`.remote` — ``resolve_accession`` (accession -> run inventory), ``peek`` (bounded range-read
+  diagnostic), and ``probe_remote`` (range-read -> :class:`~seqforge.models.observation.Observation`,
+  so a library is fingerprinted straight from a URL with no local file).
+- :mod:`.sra` — ``io probe-sra``: fingerprint an SRA run from its first spots, with no download.
+- :mod:`.archive` — ``io records``: what a public archive declares about a dataset, at all four
+  levels.
+- :mod:`.taxonomy` — an organism name -> its NCBI taxid, with a round-trip check.
+- :mod:`.benchmark` — pull and publish the benchmark corpus's fingerprint packages.
 """
 
 from __future__ import annotations
