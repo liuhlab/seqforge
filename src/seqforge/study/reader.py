@@ -48,6 +48,7 @@ from labllm import Held, Inputs, Model, Outcome, Role, Task, Unit, UnitKind
 from ..passes import SetupRefused
 from ..passes.kinds import Kind, register
 from . import sources as src
+from .closed import JEV
 from .folder import (
     BOUNDS,
     default_set_dir,
@@ -86,10 +87,10 @@ from .reading import FORMAT, check_reading
 KIND_NAME = "study-reading"
 #: Raise it when an instruction, a question, a guide or a rule of writing the reading changes.
 KIND_VERSION = "2026.11.5"
-#: The roles, and the models that fill them unless a pass names others.
+#: The roles, and the models that fill them unless a pass names others: the writer, and
+#: :data:`.closed.JEV`.
 WRITER_ROLE, JEV_ROLE = "writer", "jev"
 WRITER = Model("deepseek", "deepseek-flash", thinking=True, max_output_tokens=40000)
-JEV = Model("typesafe", "jev-1.14.0")
 #: A yes/no answer is yes when Jev's p(yes) is at least this.
 YES = 0.5
 #: A searched term is written only when Jev's pick of it has at least this probability.

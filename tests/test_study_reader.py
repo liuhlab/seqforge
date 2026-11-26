@@ -27,7 +27,7 @@ from typer.testing import CliRunner
 
 from seqforge.cli import app
 from seqforge.passes.kinds import KINDS
-from seqforge.study import reader
+from seqforge.study import closed, reader
 from seqforge.study.lists import guide_text
 from seqforge.study.ontology_search import StoreSearch
 from seqforge.study.reading import check_reading, read_reading
@@ -436,7 +436,7 @@ def read(
     kind = dataclasses.replace(reader.KIND, build=build, reads_store=False)
     fake = FakeGateway(
         lambda form: _writer(form) if form["route"] == "chat" else _jev(form),
-        prices={reader.JEV.name: Price(0.0, 0.0), reader.WRITER.name: Price(0.0, 0.0)},
+        prices={closed.JEV.name: Price(0.0, 0.0), reader.WRITER.name: Price(0.0, 0.0)},
     )
     with pytest.MonkeyPatch.context() as monkeypatch:
         monkeypatch.setitem(KINDS, kind.name, kind)

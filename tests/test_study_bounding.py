@@ -9,6 +9,7 @@ from __future__ import annotations
 import dataclasses
 import datetime as dt
 import json
+import re
 import threading
 import types
 from collections.abc import Iterable, Iterator
@@ -23,7 +24,7 @@ from typer.testing import CliRunner
 
 from seqforge.cli import app
 from seqforge.passes.kinds import KINDS
-from seqforge.study import bounding
+from seqforge.study import bounding, closed
 from seqforge.study.bounds import check_bounds
 
 runner = CliRunner()
@@ -54,10 +55,16 @@ LINKS = [
     ("GSE20", "PMID:401", "PubMed", "SOFT"),
     # GSE30: a paper that 51 other Series link too.
     *((f"GSE{n}", "PMID:500", "PubMed", "SOFT") for n in range(30, 82)),
+    # GSE90 and GSE91: one paper each. GSE92: two papers.
+    ("GSE90", "PMID:900", "PubMed", "SOFT"),
+    ("GSE91", "PMID:910", "PubMed", "SOFT"),
+    ("GSE92", "PMID:920", "PubMed", "SOFT"),
+    ("GSE92", "PMID:921", "PubMed", "SOFT"),
 ]
 
-#: Jev's p(yes) for each record, to the question as written and to it reversed.
-JEV = {
+#: Jev's p(yes) for each record, to the question as written and to it reversed; ``None`` leaves
+#: the question unanswered.
+JEV: dict[str, tuple[float | None, float | None]] = {
     "GSE11": (0.9, 0.1),
     "GSE12": (0.8, 0.2),
     "GSE13": (0.2, 0.9),
@@ -66,7 +73,13 @@ JEV = {
     "pmid:200": (0.1, 0.8),
     "pmid:400": (0.9, 0.1),
     "pmid:401": (0.7, 0.6),  # yes as written, and yes reversed: the two disagree
+    "pmid:900": (0.5, 0.8),  # neither as written
+    "pmid:910": (0.2, 0.5),  # neither reversed
+    "pmid:920": (0.9, None),  # no answer reversed
+    "pmid:921": (0.9, 0.1),
 }
+#: A record as a question names it.
+RECORD = re.compile(r"GSE\d+|pmid:\d+")
 
 
 class Store:
@@ -102,7 +115,8 @@ class Papers:
 
 
 def _jev() -> FakeGateway:
-    """Plays Jev. The job asks a study's questions as written first, then reversed."""
+    """Plays Jev, answering each question by the record it asks about. The job asks a study's
+    questions as written first, then reversed."""
     asked: set[str] = set()
     lock = threading.Lock()
 
@@ -111,18 +125,18 @@ def _jev() -> FakeGateway:
             reverse = form["description"] in asked
             asked.add(form["description"])
         out = {}
-        for name in form["questions"]:
-            kind, _, number = name.partition("_")
-            record = number if kind == "s" else f"pmid:{number}"
-            out[name] = {"noul": JEV[record][reverse]}
+        for name, question in form["questions"].items():
+            record = next(r for r in RECORD.findall(question["instructions"]) if r in JEV)
+            if (p := JEV[record][reverse]) is not None:
+                out[name] = {"noul": p}
         return out
 
-    return FakeGateway(answer, prices={bounding.JEV.name: Price(0.0, 0.0)})
+    return FakeGateway(answer, prices={closed.JEV.name: Price(0.0, 0.0)})
 
 
 @pytest.fixture(scope="module")
 def drawn(tmp_path_factory: pytest.TempPathFactory) -> Iterator[tuple[Path, dict[str, Any], Any]]:
-    """One pass over GSE10, GSE20 and GSE30, written twice beside the standard set's own files."""
+    """One pass over six studies, written twice beside the standard set's own files."""
     kind = dataclasses.replace(
         bounding.KIND,
         build=lambda store: bounding.bounds_kind(Store(), Papers()),
@@ -135,13 +149,13 @@ def drawn(tmp_path_factory: pytest.TempPathFactory) -> Iterator[tuple[Path, dict
             "seqforge.passes.gateway.make_gateway", lambda: fake.client(repo="seqforge")
         )
         monkeypatch.chdir(here)
-        (here / "keys.txt").write_text("GSE10\nGSE20\nGSE30\n")
+        (here / "keys.txt").write_text("GSE10\nGSE20\nGSE30\nGSE90\nGSE91\nGSE92\n")
         started = runner.invoke(
             app, ["pass", "start", kind.name, "--ceiling-usd", "1", "--keys", "keys.txt"]
         )
         assert started.exit_code == 0, started.output
         counts = json.loads(started.stdout)["counts"]
-        assert (counts["settled"], counts["unsettled"], counts["refused"]) == (1, 1, 1)
+        assert (counts["settled"], counts["unsettled"], counts["refused"]) == (1, 3, 2)
 
         set_dir = here / "set"
         (set_dir / "GSE10").mkdir(parents=True)
@@ -212,3 +226,32 @@ def test_a_group_of_more_than_fifty_series_is_refused_and_written_nowhere(
 
     assert said["studies"]["GSE30"] == {"ending": "refused", "reason": "group too large: 52 Series"}
     assert not (set_dir / "GSE30").exists()
+
+
+@pytest.mark.parametrize(("study", "paper"), [("GSE90", "pmid:900"), ("GSE91", "pmid:910")])
+def test_a_probability_of_exactly_one_half_on_either_asking_leaves_the_study_unsettled(
+    drawn: tuple[Path, dict[str, Any], Any], study: str, paper: str
+) -> None:
+    """Jev's p(yes) of exactly 0.5 is neither yes nor no, so the two askings do not lean the same
+    way: as written for GSE90's paper, reversed for GSE91's. The paper is not placed in the study,
+    and the file is still written."""
+    set_dir, said, _ = drawn
+    bounds = yaml.safe_load((set_dir / study / "job-bounds.yaml").read_text())
+
+    assert said["studies"][study]["ending"] == "unsettled"
+    assert paper in said["studies"][study]["checks_failed"][0]
+    assert bounds["papers"] == []
+
+
+def test_a_study_where_jev_leaves_a_question_unanswered_is_refused_and_written_nowhere(
+    drawn: tuple[Path, dict[str, Any], Any],
+) -> None:
+    """Jev answers one of GSE92's papers as written and leaves it out reversed: no record is
+    placed without both answers, so the study ends refused, naming the paper."""
+    set_dir, said, _ = drawn
+
+    assert said["studies"]["GSE92"] == {
+        "ending": "refused",
+        "reason": "Jev gave no answer about pmid:920",
+    }
+    assert not (set_dir / "GSE92").exists()
