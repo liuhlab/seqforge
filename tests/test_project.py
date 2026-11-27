@@ -9,13 +9,31 @@ The integration pair stays where it is. It needs the expensive ``two_chemistry_p
 is module-scoped and pinned with ``xdist_group`` precisely so it happens once; moving it here would
 build it twice. This file takes the session ``synth_10x_v3`` manifest and derives copies, so every
 test in it is sub-millisecond.
+
+A study named with ``--study`` is joined into the table through the compile verbs themselves:
+``project metadata`` over a manifest written by hand, and ``run`` once, for the manifest's hash.
 """
 
 from __future__ import annotations
 
-from conftest import SynthDataset
+import json
+from pathlib import Path
+from typing import Any
+
+import anndata as ad
+import numpy as np
+import pytest
+from scipy.sparse import csr_matrix
+from typer.testing import CliRunner
+
+from conftest import SynthDataset, write_fastq_gz
+from seqforge import kb
+from seqforge.cli import app
 from seqforge.models.dataset import DatasetManifest, SampleGroup
 from seqforge.project import format_tsv, project_index, sample_metadata_table
+from study_kit import JOINED, compiled, joined_study, material, quoted
+
+runner = CliRunner()
 
 
 def _assay(base: DatasetManifest, chemistry: str, sample_id: str, n_files: int) -> DatasetManifest:
@@ -95,3 +113,245 @@ def test_the_index_sorts_assays_by_chemistry_and_totals_their_samples() -> None:
     ]
     assert index["n_assays"] == 3
     assert index["n_samples"] == 6
+
+
+def _metadata(workspace: Path, study: Path) -> tuple[dict[str, Any], list[dict[str, str]]]:
+    """What ``project metadata --study`` says, and the sample table it writes, row by row."""
+    result = runner.invoke(
+        app, ["project", "metadata", "-C", str(workspace), "--study", str(study)]
+    )
+    assert result.exit_code == 0, result.output
+    lines = (workspace / "seqforge" / "sample_metadata.tsv").read_text().splitlines()
+    header = lines[0].split("\t")
+    rows = [dict(zip(header, line.split("\t"), strict=True)) for line in lines[1:]]
+    return json.loads(result.stdout), rows
+
+
+def _batch_on_two(reading: dict[str, Any]) -> None:
+    """A label of the study's own that two samples give alike and the other two do not give."""
+    for gsm in ("GSM1", "GSM3"):
+        reading["samples"][gsm]["batch"] = quoted("first")
+
+
+def _labels_named_like_columns(reading: dict[str, Any]) -> None:
+    """Labels of the study's own named as the hash column, a compile column, and its prefixed name."""
+    for label in ("reading_hash", "organism", "reading_organism"):
+        reading["samples"]["GSM1"][label] = quoted(label.upper())
+
+
+def _only_on_first(value: str) -> dict[str, str]:
+    return {"SAMN1": value, "SAMN3": "", "SAMN4": "", "SAMN6": ""}
+
+
+@pytest.mark.parametrize(
+    ("change", "extra"),
+    [
+        pytest.param(None, {}, id="the reading as written"),
+        pytest.param(
+            _batch_on_two,
+            {"batch": {"SAMN1": "first", "SAMN3": "first", "SAMN4": "", "SAMN6": ""}},
+            id="a label some samples lack varies",
+        ),
+        pytest.param(
+            _labels_named_like_columns,
+            {
+                "reading_reading_hash": _only_on_first("READING_HASH"),
+                "reading_organism": _only_on_first("ORGANISM"),
+                "reading_reading_organism": _only_on_first("READING_ORGANISM"),
+            },
+            id="a label's column takes no name another column has",
+        ),
+    ],
+)
+def test_a_named_study_joins_its_factors_and_varying_labels_into_the_sample_table(
+    tmp_path: Path, synth_10x_v3: SynthDataset, change: Any, extra: dict[str, dict[str, str]]
+) -> None:
+    """The reading owns what each sample was, and the compile joins it by BioSample accession: one
+    column per factor and per label that varies across the compiled samples, and the hash of the
+    reading the labels came from. A label the same for every sample tells no sample apart, so it
+    gets no column; one that some samples lack does tell them apart, so it gets one. A different
+    reading has a different hash, which is how a stale label shows."""
+    compiled(tmp_path, synth_10x_v3.manifest, list(JOINED.values()))
+    said, rows = _metadata(tmp_path, joined_study(tmp_path / "GSE1", change))
+    views = [tmp_path / "seqforge" / name for name in ("sample_metadata.tsv", "project.yaml")]
+    written = [path.stat().st_mtime_ns for path in views]
+
+    assert list(rows[0]) == [
+        *["sample_id", "accession", "assay", "organism", "n_files", "files"],
+        *["age", "genotype", "biosample", *extra, "reading_hash"],
+    ]
+    by_accession = {r["accession"]: r for r in rows}
+    assert {a: (r["age"], r["genotype"], r["biosample"]) for a, r in by_accession.items()} == {
+        "SAMN1": ("young", "wt", "B1"),
+        "SAMN3": ("middle", "wt", "B3"),
+        "SAMN4": ("old", "wt", "B4"),
+        "SAMN6": ("young", "ko", "B5"),
+    }
+    for column, values in extra.items():
+        assert {a: r[column] for a, r in by_accession.items()} == values
+    assert {r["reading_hash"] for r in rows} == {said["study"]["reading_hash"]}
+    assert said["study"]["warnings"] == []
+    # The same inputs again write nothing: a pipeline's labelling rule reads the table's mtime.
+    _metadata(tmp_path, tmp_path / "GSE1")
+    assert [path.stat().st_mtime_ns for path in views] == written
+
+    def another_age(reading: dict[str, Any]) -> None:
+        reading["samples"]["GSM3"]["age"]["text"] = "13 months"
+
+    again, _ = _metadata(tmp_path, joined_study(tmp_path / "GSE1-again", another_age))
+    assert again["study"]["reading_hash"] != said["study"]["reading_hash"]
+
+
+def _mouse(reading: dict[str, Any]) -> None:
+    reading["shared"]["species"] = {"text": "Mus musculus", "term": "NCBITaxon:10090"}
+    reading["shared"]["species"] |= {"quoted": [2], "p": 0.99}
+
+
+def _general_assay(reading: dict[str, Any]) -> None:
+    reading["shared"]["assay"]["term"] = "EFO:0008913"
+
+
+def _two_libraries_of_one_biosample(reading: dict[str, Any]) -> None:
+    """GSM2, the input made from GSM1's material, links the same BioSample as GSM1."""
+    reading["samples"]["GSM2"] = {"biosample_accession": "SAMN1", **material("B1")}
+
+
+@pytest.mark.parametrize(
+    ("accessions", "change", "under", "code", "subject"),
+    [
+        pytest.param(
+            [*JOINED.values(), "SAMN99"],
+            None,
+            None,
+            "SAMPLE_NOT_IN_READING",
+            "experiment.samples.s_SAMN99",
+            id="a manifest sample with no reading row",
+        ),
+        pytest.param(
+            ["SAMN1", "SAMN3", "SAMN4"],
+            None,
+            None,
+            "READING_SAMPLE_NOT_COMPILED",
+            "reading.samples.GSM6",
+            id="a reading row with no compiled sample",
+        ),
+        pytest.param(
+            list(JOINED.values()),
+            _mouse,
+            None,
+            "SPECIES_NOT_ORGANISM",
+            "reading.samples.GSM1.species",
+            id="species and organism of different taxids",
+        ),
+        pytest.param(
+            list(JOINED.values()),
+            _general_assay,
+            False,
+            "ASSAY_NOT_UNDER_READING",
+            "reading.samples.GSM1.assay",
+            id="a kit term outside the reading's assay term",
+        ),
+        pytest.param(
+            list(JOINED.values()),
+            _two_libraries_of_one_biosample,
+            None,
+            "BIOSAMPLE_IN_SEVERAL_ROWS",
+            "experiment.samples.s_SAMN1",
+            id="two reading rows of one BioSample",
+        ),
+    ],
+)
+def test_a_reading_that_disagrees_with_the_compile_warns_and_never_refuses(
+    tmp_path: Path,
+    synth_10x_v3: SynthDataset,
+    monkeypatch: pytest.MonkeyPatch,
+    accessions: list[str],
+    change: Any,
+    under: bool | None,
+    code: str,
+    subject: str,
+) -> None:
+    """Neither the manifest nor the reading observes the bytes, so where they disagree the verb
+    warns, exits 0 and still writes the table: a reading never blocks a compile. Whether a kit's
+    assay term is under the reading's is the ontology's to say, so the test gives that answer."""
+    if under is not None:
+        monkeypatch.setattr("seqforge.study.join.term_under", lambda term, ancestor: under)
+    compiled(tmp_path, synth_10x_v3.manifest, accessions)
+    said, rows = _metadata(tmp_path, joined_study(tmp_path / "GSE1", change))
+
+    warned = said["study"]["warnings"]
+    assert {w["code"] for w in warned} == {code}
+    assert subject in {w["subject"]["ref"] for w in warned}
+    assert len(rows) == len(accessions)
+    # A manifest sample a warning names is one the reading cannot label, so it carries no labels.
+    unlabelled = {w["subject"]["ref"].removeprefix("experiment.samples.") for w in warned}
+    assert all(not r["reading_hash"] for r in rows if r["sample_id"] in unlabelled)
+
+
+def test_a_named_study_leaves_the_manifest_and_its_hash_as_they_were(tmp_path: Path) -> None:
+    """The dataset is write-once, and the reading's labels are a view joined from the reading: a
+    compile run with ``--study`` writes the very manifest the same compile writes without one."""
+    reads = kb.generate_reads(kb.load_spec("bulk-rnaseq"), n=600, seed=0)
+    for key in ("R1", "R2"):
+        write_fastq_gz(tmp_path / f"s_{key}.fastq.gz", reads[key])
+    compile_ = [
+        "run",
+        *(str(tmp_path / f"s_{key}.fastq.gz") for key in ("R1", "R2")),
+        *["--organism", "559292", "--assembly", "sacCer3", "--annotation", "ensembl"],
+        *["--no-llm", "-C", str(tmp_path)],
+    ]
+
+    def manifest_hash() -> str:
+        manifest = tmp_path / "seqforge" / "manifest.yaml"
+        said = runner.invoke(app, ["manifest", "hash", str(manifest)])
+        assert said.exit_code == 0, said.output
+        return said.stdout
+
+    without = runner.invoke(app, compile_)
+    assert without.exit_code == 0, without.stdout
+    before = manifest_hash()
+    joined = runner.invoke(app, [*compile_, "--study", str(joined_study(tmp_path / "GSE1"))])
+    assert joined.exit_code == 0, joined.stdout
+
+    assert json.loads(joined.stdout)["stages"]["project"]["study"]["reading_hash"]
+    assert manifest_hash() == before
+
+
+def test_each_h5ad_carries_its_samples_labels_as_categorical_obs_and_the_readings_hash(
+    tmp_path: Path, synth_10x_v3: SynthDataset
+) -> None:
+    """The last rule of a droplet pipeline labels each count object from the sample table, through
+    the verb its ``shell:`` calls: one categorical ``obs`` column per label in the table, and the
+    hash of the reading they came from in ``uns``. A compile that named no study has no labels to
+    write, so its object is the one the packaging step wrote, byte for byte, and a hard link to it,
+    so a compile with no study keeps one copy of the matrices on disk as it did before labels."""
+    counts = tmp_path / "unlabelled.h5ad"
+    ad.AnnData(X=csr_matrix(np.eye(3, dtype=np.int32))).write_h5ad(counts)
+    table = tmp_path / "seqforge" / "sample_metadata.tsv"
+
+    def label(sample: str, out: Path) -> Path:
+        argv = ["io", "h5ad-labels", str(counts), "--sample", sample, "--table", str(table)]
+        result = runner.invoke(app, [*argv, "--out", str(out)])
+        assert result.exit_code == 0, result.output
+        return out
+
+    compiled(tmp_path, synth_10x_v3.manifest, list(JOINED.values()))
+    plain = runner.invoke(app, ["project", "metadata", "-C", str(tmp_path)])
+    assert plain.exit_code == 0, plain.output
+    kept = counts.read_bytes()
+    plain_h5ad = label("s_SAMN3", tmp_path / "s_SAMN3.h5ad")
+    assert plain_h5ad.read_bytes() == kept
+    assert plain_h5ad.samefile(counts)
+
+    # Labelled later at the same path, the deliverable is a file of its own and the kept object
+    # stays the one the packaging step wrote, so a label a later reading drops leaves no trace.
+    said, _ = _metadata(tmp_path, joined_study(tmp_path / "GSE1"))
+    labelled = ad.read_h5ad(label("s_SAMN3", plain_h5ad))
+    assert counts.read_bytes() == kept
+
+    obs: Any = labelled.obs
+    assert list(obs.columns) == ["age", "genotype", "biosample"]
+    assert all(str(obs[c].dtype) == "category" for c in obs.columns)
+    assert obs.iloc[0].to_dict() == {"age": "middle", "genotype": "wt", "biosample": "B3"}
+    assert labelled.uns["reading_hash"] == said["study"]["reading_hash"]
+    assert np.array_equal(csr_matrix(labelled.X).toarray(), np.eye(3, dtype=np.int32))

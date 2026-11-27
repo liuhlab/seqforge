@@ -7,23 +7,32 @@ from pathlib import Path
 
 import typer
 
-from ._common import _load_manifest
+from ._common import _load_manifest, _open_study
 from .root import project_app
+
+#: `--study`, as `project metadata` and `run` both take it.
+STUDY_HELP = (
+    "A study folder whose reading to join into sample_metadata.tsv by BioSample accession: one "
+    "column per factor and per label that varies, and reading_hash. Mismatches warn and exit 0; "
+    "the manifest is untouched. Nothing is joined without it."
+)
 
 
 @project_app.command("metadata")
 def project_metadata(
     workspace: Path = typer.Option(Path(), "-C", "--workspace", help="Root holding seqforge/."),
+    study: Path | None = typer.Option(None, "--study", help=STUDY_HELP),
 ) -> None:
     """Regenerate seqforge/sample_metadata.tsv + project.yaml from the per-assay manifest(s).
 
     Reads whatever manifests are already under seqforge/ — a single top-level manifest.yaml, or one
     per assay subdir — and unions their samples into the flat one-row-per-sample table + the assay
     index. Deterministic: same manifests in, same files out. `run` writes these automatically; this
-    verb rebuilds them (after editing a manifest, say) without recompiling.
+    verb rebuilds them (after editing a manifest, or naming a newer reading, say) without recompiling.
     """
     from ..project import discover_assays, write_project_views
 
+    folder = _open_study(study)
     assays = discover_assays(workspace)
     if not assays:
         typer.echo(json.dumps({"error": "no manifest.yaml found under seqforge/"}), err=True)
@@ -39,14 +48,12 @@ def project_metadata(
                 "manifest": str(manifest_path),
             }
         )
-    tsv_path, project_path = write_project_views(workspace, infos)
-    typer.echo(
-        json.dumps(
-            {
-                "sample_metadata": str(tsv_path),
-                "project": str(project_path),
-                "n_assays": len(infos),
-            },
-            indent=2,
-        )
-    )
+    tsv_path, project_path, joined = write_project_views(workspace, infos, study=folder)
+    said: dict[str, object] = {
+        "sample_metadata": str(tsv_path),
+        "project": str(project_path),
+        "n_assays": len(infos),
+    }
+    if joined is not None:
+        said["study"] = joined.payload()
+    typer.echo(json.dumps(said, indent=2))

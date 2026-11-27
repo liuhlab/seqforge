@@ -31,43 +31,11 @@ module, interface, depth, seam, adapter, leverage, locality — are fixed, and "
 - [Study](./src/seqforge/study/GLOSSARY.md) — covers `study/`: a study's bounds and its reading,
   and the fixed set of studies they are built on
 
-## Folders that two or more contexts share
-
-`io/` and `manifest/` hold the words of more than one context. Each module, or each function where a
-module is split, uses one context's words:
-
-- `io/` — Probe's words in `sra.py`, `benchmark.py`, and `peek` and `probe_remote` in `remote.py`.
-  Resolve's words in `archive.py`, `taxonomy.py`, and `resolve_accession` in `remote.py`. The Knowledge base's words in `onlist.py`.
-- `manifest/` — Resolve's words for the dataset manifest: `fill_manifest` in `fill.py` and
-  `validate_manifest` in `validate.py`. Compose's words for the recipe and for the hashes that pair
-  it with a manifest: `policy.py`, `instruct.py`, `hash.py`, `fill_processing` in `fill.py` and
-  `validate_processing` in `validate.py`.
-
-Every context shares the paths below, and none of them has words of its own:
-
-- `cli/` — one module per command group, each in the words of the package it fronts; the `io`
-  group has two, `io.py` for the network verbs and `workflows.py` for the steps a compiled pipeline
-  runs
-- `models/` — the Pydantic models that every stage exchanges
-- `hooks/` — the agent hook guards, which turn the rules into checks
-- `assets/` — the style tokens that the workspace report and the eval report share
-- `gateway.py` — the lab gateway's client, the ceiling check and the refusals for a setup a command
-  cannot use, which harvest, `run`, `eval run` and the passes share. Its words are liulab-llms's
-- `__init__.py` and `py.typed` at the top of the package
-
-The eval harness, `evals/` inside the package, has no glossary. It runs the stages of every context
-over the cases in the repo's top-level `evals/`, and its own words, such as case, tier and false
-accept, are explained in its code.
-
 ## The run engine's words
 
-`passes/` is not a context of its own. It starts passes of seqforge's unit kinds on the run engine,
-liulab-llms, whose [glossary](https://github.com/liuhlab/liulab-llms/blob/main/GLOSSARY.md) defines
-its words: Unit, Unit kind, Pass, Task, Settled, Unsettled, Refused, Dropped, Unfinished, Held,
-Inputs tag, Stamp, Review, Review queue, Gateway, Meter, Ceiling and Waiting call. Nothing here
-redefines them. A pass is never a *run*, *batch*, *job* or *round*. Harvest makes its model calls
-through the same Gateway and a Meter of its own; its **Exchange** is narrower than liulab-llms's, and
-the harvest glossary says how.
+`passes/` runs seqforge's unit kinds on liulab-llms, whose
+[glossary](https://github.com/liuhlab/liulab-llms/blob/main/GLOSSARY.md) defines the engine's words.
+Nothing here redefines them.
 
 ## Relationships
 

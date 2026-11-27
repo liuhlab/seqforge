@@ -16,11 +16,23 @@ metrics and neither tool's vocabulary is typed here either.
 
 from __future__ import annotations
 
+import os
+from pathlib import Path
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from ..models.blocker import ValidationWarning
 from ..workflows.metrics import Alert, PipelineStats
+
+
+def relative_path(path: Path, report_dir: Path) -> str:
+    """``path`` as the report's directory reaches it — the one form every path in the report takes.
+
+    Resolved on both sides, so a symlinked temp directory cannot make two spellings of one folder
+    look like a climb out of it; POSIX separators, so the JSON reads the same on every machine.
+    """
+    return Path(os.path.relpath(path.resolve(), report_dir.resolve())).as_posix()
 
 
 class _View(BaseModel):
@@ -187,8 +199,8 @@ class PlanView(_View):
 
     ``config`` is a flat list of ``(key, value)`` strings taken verbatim from the composed
     ``config.yaml``: the report never types STARsolo's fields, it shows whatever the composer emitted.
-    The ``*_rel`` paths are workspace-relative links to the deliverables, or ``None`` when this assay
-    reached the IR but was never composed.
+    The ``*_rel`` paths point at the deliverables from the report's own directory, or are ``None``
+    when this assay reached the IR but was never composed.
 
     ``quantification_kind`` is the one exception to "everything here is a display string", and it
     exists because the stage diagram has to *branch*. It used to branch on the caption in ``fields``
@@ -252,6 +264,18 @@ class ArchiveProjectView(_View):
     abstract: str | None = None
 
 
+class H5adPointer(_View):
+    """One ``.h5ad`` a finished pipeline left on disk — the matrices stay there, and this points.
+
+    ``path`` is relative to the directory the report was written into, so it holds wherever ``-o``
+    put the report. ``sample`` is the sample the file belongs to, or ``None`` for a **Fan-in
+    artifact**, which has no sample in its path because it holds every one.
+    """
+
+    path: str
+    sample: str | None = None
+
+
 class ConclusionView(_View):
     """How this assay's compile ended — derived honestly from which artifacts are on disk.
 
@@ -303,6 +327,10 @@ class AssayReport(_View):
     #: and not inside it for the reason that one is beside `conclusion`: the stats are what the
     #: pipeline reported, an alert is a judgement about a decision, and one judgement is one envelope.
     alerts: list[Alert] = Field(default_factory=list)
+    #: Every ``.h5ad`` the pipeline wrote, found on disk rather than predicted: a pointer to a file
+    #: that is not there would send a program to nothing. Empty before the pipeline runs, and for
+    #: the bulk and ATAC pipelines, which write no ``.h5ad``.
+    h5ad: list[H5adPointer] = Field(default_factory=list)
     provenance: list[tuple[str, str]] = Field(default_factory=list)
     #: True iff archive records were joined (the samples have a declared source).
     has_records: bool = False
@@ -331,17 +359,266 @@ class AssayReport(_View):
         return self.subdir or (self.chemistry.value[0] if self.chemistry.value else "assay")
 
 
+class WorkspaceReport(_View):
+    """One compile workspace the report read: where it is, and its assays.
+
+    ``path`` is the workspace root **relative to the report's own directory**, as every path in
+    ``report.json`` is, so a program holding the JSON finds the manifest and the pipeline without
+    knowing where the report was written or how a workspace is laid out.
+    """
+
+    name: str
+    path: str
+    assays: list[AssayReport] = Field(default_factory=list)
+    #: The hash of the reading this workspace's sample table joined, ``None`` when it joined none.
+    reading_hash: str | None = None
+
+
+#: The caps of the Study tab. One rule for every section: past its cap, a section shows its first
+#: part, says how much it hides, and keeps the rest one click away, and each count it hides is a
+#: field of ``report.json``. The bounds graph draws this many kept records on each side, and as many
+#: left out, and lists the rest of the side under one "+k more" node.
+GRAPH_KEPT_CAP = 8
+GRAPH_LEFT_OUT_CAP = 8
+#: A two-factor cross-table with more columns than this falls back to the grouped list.
+CROSS_COLUMNS_CAP = 12
+#: The grouped list shows this many rows, then "show all".
+GROUPED_ROWS_CAP = 20
+#: A sample table past this many samples first folds the rows the same on every one of its labels
+#: into one row, then pages the rows by this many.
+SAMPLE_ROWS_CAP = 50
+#: A value or a quote longer than this is cut, with the full text on click.
+TEXT_CAP = 80
+
+
+class Cut(_View):
+    """How much of one capped section shows: ``shown`` items first, and ``hidden`` behind a click."""
+
+    shown: int
+    hidden: int = 0
+
+    @classmethod
+    def capped(cls, n: int, cap: int) -> Cut:
+        """``n`` items under ``cap``: the first ``cap`` shown, and the rest hidden."""
+        return cls(shown=min(n, cap), hidden=max(n - cap, 0))
+
+
+class PassageView(_View):
+    """One quote of a study file under its number, and where it was read.
+
+    ``source`` is the record and its field, or the paper and its section, joined for a reader.
+    ``hidden_chars`` is how much of the quote is past the cap, cut on the page until a click.
+    """
+
+    number: int
+    source: str
+    quote: str
+    hidden_chars: int = 0
+
+
+class BoundsRecord(_View):
+    """One record the bounds placed: a GEO Series or a paper, kept or left out, and why.
+
+    ``backing`` is the claim's backing mark. It is ``None`` only for a kept paper, which a bounds
+    file lists with no claim of its own. ``reason`` is what an inferred claim says or an unknown
+    claim's note, and ``reason_passages`` are the bounds file's passages the claim is quoted from or
+    rests on. ``superseries`` is the SuperSeries a sub-Series belongs to. Only the standard set's
+    study file says which Series that is, so it is ``None`` for any other folder. ``passages`` are
+    the reading's passages quoted from this record, empty when the study has no reading. ``title``
+    is the record's title as the bounds file copied it, ``None`` for a file drawn before titles were
+    copied, whose records go by their ids alone. ``drawn`` is false for a record past its side's
+    cap, which the graph lists under the side's "+k more" node instead of drawing.
+    """
+
+    id: str
+    kind: Literal["series", "paper"]
+    kept: bool
+    drawn: bool = True
+    title: str | None = None
+    backing: Literal["quoted", "inferred", "unknown"] | None = None
+    reason: str | None = None
+    reason_passages: list[PassageView] = Field(default_factory=list)
+    p: float | None = None
+    superseries: str | None = None
+    passages: list[PassageView] = Field(default_factory=list)
+
+
+class StudyCell(_View):
+    """One label of one sample, as the reading says it and as a sample table shows it.
+
+    ``value`` is what the claim says, without its level: its made-up id, its text, its number or
+    its term. It is ``None`` for a gap, which ``backing`` names as unknown or na. ``level`` is the
+    factor level the claim names, ``None`` for a claim outside its factor's levels and for every
+    label that is no factor. ``note`` is how an inferred claim was worked out, or the gap's note.
+    ``passages`` are the reading's passages the claim is quoted from, or rests on when it is not
+    quoted, and ``against`` those that speak against it, each by its number in
+    :attr:`StudyReport.passages`. ``inherited`` is true for a claim the sample takes from
+    ``shared``. ``hidden_chars`` is how much of the value is past the cap, cut on the page.
+    """
+
+    value: str | None = None
+    hidden_chars: int = 0
+    term: list[str] = Field(default_factory=list)
+    level: str | None = None
+    backing: Literal["quoted", "inferred", "unknown", "na"]
+    note: str | None = None
+    p: float | None = None
+    inherited: bool = False
+    passages: list[int] = Field(default_factory=list)
+    against: list[int] = Field(default_factory=list)
+
+
+class StudySample(_View):
+    """One sample of the reading: its GEO Sample, the BioSample its record links, its claims."""
+
+    sample: str
+    biosample_accession: str | None = None
+    #: The path of each workspace whose manifest holds this sample's BioSample accession, as
+    #: :attr:`WorkspaceReport.path` gives it; empty when no workspace the report read compiled it.
+    compiled_in: list[str] = Field(default_factory=list)
+    #: Every label the sample has once the shared claims are applied, by label.
+    cells: dict[str, StudyCell] = Field(default_factory=dict)
+
+
+class StudyFactor(_View):
+    """A label the study varied on purpose: its levels in order, its baseline, and its claim's p."""
+
+    label: str
+    levels: list[str]
+    baseline: str | None = None
+    ordered: bool = False
+    p: float | None = None
+
+
+class DesignCount(_View):
+    """The samples of one design group under one assay, or under every assay when ``assay`` is None."""
+
+    assay: str | None = None
+    samples: list[str] = Field(default_factory=list)
+
+
+class DesignGroup(_View):
+    """One combination of factor levels and its samples.
+
+    ``levels`` is aligned to :attr:`StudyReport.factors`, ``None`` where the samples are at no level
+    of that factor. ``counts`` holds one entry per assay that has a sample here, and is empty for a
+    cross-table cell no sample is in.
+    """
+
+    levels: list[str | None] = Field(default_factory=list)
+    counts: list[DesignCount] = Field(default_factory=list)
+
+
+class DesignTable(_View):
+    """The minimum design table: how many samples are at each combination of factor levels.
+
+    ``cross`` for two factors: ``rows`` are the first factor's levels and ``columns`` the second's,
+    each with ``None`` after them when a sample is at no level, and ``groups`` holds every pair,
+    row by row. ``grouped`` otherwise: ``rows`` and ``columns`` are empty, and ``groups`` holds one
+    entry per combination the samples take, in the factors' level order. ``assays`` are the assays
+    the counts are split by, empty when the study has one.
+
+    Two factors whose cross-table would be wider than its cap fall back to the grouped list, and
+    ``cross_columns`` says how many columns it would have had; it is ``None`` otherwise. ``cut`` is
+    how many of a grouped list's rows show before "show all", ``None`` for a cross-table.
+    """
+
+    kind: Literal["cross", "grouped"]
+    rows: list[str | None] = Field(default_factory=list)
+    columns: list[str | None] = Field(default_factory=list)
+    groups: list[DesignGroup] = Field(default_factory=list)
+    assays: list[str] = Field(default_factory=list)
+    cross_columns: int | None = None
+    cut: Cut | None = None
+
+
+class SameForAll(_View):
+    """A label whose claim is the same for every sample, folded into one line: the label and it."""
+
+    label: str
+    cell: StudyCell
+
+
+class TopicTable(_View):
+    """One sample table: the labels of one topic, those that vary as columns, the rest folded.
+
+    ``labels`` is every label of the topic the reading has, factors aside: a factor is a column of
+    every topic table, at the left. ``varying`` are the labels whose claims differ between samples,
+    the table's columns in order, and ``same`` the labels folded into one "same for all" line.
+
+    ``rows`` are the table's rows, in the order of :attr:`StudyReport.samples`, and empty when no
+    label varies. Each row is one sample, until the study has more samples than the cap: then the
+    samples whose row is the same on every factor and every varying label, and that the same
+    workspaces compiled, share one row, shown as its first sample "× n", and ``folded`` counts the
+    samples a row holds beside its first. ``cut``
+    is how many rows the first page shows, and how many are on the pages after it.
+    """
+
+    topic: str
+    labels: list[str] = Field(default_factory=list)
+    varying: list[str] = Field(default_factory=list)
+    same: list[SameForAll] = Field(default_factory=list)
+    rows: list[list[str]] = Field(default_factory=list)
+    folded: int = 0
+    cut: Cut = Field(default_factory=lambda: Cut(shown=0))
+
+
+class StudyReport(_View):
+    """The study folder the report read: its bounds, its design and what each sample was.
+
+    ``path`` is the folder relative to the report's own directory, as every path here is: ``.``
+    when the report was written into the study folder. ``reason`` is the bounds file's one line on
+    why these records are one study. ``records`` holds every record the bounds placed, kept and
+    left out, in the order the bounds file writes them, and ``graph`` how many of each side's the
+    graph draws and how many it lists under the side's "+k more" node, by the records' kind. The
+    rest is the reading's, and empty, with ``design`` ``None``, when the study has none: ``samples``
+    in the design's order, ``factors`` in the reading's, ``topics`` in the label table's, and
+    ``passages`` the reading's, which a cell names by number.
+    """
+
+    study: str
+    path: str
+    reason: str
+    records: list[BoundsRecord] = Field(default_factory=list)
+    graph: dict[Literal["series", "paper"], Cut] = Field(default_factory=dict)
+    has_reading: bool = False
+    #: The hash of the folder's reading as it is now, ``None`` when the study has no reading.
+    reading_hash: str | None = None
+    passages: list[PassageView] = Field(default_factory=list)
+    factors: list[StudyFactor] = Field(default_factory=list)
+    samples: list[StudySample] = Field(default_factory=list)
+    design: DesignTable | None = None
+    topics: list[TopicTable] = Field(default_factory=list)
+
+
 class ProjectReport(_View):
-    """Everything the report renders: one or more assays under a single workspace.
+    """Everything the report renders, and exactly what ``report.json`` holds.
+
+    The page is built from this tree *after* it has been through JSON, and it embeds the same JSON,
+    so the file a program reads and the page a person reads carry one set of data. The top level is
+    a list of workspaces rather than one workspace's fields because a report is not bound to one
+    compile: a study read before anything was compiled, and one compiled across several workspaces,
+    are the same document with zero or several entries here and ``study`` beside them.
 
     ``generated_at`` is injectable (default ``None``) so a test can pin it and assert two renders are
     byte-identical; when ``None`` the page simply omits a timestamp.
     """
 
-    workspace_name: str
     report_version: str
     generated_at: str | None = None
-    assays: list[AssayReport] = Field(default_factory=list)
+    workspaces: list[WorkspaceReport] = Field(default_factory=list)
+    #: The study folder ``--study`` named, or ``None`` when the report read none.
+    study: StudyReport | None = None
+    #: What the report found out of step between the parts it read. ``READING_STALE``: a
+    #: workspace joined a reading other than the study folder's current one, so the labels in its
+    #: sample table and ``.h5ad`` files are older than the Study tab. Advisory, as the join's own
+    #: warnings are: the report renders either way.
+    warnings: list[ValidationWarning] = Field(default_factory=list)
+
+    @property
+    def assays(self) -> list[AssayReport]:
+        """Every assay in the report, workspace by workspace, in the order they were read."""
+        return [a for ws in self.workspaces for a in ws.assays]
 
     @property
     def is_multi_assay(self) -> bool:
@@ -379,7 +656,27 @@ __all__ = [  # noqa: RUF022 - grouped by concept under comments, not alphabetica
     "ArtifactEmbed",
     "PipelineStage",
     "ArchiveProjectView",
+    "H5adPointer",
     "ConclusionView",
     "AssayReport",
+    "WorkspaceReport",
+    "GRAPH_KEPT_CAP",
+    "GRAPH_LEFT_OUT_CAP",
+    "CROSS_COLUMNS_CAP",
+    "GROUPED_ROWS_CAP",
+    "SAMPLE_ROWS_CAP",
+    "TEXT_CAP",
+    "Cut",
+    "PassageView",
+    "BoundsRecord",
+    "StudyCell",
+    "StudySample",
+    "StudyFactor",
+    "DesignCount",
+    "DesignGroup",
+    "DesignTable",
+    "SameForAll",
+    "TopicTable",
+    "StudyReport",
     "ProjectReport",
 ]

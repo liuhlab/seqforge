@@ -19,8 +19,8 @@ the folder that `pass start --studies <folder>` names. The chain is built and ch
 **standard set**, a fixed list of 50 small GEO studies in `evals/standard-set/`, which is the
 folder when `--studies` names none.
 
-The work is planned in stages, and one step is not built yet: stage 6 runs the whole chain once
-with no person involved. That step already has its name, its input and its output below.
+The work is planned in stages, and one step is not done yet: stage 6 runs the whole chain once
+with no person involved. Its command is built, and its input and its output are below.
 
 ## The steps in order
 
@@ -31,7 +31,7 @@ with no person involved. That step already has its name, its input and its outpu
 | 3 | Read the study | `seqforge pass start study-reading`, then `seqforge study write-reading` | The study's `bounds.yaml`, its records, and its papers in full or by their abstracts | `reading.yaml` | Built |
 | 4 | Check the reading | `seqforge study check-reading <file>` | One `reading.yaml` | No file. It prints whether the file is accepted | Built |
 | 5 | Derive the relations | `seqforge study relations <reading.yaml>` | One `reading.yaml` | No file. It prints the relations | Built |
-| 6 | Run the chain unattended | Command not named yet | About 2,000 GEO Series | For each study, a `bounds.yaml` and a `reading.yaml`, or the reason the study stopped | Not built yet. Stage 6 builds it |
+| 6 | Run the chain unattended | `seqforge study run --studies <folder> --ceiling-usd <USD>` | About 2,000 GEO Series | For each study, a `bounds.yaml` and a `reading.yaml`, or the reason the study stopped | The command is built. The run over 2,000 Series is not done yet |
 
 Steps 1 to 5 handle one study. Step 6 is the same chain, run over many studies at once.
 
@@ -250,7 +250,17 @@ The command prints five kinds of relation:
 
 ## 6. Run the chain unattended
 
-**Not built yet.** Stage 6 builds this step, and its command is not named yet.
+`seqforge study run` runs steps 1 and 3 in order over the studies of one folder: the bounding
+pass, `study write-bounds`, the reading pass, then `study write-reading`. So the reading pass reads
+the bounds that were just written. Without `--keys`, it runs the studies that the folder's
+`pick.yaml` lists. One `--ceiling-usd` covers both passes: bounding spends first, and reading gets
+what is left. The first step that stops ends the command, with the exit code of that step. Run the
+same command again to resume. Every unit that was already answered replays from the gateway's
+cache at no cost.
+
+```bash
+seqforge study run --studies <folder> --ceiling-usd 5
+```
 
 This step runs the chain once over about 2,000 GEO Series, which is about 1% of the sequencing
 Series in GEO. The Series are drawn from liulab-data's store, and the 50 studies of the standard

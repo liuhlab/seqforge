@@ -18,7 +18,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
-from collections.abc import Iterable, Mapping
+from collections.abc import Iterable, Iterator, Mapping
 from pathlib import Path
 
 from ..models.observation import Observation
@@ -73,8 +73,12 @@ class Cache:
         # observations once even for md5-addressed files, whose content-address does not move with N.
         return self.root / "observations" / PROBE_VERSION / f"{sha}.json"
 
+    @property
+    def _resolve_dir(self) -> Path:
+        return self.root / "candidates"
+
     def _resolve_path(self, ds_id: str) -> Path:
-        return self.root / "candidates" / f"{ds_id}.json"
+        return self._resolve_dir / f"{ds_id}.json"
 
     def _matrices_path(self, ds_id: str) -> Path:
         # The evidence matrix {tech -> role -> file_sha -> cell}, sidecar to the candidates it explains.
@@ -139,6 +143,20 @@ class Cache:
         covariant.
         """
         self._write(self._matrices_path(ds_id), json.dumps(matrices, indent=2))
+
+    def resolve_results(self) -> Iterator[tuple[ResolveResult, dict[str, object] | None]]:
+        """Every readable resolve result in the cache, with its evidence matrix or ``None``.
+
+        In dataset-id order, so a caller that takes the first match gets the same one on any
+        filesystem. A corrupt result is skipped, as :meth:`read_resolve` reads it. This is how a
+        reader outside ``resolve/`` (the report) walks the cache without spelling its folder names.
+        """
+        if not self._resolve_dir.is_dir():
+            return
+        for path in sorted(self._resolve_dir.glob("*.json")):
+            result = self.read_resolve(path.stem)
+            if result is not None:
+                yield result, self.read_matrices(path.stem)
 
     def _resume_path(self, key: str) -> Path:
         return self.root / "resume" / f"{key}.json"

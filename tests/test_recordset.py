@@ -426,6 +426,29 @@ def test_an_archive_cache_still_loads_unchanged(tmp_path: Path) -> None:
     assert load_record_set(path) == original
 
 
+def test_a_record_set_saved_in_a_workspace_reads_back_by_its_project(tmp_path: Path) -> None:
+    """The code that saves a workspace's record files is the code that finds them again, so a
+    reader in another package (the report) never spells ``seqforge/records/``: the module that
+    writes an artifact owns reading it. A set saved under the GEO id the user passed still answers
+    for the BioProject the manifest resolved it to, and an exact name wins when one is on disk."""
+    from seqforge.recordset import save_record_set, saved_record_set
+
+    def one_project(query: str, accession: str) -> ArchiveRecordSet:
+        return ArchiveRecordSet(
+            source=SOURCE,
+            query=query,
+            records=[ArchiveRecord(level="project", accession=accession)],
+        )
+
+    geo = one_project("GSE234962", "PRJNA983807")
+    save_record_set(tmp_path, "GSE234962", geo)
+    assert saved_record_set(tmp_path, "PRJNA983807") == geo
+
+    other = one_project("PRJNA1027859", "PRJNA1027859")
+    save_record_set(tmp_path, "PRJNA1027859", other)
+    assert saved_record_set(tmp_path, "PRJNA1027859") == other
+
+
 def test_an_archive_cache_carrying_an_unknown_key_still_loads(tmp_path: Path) -> None:
     """Tolerance, deliberately kept: these files are ours, already on disk, and cannot be re-typed."""
     payload = {

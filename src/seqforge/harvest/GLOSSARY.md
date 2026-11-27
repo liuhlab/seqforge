@@ -1,10 +1,10 @@
 # Harvest
 
 Prose — the files you handed us and the archive records rendered as text — and the claims read out
-of it. This context covers `harvest/`: the model proposes here and nowhere else, code checks every
-claim against the bytes of the document it came from, and what a run spent at the model seam is
-itself part of the vocabulary. The gateway, meter, cache and record are liulab-llms's words, defined
-in its `GLOSSARY.md`.
+of it. This context covers `harvest/`: a model proposes claims, code checks every claim against the
+bytes of the document it came from, and what a run spent at the model seam is itself part of the
+vocabulary. The gateway, meter, cache and record are liulab-llms's words, defined in its
+`GLOSSARY.md`.
 
 Words every context shares — **Evidenced**, **Basis**, **Asserted**, **Declared** and the rest — are
 defined once in the repo-root `GLOSSARY-MAP.md`.

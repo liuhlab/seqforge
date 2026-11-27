@@ -31,11 +31,12 @@ from ..manifest import (
 )
 from ..pipeline import CompiledPipeline
 from ..probe import DEFAULT_MAX_BYTES, DEFAULT_MAX_READS
-from ..workspace import logs_dir, readable, records_dir, state_dir
-from ._common import _auto_cpus, _load_manifest
+from ..workspace import readable, state_dir
+from ._common import _auto_cpus, _load_manifest, _open_study
 from .harvest import PdfBackendChoice, _harvest_extract_pipeline
 from .manifest import _fill_manifest_pipeline
 from .processing import _instructions_from
+from .project import STUDY_HELP
 from .root import app
 
 if TYPE_CHECKING:
@@ -75,7 +76,7 @@ def _run_records_stage(
     from ..io import IO_VERSION
     from ..io.archive import SOURCE, fetch_records, stored_records
     from ..models.records import ArchiveRecordSet
-    from ..recordset import load_record_set
+    from ..recordset import load_record_set, save_record_set
 
     if records_path is not None:
         # The one loader: a cache `io records` wrote and a set a human typed are the same input here,
@@ -84,17 +85,13 @@ def _run_records_stage(
         return load_record_set(records_path), records_path
     if not accession:
         return None, None
-    outdir = records_dir(workspace)
-    outdir.mkdir(parents=True, exist_ok=True)
     merged: list[Any] = []
     per_accession: list[Path] = []
     # Offline, the lab's store is the only source: a deposit it lacks is refused, never fetched.
     fetch = stored_records if offline else fetch_records
     for acc in accession:
         record_set = fetch(acc)
-        target = outdir / f"{acc}.json"
-        target.write_text(json.dumps(record_set.model_dump(mode="json"), indent=2))
-        per_accession.append(target)
+        per_accession.append(save_record_set(workspace, acc, record_set))
         merged.extend(record_set.records)
     # Every record below came back from `fetch_records` a moment ago, so the set re-assembled around
     # them was written by this transcriber and says so — an unstamped set means a cache older than
@@ -115,9 +112,7 @@ def _run_records_stage(
         io_version=IO_VERSION,
     )
     tag = hashlib.sha256(", ".join(sorted(accession)).encode()).hexdigest()
-    combined_path = outdir / (readable("combined", tag) + ".json")
-    combined_path.write_text(json.dumps(combined.model_dump(mode="json"), indent=2))
-    return combined, combined_path
+    return combined, save_record_set(workspace, readable("combined", tag), combined)
 
 
 def _nested_field(block: Mapping[str, object], key: str, field: str) -> object:
@@ -373,6 +368,7 @@ def run_cmd(
         "preflight); every touch stays bounded by this AND --max-bytes.",
     ),
     max_bytes: int = typer.Option(DEFAULT_MAX_BYTES, help="Bounded decompressed-byte cap."),
+    study: Path | None = typer.Option(None, "--study", help=STUDY_HELP),
     workspace: Path = typer.Option(Path(), "-C", "--workspace", help="Root for seqforge/ state."),
 ) -> None:
     """One pass: FASTQ + metadata -> manifest.yaml AND a runnable Snakefile.
@@ -397,6 +393,9 @@ def run_cmd(
     except SetupRefused as exc:
         typer.echo(json.dumps({"error": "bad_option", "detail": str(exc)}, indent=2), err=True)
         raise typer.Exit(2) from exc
+    # The study chain is never started here: `--study` names a folder it already wrote, checked
+    # before any stage runs, and its reading is joined into the sample table at the end.
+    study_folder = _open_study(study)
 
     # A fingerprint package stands in for the raw FASTQs: unpack it, take its slices as `files`, and
     # carry a pinned probe map so resolve reproduces the full-file verdict (and hash) from the slices.
@@ -494,7 +493,9 @@ def run_cmd(
                 "prose claims failed span-verification and were dropped (see 'rejected'); the manifest "
                 "was built from the accepted claims and the bytes"
             )
-        assertions_path = logs_dir(workspace) / "assertions.json"
+        from ..harvest.artifacts import assertions_path as harvest_assertions
+
+        assertions_path = harvest_assertions(workspace)
 
     # 3) The IR: what the data IS. Probe + resolve + metadata, both resolvers, both able to refuse.
     fill = _fill_manifest_pipeline(
@@ -569,12 +570,15 @@ def run_cmd(
     # downstream compose failed. See seqforge/project.py.
     from ..project import write_project_views
 
-    tsv_path, project_path = write_project_views(workspace, assay_infos)
-    stages["project"] = {
+    tsv_path, project_path, joined = write_project_views(workspace, assay_infos, study=study_folder)
+    project_stage: dict[str, object] = {
         "sample_metadata": str(tsv_path),
         "project": str(project_path),
         "n_assays": len(assay_infos),
     }
+    if joined is not None:
+        project_stage["study"] = joined.payload()
+    stages["project"] = project_stage
 
     # Best-effort: drop a single-file HTML glance report beside the artifacts, so a headless run leaves
     # a human-readable summary on disk. The report is a VIEW, never a gate — a render failure must not
@@ -585,14 +589,16 @@ def run_cmd(
     # compiler decided. Without it, re-running `run` over a pipeline relocated by `snakemake
     # --directory` re-rendered the page claiming the pipeline had never been run.
     try:
-        from ..report import collect_report, render_html
+        from ..report import collect_report, write_report
         from ..workspace import report_html_path
 
         report_model = collect_report(workspace, results_dir=results)
-        html_path = report_html_path(workspace)
-        html_path.parent.mkdir(parents=True, exist_ok=True)
-        html_path.write_text(render_html(report_model), encoding="utf-8")
-        stages["report"] = {"report": str(html_path), "assays": len(report_model.assays)}
+        written = write_report(report_model, report_html_path(workspace))
+        stages["report"] = {
+            "report": str(written.html),
+            "json": str(written.json),
+            "assays": len(report_model.assays),
+        }
     except Exception as exc:  # a glance layer must never fail a compile
         stages["report"] = {"skipped": "render_failed", "detail": str(exc)}
 

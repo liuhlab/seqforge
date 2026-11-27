@@ -30,16 +30,25 @@ from ..workflows.metrics import (
 )
 from .flow import FlowStep, flow_steps
 from .model import (
+    SAMPLE_ROWS_CAP,
+    TEXT_CAP,
     ArtifactEmbed,
     AssayReport,
+    BoundsRecord,
     DecisionField,
+    DesignGroup,
     MatrixCellView,
     MatrixView,
+    PassageView,
     PipelineStage,
     PlanView,
     ProjectReport,
     ReadView,
     SampleView,
+    StudyCell,
+    StudyFactor,
+    StudyReport,
+    TopicTable,
 )
 
 #: Role/region ids the read layout uses → plain words a wet-lab reader recognises. A read is described
@@ -147,11 +156,19 @@ def _panel(title: str, body: str, *, sub: str = "") -> str:
 _SAMPLE_PAGE_SIZES = (25, 50, 100)
 
 
-def _sample_pager(body_id: str, n_samples: int) -> str:
+def _sample_pager(
+    body_id: str,
+    n_samples: int,
+    *,
+    sizes: tuple[int, ...] = _SAMPLE_PAGE_SIZES,
+    unit: str = "samples",
+) -> str:
     """The bar under a table of samples: which rows are showing, how many at a time, and prev/next.
 
     Both grids that hold one row per sample use it — Samples and Results — off the one ``data-smp``
-    marker that says where a sample starts, so paging a second table cost the script nothing.
+    marker that says where a sample starts, so paging a second table cost the script nothing. The
+    Study tab's sample tables page by their cap alone, ``sizes``, and count their rows as ``unit``,
+    because a row there can hold several samples.
 
     Rendered **hidden**, and ``report.js`` is what unhides it. A control that pages a table is a lie
     without the script that pages it, so a page opened with JS off shows every row and no bar — which
@@ -163,20 +180,19 @@ def _sample_pager(body_id: str, n_samples: int) -> str:
     The script finds every part by ``data-*`` and never by a class, so restyling the bar cannot
     silently unhook it.
     """
-    if n_samples <= _SAMPLE_PAGE_SIZES[0]:
+    if n_samples <= sizes[0]:
         return ""
-    sizes = "".join(
-        f'<option value="{n}">{n}</option>' for n in _SAMPLE_PAGE_SIZES if n < n_samples
-    )
+    options = "".join(f'<option value="{n}">{n}</option>' for n in sizes if n < n_samples)
     return (
         '<nav class="mt-3 flex flex-wrap items-center gap-3 text-sm text-dim" hidden '
-        f'data-pager="{esc(body_id)}" aria-label="Sample table pages">'
+        f'data-pager="{esc(body_id)}" data-pager-unit="{esc(unit)}" '
+        'aria-label="Sample table pages">'
         # `role="status"` and not `aria-live` alone: a reader who cannot see the table change still
         # hears which rows are now under them.
         '<span role="status" data-pager-status></span>'
         '<span class="flex-1"></span>'
         '<label class="flex items-center gap-2">Rows'
-        f'<select class="sf-select" data-pager-size>{sizes}'
+        f'<select class="sf-select" data-pager-size>{options}'
         f'<option value="0">All {n_samples}</option></select></label>'
         '<span class="flex items-center gap-2" data-pager-nav>'
         '<button type="button" class="sf-icon-btn disabled:cursor-default disabled:opacity-40" '
@@ -262,7 +278,7 @@ def overview_pane(assay: AssayReport) -> str:
     if project and project.abstract:
         abstract = (
             '<div class="mt-6 border-t border-line pt-6"><div class="sf-sub-h mb-2">'
-            "About this study</div>"
+            "About the archive project</div>"
             '<p class="m-0 max-w-[70ch] border-l-2 border-line pl-4">'
             f"{esc(project.abstract)}</p></div>"
         )
@@ -1595,6 +1611,632 @@ def _decade(exponent: int) -> str:
     return str(10**exponent)
 
 
+# ---- the Study tab ------------------------------------------------------------------------------
+
+#: The bounds graph's drawing box, in SVG user units, which are pixels here: the graph is drawn at
+#: its own size and scrolls in its own region on a narrow viewport, because a scaled-down SVG's
+#: text shrinks with it. Series sit in the left column, papers in the right, the study between.
+_GRAPH_W, _GRAPH_ROW, _GRAPH_TOP = 760, 56, 28
+_GRAPH_SIDE_X = 120
+_NODE_W, _NODE_H = 132, 30
+#: The width of one character of a record id at the graph's 12-unit monospace size, which is how
+#: long the line striking a left-out id through is drawn.
+_GRAPH_CHAR_W = 7.3
+
+
+def study_section(report: ProjectReport) -> str:
+    """The Study tab's one pane, outside every assay section: a study is not one assay's.
+
+    ``data-study`` is the hook ``report.js`` toggles the pane by, as it does an assay's panes.
+    """
+    study = report.study
+    if study is None:
+        return ""
+    active = " active" if not report.assays else ""
+    stale = "".join(
+        f'<p class="sf-notice mb-4"><b>Stale reading:</b> {esc(w.message)}</p>'
+        for w in report.warnings
+        if w.code == "READING_STALE"
+    )
+    named = {ws.path: ws.name for ws in report.workspaces}
+    return (
+        f'<section data-study><div class="pane{active}" data-tab="study">'
+        f"{stale}{study_pane(study, named)}</div></section>"
+    )
+
+
+def study_pane(study: StudyReport, workspaces: dict[str, str] | None = None) -> str:
+    """The bounds graph, and a notice when the study has no reading yet.
+
+    ``workspaces`` names each workspace the report read by its path; with any, each sample table
+    marks which of them compiled each sample, and which none did.
+    """
+    graph = _bounds_graph(study)
+    reason = (
+        '<p class="m-0 mt-3 max-w-[70ch] text-sm text-dim">'
+        f"<b>Why these are one study:</b> {esc(study.reason)}</p>"
+    )
+    drawn = {r.id for r in study.records if r.drawn}
+    joined = any(r.drawn and r.superseries in drawn for r in study.records)
+    legend = (
+        '<p class="m-0 mb-3 text-xs text-dim">Solid: kept. Dashed and struck through: left out. '
+        + ("A thin line joins a SuperSeries to its sub-Series. " if joined else "")
+        + "Hover a record for why.</p>"
+    )
+    pane = _panel(
+        "Bounds",
+        legend + graph + reason,
+        sub=f"The GEO Series and papers that make up study {study.study}, and the records left out.",
+    )
+    if not study.has_reading:
+        pane += (
+            '<p class="sf-notice mt-4">No reading yet: the study has bounds, and the reading job '
+            "has not written what each sample is.</p>"
+        )
+    return (
+        pane
+        + _design_panel(study)
+        + _coverage_panel(study, workspaces or {})
+        + _samples_panel(study, workspaces or {})
+    )
+
+
+def _coverage_panel(study: StudyReport, workspaces: dict[str, str]) -> str:
+    """One line per workspace read: how many of the reading's samples it compiled, them on hover.
+
+    A sample table marks each row with where it was compiled, but a study whose labels do not vary
+    has no rows to mark, so the count is said here, apart from the tables.
+    """
+    if not workspaces or not study.samples:
+        return ""
+    n = len(study.samples)
+    groups = [
+        (f"Compiled in {name}", [s.sample for s in study.samples if path in s.compiled_in])
+        for path, name in workspaces.items()
+    ]
+    groups.append(("In no workspace read", [s.sample for s in study.samples if not s.compiled_in]))
+    lines, tips = "", ""
+    for k, (said, members) in enumerate(groups):
+        if not members and k == len(groups) - 1:
+            continue
+        tip = f"coverage-tip-{k}"
+        lines += (
+            f'<p class="m-0 mt-1 text-sm" data-coverage>{esc(said)}: '
+            f'<b class="tabular-nums" data-hover-card="{tip}" tabindex="0">{len(members)}</b> '
+            f"of {n} samples</p>"
+        )
+        tips += (
+            f'<div class="prov-pop" id="{tip}" role="tooltip" hidden>'
+            f'<div class="pp-head">{esc(said)}</div>'
+            f'<p class="m-0 mt-2 font-mono text-xs">{esc(", ".join(members) or "none")}</p></div>'
+        )
+    return _panel(
+        "Compiled",
+        lines + tips,
+        sub="How many of the reading's samples each workspace compiled. Hover a count for them.",
+    )
+
+
+def _bounds_graph(study: StudyReport) -> str:
+    """The bounds as hand-built inline SVG: Series left, the study centre, papers right.
+
+    Each record is a box joined to the study. A kept record is drawn solid and a left-out one
+    dashed, its id struck through. Each box is focusable and names a hover card, rendered here
+    beside the figure with every value escaped, which the script shows while the pointer or the
+    focus is on the box, and pins on a click. A side past its cap draws one "+k more" box last,
+    whose card lists the side's records it does not draw.
+    """
+    drawn = [(i, r) for i, r in enumerate(study.records) if r.drawn]
+    series = [(i, r) for i, r in drawn if r.kind == "series"]
+    papers = [(i, r) for i, r in drawn if r.kind == "paper"]
+    more = {kind: cut.hidden for kind, cut in study.graph.items() if cut.hidden}
+    n_series = len(series) + (1 if "series" in more else 0)
+    n_papers = len(papers) + (1 if "paper" in more else 0)
+    rows = max(n_series, n_papers, 1)
+    height = _GRAPH_TOP + rows * _GRAPH_ROW
+    cy = _GRAPH_TOP + rows * _GRAPH_ROW / 2
+    cx = _GRAPH_W / 2
+
+    def ys(n: int) -> list[float]:
+        step = rows * _GRAPH_ROW / max(n, 1)
+        return [_GRAPH_TOP + (k + 0.5) * step for k in range(n)]
+
+    at: dict[int, tuple[float, float]] = {}
+    series_ys, papers_ys = ys(n_series), ys(n_papers)
+    for (i, _r), y in zip(series, series_ys, strict=False):
+        at[i] = (_GRAPH_SIDE_X, y)
+    for (i, _r), y in zip(papers, papers_ys, strict=False):
+        at[i] = (_GRAPH_W - _GRAPH_SIDE_X, y)
+
+    edges, boxes, joins = "", "", ""
+    half = _NODE_W / 2
+    if "series" in more:
+        boxes += _more_node("series", more["series"], _GRAPH_SIDE_X, series_ys[-1])
+    if "paper" in more:
+        boxes += _more_node("paper", more["paper"], _GRAPH_W - _GRAPH_SIDE_X, papers_ys[-1])
+    for i, record in drawn:
+        x, y = at[i]
+        side = -1 if record.kind == "series" else 1  # which side of the study the record is on
+        x0, bend, x1 = x - side * half, cx + side * 120, cx + side * 60
+        line = "stroke-accent" if record.kept else "stroke-faint"
+        dash = "" if record.kept else ' stroke-dasharray="4 3"'
+        width = 2 if record.kept else 1.2
+        edges += (
+            f'<path class="fill-none {line}" stroke-width="{width}"{dash} '
+            f'd="M{x0:.1f},{y:.1f} C{bend:.1f},{y:.1f} {bend:.1f},{cy:.1f} {x1:.1f},{cy:.1f}"/>'
+        )
+        boxes += _graph_node(i, record, x, y)
+    for i, record in drawn:
+        parent = next((j for j, r in drawn if r.id == record.superseries), None)
+        if parent is None:
+            continue
+        (px, py), (_x, y) = at[parent], at[i]
+        left = px - half
+        joins += (
+            f'<path class="fill-none stroke-faint" stroke-width="1" '
+            f'd="M{left:.1f},{py:.1f} C{left - 34:.1f},{py:.1f} {left - 34:.1f},{y:.1f} '
+            f'{left:.1f},{y:.1f}"/>'
+        )
+    centre = (
+        f'<rect class="fill-surface stroke-accent" stroke-width="2" x="{cx - 60:.1f}" '
+        f'y="{cy - 22:.1f}" width="120" height="44" rx="22"/>'
+        f'<text class="fill-ink font-sans" font-size="12" font-weight="700" x="{cx:.1f}" '
+        f'y="{cy - 2:.1f}" text-anchor="middle">study</text>'
+        f'<text class="fill-dim font-mono" font-size="11" x="{cx:.1f}" y="{cy + 13:.1f}" '
+        f'text-anchor="middle">{esc(study.study)}</text>'
+    )
+    heads = "".join(
+        f'<text class="fill-faint font-sans" font-size="10" letter-spacing="1" x="{x}" y="14" '
+        f'text-anchor="middle">{label}</text>'
+        for x, label in ((_GRAPH_SIDE_X, "GEO SERIES"), (_GRAPH_W - _GRAPH_SIDE_X, "PAPERS"))
+    )
+    svg = (
+        f'<svg class="mx-auto block" width="{_GRAPH_W}" height="{height:.0f}" '
+        f'viewBox="0 0 {_GRAPH_W} {height:.0f}" role="img">'
+        f"<title>The records of study {esc(study.study)}, kept and left out</title>"
+        f"{heads}{joins}{edges}{centre}{boxes}</svg>"
+    )
+    tips = "".join(_graph_tip(i, r, study) for i, r in drawn)
+    tips += "".join(_more_tip(kind, study) for kind in more)
+    return f'<div class="sf-scroll-x p-2">{svg}</div>{tips}'
+
+
+def _more_node(kind: str, hidden: int, x: float, y: float) -> str:
+    """The "+k more" box a side past its cap draws last, naming its card of the rest."""
+    return (
+        f'<g data-bounds-node="bounds-more-{kind}" tabindex="0" '
+        f'aria-label="{hidden} more records not drawn">'
+        f'<rect class="fill-surface stroke-faint" stroke-width="1.5" x="{x - _NODE_W / 2:.1f}" '
+        f'y="{y - _NODE_H / 2:.1f}" width="{_NODE_W}" height="{_NODE_H}" rx="8"/>'
+        f'<text class="fill-dim font-sans" font-size="12" x="{x:.1f}" y="{y + 4:.1f}" '
+        f'text-anchor="middle">+{hidden} more</text></g>'
+    )
+
+
+def _more_tip(kind: str, study: StudyReport) -> str:
+    """The card of a side's "+k more" box: each record it does not draw, kept or left out."""
+    rest = [r for r in study.records if r.kind == kind and not r.drawn]
+    items = "".join(
+        f'<li><span class="font-mono">{esc(r.id)}</span> · {"kept" if r.kept else "left out"}'
+        + (f" · {esc(r.title)}" if r.title else "")
+        + "</li>"
+        for r in rest
+    )
+    side = "Series" if kind == "series" else "papers"
+    return (
+        f'<div class="prov-pop" id="bounds-more-{kind}" role="tooltip" hidden>'
+        f'<div class="pp-head">{len(rest)} more {side}</div>'
+        f'<ul class="m-0 mt-2 list-none p-0 text-xs">{items}</ul></div>'
+    )
+
+
+def _graph_node(i: int, record: BoundsRecord, x: float, y: float) -> str:
+    """One record's box: solid when kept, dashed with its id struck through when left out."""
+    half_w, half_h = _NODE_W / 2, _NODE_H / 2
+    line = "stroke-accent" if record.kept else "stroke-faint"
+    dash = "" if record.kept else ' stroke-dasharray="4 3"'
+    ink = "fill-ink" if record.kept else "fill-dim"
+    strike = ""
+    if not record.kept:
+        half = len(record.id) * _GRAPH_CHAR_W / 2
+        strike = (
+            f'<line class="stroke-dim" stroke-width="1" x1="{x - half:.1f}" y1="{y:.1f}" '
+            f'x2="{x + half:.1f}" y2="{y:.1f}"/>'
+        )
+    said = "kept" if record.kept else "left out"
+    return (
+        f'<g data-bounds-node="bounds-tip-{i}" tabindex="0" aria-label="{esc(record.id)}, {said}">'
+        f'<rect class="fill-surface {line}" stroke-width="1.5"{dash} x="{x - half_w:.1f}" '
+        f'y="{y - half_h:.1f}" width="{_NODE_W}" height="{_NODE_H}" rx="8"/>'
+        f'<text class="{ink} font-mono" font-size="12" x="{x:.1f}" y="{y + 4:.1f}" '
+        f'text-anchor="middle">{esc(record.id)}</text>{strike}</g>'
+    )
+
+
+def _graph_tip(i: int, record: BoundsRecord, study: StudyReport) -> str:
+    """One record's hover card: kept or left out, the reason, p, and the passages quoted from it."""
+    parents = {r.superseries for r in study.records if r.superseries}
+    kind = "paper" if record.kind == "paper" else "Series"
+    if record.id in parents:
+        kind = "SuperSeries"
+    elif record.superseries:
+        kind = f"sub-Series of {record.superseries}"
+    said = ["kept" if record.kept else "left out", kind]
+    if record.backing is not None:
+        said.append(record.backing)
+    if record.p is not None:
+        said.append(f"p {record.p:g}")
+    body = f'<div class="pp-head font-mono">{esc(record.id)}</div>'
+    if record.title:
+        body += f'<div class="text-sm font-bold">{esc(record.title)}</div>'
+    body += f'<div class="pp-basis">{esc(" · ".join(said))}</div>'
+    if record.reason:
+        body += f'<p class="m-0 mt-2">{esc(record.reason)}</p>'
+    body += "".join(_tip_quote(q) for q in record.reason_passages)
+    if record.passages:
+        body += f'<div class="sf-sub-h mt-3">Quoted in the reading ({len(record.passages)})</div>'
+        body += "".join(_tip_quote(q) for q in record.passages)
+    elif study.has_reading:
+        body += '<p class="sf-empty">The reading quotes no passage from it.</p>'
+    return f'<div class="prov-pop" id="bounds-tip-{i}" role="tooltip" hidden>{body}</div>'
+
+
+def _tip_quote(passage: PassageView) -> str:
+    """One passage in a hover card: where it was read, then the quote."""
+    return (
+        f'<blockquote class="pp-quote"><div class="text-xs not-italic text-faint">'
+        f"[{passage.number}] {esc(passage.source)}</div>"
+        f"{_cut_text(passage.quote, passage.hidden_chars)}</blockquote>"
+    )
+
+
+def _cut_text(text: str, hidden: int) -> str:
+    """``text`` cut at its cap, saying how many characters it hides, with the full text beside it.
+
+    Both are rendered, the full text ``hidden``: a click that pins a hover card swaps them, and a
+    cell's own click opens its full value in the popover, so the cut text is all a row shows.
+    """
+    if not hidden:
+        return esc(text)
+    return (
+        f"<span data-cut>{esc(text[:TEXT_CAP])}…"
+        f'<span class="text-xs text-faint"> +{hidden} characters</span></span>'
+        f"<span data-full hidden>{esc(text)}</span>"
+    )
+
+
+# ---- the design table and the sample tables ----
+
+#: The colours of an unordered factor's levels, in turn: distinct hues, each dark enough for white
+#: text on it to read at a small size in either theme.
+_LEVEL_HUES = (
+    "#1d4ed8",
+    "#b45309",
+    "#047857",
+    "#be185d",
+    "#6d28d9",
+    "#0e7490",
+    "#4d7c0f",
+    "#b91c1c",
+    "#4b5563",
+    "#a16207",
+)
+#: An ordered factor's levels go from this lightness to the darker one, in one hue.
+_ORDERED_LIGHT, _ORDERED_DARK = 88, 32
+#: Above this lightness a level's text is ink, and below it white.
+_ORDERED_INK_ABOVE = 57
+
+
+def _level_chip(factor: StudyFactor, level: str | None) -> str:
+    """A factor level as a coloured chip: one hue light to dark when ordered, a hue each when not.
+
+    The baseline is marked with a diamond. A sample at no level of the factor is "not a level".
+    """
+    if level is None:
+        return '<span class="st-lvl st-nolvl">not a level</span>'
+    at = factor.levels.index(level)
+    if factor.ordered:
+        step = at / (len(factor.levels) - 1) if len(factor.levels) > 1 else 1.0
+        light = _ORDERED_LIGHT - (_ORDERED_LIGHT - _ORDERED_DARK) * step
+        ink = "#14181f" if light > _ORDERED_INK_ABOVE else "#ffffff"
+        style = f"background:hsl(222 62% {light:.0f}%);color:{ink}"
+    else:
+        style = f"background:{_LEVEL_HUES[at % len(_LEVEL_HUES)]};color:#ffffff"
+    mark = " ◆" if level == factor.baseline else ""
+    return f'<span class="st-lvl" style="{style}">{esc(level)}{mark}</span>'
+
+
+def _design_panel(study: StudyReport) -> str:
+    """The minimum design table: a cross-table for two factors, a grouped list otherwise."""
+    design = study.design
+    if design is None:
+        return ""
+    tips: list[str] = []
+
+    def count(group: DesignGroup) -> str:
+        """One cell's count, a line per assay when the study has two, its samples on hover."""
+        members = [s for c in group.counts for s in c.samples]
+        if not members:
+            return '<td class="text-center text-faint">·</td>'
+        tip = f"design-tip-{len(tips)}"
+        names = ["not a level" if level is None else level for level in group.levels]
+        head = " · ".join(names) or "every sample"
+        tips.append(
+            f'<div class="prov-pop" id="{tip}" role="tooltip" hidden>'
+            f'<div class="pp-head">{esc(head)}</div>'
+            f'<div class="pp-basis">{len(members)} sample(s)</div>'
+            f'<p class="m-0 mt-2 font-mono text-xs">{esc(", ".join(members))}</p></div>'
+        )
+        lines = "<br>".join(
+            f"{len(c.samples)}"
+            + (
+                f' <span class="text-xs font-normal text-faint">{esc(c.assay)}</span>'
+                if c.assay
+                else ""
+            )
+            for c in group.counts
+        )
+        return (
+            f'<td class="text-center font-bold tabular-nums" data-hover-card="{tip}" '
+            f'tabindex="0">{lines}</td>'
+        )
+
+    if design.kind == "cross":
+        first, second = study.factors
+        head = (
+            f'<th class="text-xs">{esc(first.label)} ↓ · {esc(second.label)} →</th>'
+            + "".join(f"<th>{_level_chip(second, c)}</th>" for c in design.columns)
+            + '<th class="text-xs">total</th>'
+        )
+        body = ""
+        width = len(design.columns)
+        for r, row in enumerate(design.rows):
+            groups = design.groups[r * width : (r + 1) * width]
+            total = sum(len(c.samples) for g in groups for c in g.counts)
+            body += (
+                f"<tr><th>{_level_chip(first, row)}</th>"
+                + "".join(count(g) for g in groups)
+                + f'<td class="text-center tabular-nums text-dim">{total}</td></tr>'
+            )
+    else:
+        head = "".join(f"<th>{esc(f.label)}</th>" for f in study.factors) + "<th>n</th>"
+        shown = design.cut.shown if design.cut is not None else len(design.groups)
+        body = "".join(
+            # Past the cap a row is marked, and the script hides it until "show all".
+            ("<tr>" if k < shown else "<tr data-over-cap>")
+            + "".join(
+                f"<td>{_level_chip(f, level)}</td>"
+                for f, level in zip(study.factors, g.levels, strict=True)
+            )
+            + count(g)
+            + "</tr>"
+            for k, g in enumerate(design.groups)
+        )
+    said = [
+        f"{f.label}{' (ordered)' if f.ordered else ''}" + (f" p {f.p:g}" if f.p is not None else "")
+        for f in study.factors
+    ]
+    foot = (
+        f'<p class="m-0 mt-2 text-xs text-dim">{len(study.samples)} samples'
+        + "".join(f" · {esc(s)}" for s in said)
+        + " · ◆ baseline</p>"
+    )
+    split = ", split by assay" if design.assays else ""
+    table = (
+        f'<div class="sf-scroll-x" id="design-list"><table><thead><tr>{head}</tr></thead>'
+        f"<tbody>{body}</tbody></table></div>"
+    )
+    if design.cut is not None and design.cut.hidden:
+        n = len(design.groups)
+        # Hidden, as the pager is: without the script every row shows and the line would be false.
+        table += (
+            '<p class="m-0 mt-2 text-xs text-dim" hidden data-show-all="design-list">'
+            f'Showing {design.cut.shown} of {n} groups. <button type="button" class="st-subtab">'
+            f"Show all {n}</button></p>"
+        )
+    if design.cross_columns is not None:
+        table = (
+            f'<p class="sf-empty">{esc(study.factors[1].label)} has {design.cross_columns} '
+            "columns, too many for a cross-table, so each group of levels is one row.</p>" + table
+        )
+    if not study.factors:
+        table = (
+            '<p class="sf-empty">The reading names no factor, so every sample is one group.</p>'
+            + table
+        )
+    return _panel(
+        "Design",
+        table + foot + "".join(tips),
+        sub=f"How many samples are in each group of the factors{split}. Hover a count for its samples.",
+    )
+
+
+def _cell_attrs(sample: str, label: str, cell: StudyCell) -> str:
+    """What a click on a cell opens: the label, the value, its backing, the note and the passages.
+
+    The passages are named by number; the script reads them from the page's own data.
+    """
+    value = _cell_text(cell)
+    if cell.term:
+        value += f" ({', '.join(cell.term)})"
+    if cell.level is not None:
+        value += f" · level {cell.level}"
+    basis: list[str] = [cell.backing]
+    if cell.p is not None:
+        basis.append(f"p {cell.p:g}")
+    if cell.inherited:
+        basis.append("from shared")
+    title = "quoted from" if cell.backing == "quoted" else "rests on"
+    return (
+        f'role="button" tabindex="0" data-key="{esc(label)}" data-value="{esc(value)}" '
+        f'data-basis="{esc(" · ".join(basis))}" data-source="{esc(sample)}" '
+        f'data-note="{esc(cell.note)}" data-passages="{",".join(map(str, cell.passages))}" '
+        f'data-passages-title="{title}" data-against="{",".join(map(str, cell.against))}"'
+    )
+
+
+def _cell_text(cell: StudyCell) -> str:
+    """What a cell shows: the claim's value, or the gap it marks."""
+    if cell.value is not None:
+        return cell.value
+    return "n/a" if cell.backing == "na" else "?"
+
+
+def _cell_shown(cell: StudyCell) -> str:
+    """A cell's text as its row shows it: cut at the cap, saying how much it hides.
+
+    The click that opens the cell's popover shows its full value, so the row carries no second copy.
+    """
+    text = _cell_text(cell)
+    if not cell.hidden_chars:
+        return esc(text)
+    return (
+        f"{esc(text[:TEXT_CAP])}…"
+        f'<span class="text-xs text-faint"> +{cell.hidden_chars} characters</span>'
+    )
+
+
+def _cell_class(cell: StudyCell) -> str:
+    return f"st-cell st-{cell.backing}" + (" st-inh" if cell.inherited else "")
+
+
+def _cell_style(cell: StudyCell) -> str:
+    """How strongly a cell is tinted: paler for a lower p, full for a claim no model gave p to."""
+    if cell.p is None:
+        return f"--st-a:{_TINT_FULL}%"
+    share = min(max((cell.p - 0.5) * 2, 0.0), 1.0)
+    return f"--st-a:{_TINT_PALE + (_TINT_FULL - _TINT_PALE) * share:.0f}%"
+
+
+#: A cell's tint, in percent of its backing's colour: at p 0.5 or below, and at p 1.
+_TINT_PALE, _TINT_FULL = 8, 34
+
+
+def _samples_panel(study: StudyReport, workspaces: dict[str, str]) -> str:
+    """One sample table per topic, as sub-tabs, with the factor columns repeated at the left."""
+    if not study.topics:
+        return ""
+    legend = (
+        '<p class="m-0 mb-3 flex flex-wrap items-center gap-3 text-xs text-dim">'
+        + "".join(
+            f'<span class="st-cell st-{b}" style="--st-a:{_TINT_FULL}%">{b}</span>'
+            for b in ("quoted", "inferred", "unknown", "na")
+        )
+        + "<span>Paler: lower p. <i>Italic</i>: from shared. ★ a factor. "
+        "Click a cell for the passages behind it.</span></p>"
+    )
+    bar = "".join(
+        f'<button type="button" class="st-subtab{" active" if i == 0 else ""}" '
+        f'data-topic-tab="{i}">{esc(t.topic)} '
+        f'<span class="text-faint">{len(t.varying)}/{len(t.labels)}</span></button>'
+        for i, t in enumerate(study.topics)
+    )
+    panes = "".join(
+        f'<div data-topic-pane="{i}">{_topic_table(study, t, workspaces, i)}</div>'
+        for i, t in enumerate(study.topics)
+    )
+    return _panel(
+        "Samples",
+        legend + f'<nav class="mb-3 flex gap-1 overflow-x-auto border-b border-line" hidden '
+        f'data-topic-tabs aria-label="Sample tables by topic">{bar}</nav>' + panes,
+        sub="What each sample was, one table per topic. A count on a tab is how many of its "
+        "labels vary between samples.",
+    )
+
+
+def _topic_table(
+    study: StudyReport, table: TopicTable, workspaces: dict[str, str], index: int
+) -> str:
+    """One topic's table: the labels the same for every sample on one line, then the rest.
+
+    With any workspace read, a column after the sample names the workspaces that compiled it, or
+    says none did. Past the cap, the rows the same on every label are one row "× n", which names
+    its samples on hover, and the rows are paged by the cap.
+    """
+    n = len(study.samples)
+    head = (
+        f'<h3 class="sf-sub-h">{esc(table.topic)}: {len(table.varying)} of '
+        f"{len(table.labels)} labels vary</h3>"
+    )
+    line = ""
+    if table.same:
+        line = (
+            '<p class="m-0 mb-2 flex flex-wrap items-center gap-1 text-sm">'
+            f'<span class="text-faint">Same for all {n}:</span>'
+            + "".join(
+                f'<span class="{_cell_class(s.cell)}" style="{_cell_style(s.cell)}" '
+                f"{_cell_attrs(f'all {n} samples', s.label, s.cell)}>"
+                f"<b>{esc(s.label)}</b> {_cell_shown(s.cell)}</span>"
+                for s in table.same
+            )
+            + "</p>"
+        )
+    if not table.varying:
+        return (
+            head + line + '<p class="sf-empty">No label in this topic varies between samples.</p>'
+        )
+    cols = (
+        "<th>sample</th>"
+        + ("<th>compiled in</th>" if workspaces else "")
+        + "".join(f"<th>{esc(f.label)} ★</th>" for f in study.factors)
+        + "".join(f"<th>{esc(label)}</th>" for label in table.varying)
+    )
+    by_id = {s.sample: s for s in study.samples}
+    body_id = f"topic-rows-{index}"
+    rows, tips = "", ""
+    for r, members in enumerate(table.rows):
+        sample = by_id[members[0]]
+        ident = esc(sample.sample)
+        if len(members) > 1:
+            tip = f"topic-fold-{index}-{r}"
+            ident += (
+                f' <span class="text-xs font-normal text-faint" data-hover-card="{tip}" '
+                f'tabindex="0">× {len(members)}</span>'
+            )
+            tips += (
+                f'<div class="prov-pop" id="{tip}" role="tooltip" hidden>'
+                f'<div class="pp-head">{len(members)} samples, one row</div>'
+                f'<p class="m-0 mt-2 font-mono text-xs">{esc(", ".join(members))}</p></div>'
+            )
+        cells = ""
+        if workspaces:
+            where = ", ".join(workspaces.get(p, p) for p in sample.compiled_in)
+            cells += (
+                f'<td class="font-mono">{esc(where)}</td>'
+                if where
+                else '<td class="text-faint">none</td>'
+            )
+        for f in study.factors:
+            claim = sample.cells.get(f.label)
+            if claim is None:
+                cells += "<td></td>"
+                continue
+            cells += (
+                f'<td class="st-fcell" {_cell_attrs(sample.sample, f.label, claim)}>'
+                f"{_level_chip(f, claim.level)}</td>"
+            )
+        for label in table.varying:
+            claim = sample.cells.get(label)
+            if claim is None:
+                cells += '<td class="text-faint">no claim</td>'
+                continue
+            cells += (
+                f'<td class="{_cell_class(claim)}" style="{_cell_style(claim)}" '
+                f"{_cell_attrs(sample.sample, label, claim)}>{_cell_shown(claim)}</td>"
+            )
+        rows += f'<tr data-smp><th class="font-mono">{ident}</th>{cells}</tr>'
+    if table.folded:
+        head += (
+            f'<p class="m-0 mb-2 text-xs text-dim">{n} samples in {len(table.rows)} rows: the '
+            "samples the same on every label of this table are one row, × how many.</p>"
+        )
+    pager = _sample_pager(body_id, len(table.rows), sizes=(SAMPLE_ROWS_CAP,), unit="rows")
+    return (
+        head + line + f'<div class="sf-scroll-x"><table><thead><tr>{cols}</tr></thead>'
+        f'<tbody id="{body_id}">{rows}</tbody></table></div>{pager}{tips}'
+    )
+
+
 # ---- assay section + tab bar --------------------------------------------------------------------
 
 
@@ -1629,12 +2271,19 @@ def tab_bar(report: ProjectReport) -> str:
     leading to "not run yet". A workspace that has only been compiled then renders exactly the page it
     rendered before this tab existed — the reader is never offered a door into an empty room, and the
     tab's presence becomes the signal that *something* here has results.
+
+    Study comes first, as the study chain comes before the compile, and only when the report read a
+    study folder; a report on a study folder alone has no compile tab at all. Overview opens the page
+    whenever there is a compile, so a compile's reader lands where they always did.
     """
     has_results = any(a.pipeline_stats is not None for a in report.assays)
+    keys = [("study", "Study")] if report.study is not None else []
+    if report.assays:
+        keys += [(k, label) for k, label in _TABS if k != "results" or has_results]
+    opens = "overview" if report.assays else "study"
     tabs = "".join(
-        f'<button class="tab{" active" if key == "overview" else ""}" data-tab="{key}">{esc(label)}</button>'
-        for key, label in _TABS
-        if key != "results" or has_results
+        f'<button class="tab{" active" if key == opens else ""}" data-tab="{key}">{esc(label)}</button>'
+        for key, label in keys
     )
     # `overflow-x-auto` on the strip and not on the page: at a narrow viewport the tabs scroll
     # sideways, which is the one horizontal scroll this page is allowed to have.
@@ -1642,12 +2291,21 @@ def tab_bar(report: ProjectReport) -> str:
 
 
 def assay_switcher(report: ProjectReport) -> str:
-    """The assay picker, or nothing when the report holds a single assay."""
+    """The assay picker, or nothing when the report holds a single assay.
+
+    Each workspace keeps its own compile tabs, so with several each option names its workspace.
+    """
     if not report.is_multi_assay:
         return ""
+    several = len(report.workspaces) > 1
+    labels = [
+        f"{ws.name} · {a.label}" if several else a.label
+        for ws in report.workspaces
+        for a in ws.assays
+    ]
     opts = "".join(
-        f'<option value="{i}">{esc(a.label)} · {a.n_samples} sample(s)</option>'
-        for i, a in enumerate(report.assays)
+        f'<option value="{i}">{esc(label)} · {a.n_samples} sample(s)</option>'
+        for i, (label, a) in enumerate(zip(labels, report.assays, strict=True))
     )
     return (
         '<div class="flex shrink-0 items-center gap-2">'
@@ -1657,4 +2315,4 @@ def assay_switcher(report: ProjectReport) -> str:
     )
 
 
-__all__ = ["assay_section", "assay_switcher", "esc", "tab_bar"]
+__all__ = ["assay_section", "assay_switcher", "esc", "study_section", "tab_bar"]

@@ -3,7 +3,8 @@
 ``write-bounds`` writes each study's bounds file from the bounding pass's answers, as
 ``seqforge pass start study-bounds`` left them in its task, and ``write-reading`` each study's
 reading file from the reading pass's, as ``seqforge pass start study-reading`` left them. Neither
-writes over a file already there. ``check-bounds`` and ``check-reading``
+writes over a file already there. ``run`` chains the four: both passes under one ceiling, each
+followed by its write. ``check-bounds`` and ``check-reading``
 each say whether one file is in the current format, and what is wrong with it when it is not.
 ``relations`` checks a reading the same way, then prints the relations between its samples. The
 checks read the one file and nothing else: no store, no network, no model, and they write no file.
@@ -11,7 +12,7 @@ checks read the one file and nothing else: no store, no network, no model, and t
 
 from __future__ import annotations
 
-from collections.abc import Callable, Iterator
+from collections.abc import Collection, Iterator
 from contextlib import contextmanager
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -27,7 +28,7 @@ from ._common import _emit, _StageOut
 from .root import study_app
 
 if TYPE_CHECKING:
-    from labllm import TaskHolder, TaskReader
+    from labllm import TaskHolder
 
 
 def _content(file: Path) -> tuple[object, list[dict[str, str]]]:
@@ -64,13 +65,9 @@ def _verdict(file: Path, accepted: int, problems: list[dict[str, str]], **more: 
 
 
 def _write(
-    kind_name: str,
-    write: Callable[[TaskReader, str, Path, str], dict[str, dict[str, object]]],
-    out: Path,
-    name: str,
-    task: Path | None,
-) -> None:
-    """Write each study's file from a pass's answers, and print how each study ended.
+    kind_name: str, out: Path, name: str, task: Path | None, keys: Collection[str] | None = None
+) -> _StageOut:
+    """Write each study's file from a pass's answers, with the kind's own writer; say how each ended.
 
     A text the format check rejects is a refusal, as check-bounds and check-reading make it: the
     other files are still written, and the command exits 3. The task is only read, with no hold.
@@ -88,14 +85,14 @@ def _write(
             with setup.read() as opened:
                 if (holder := opened.holder) is not None:
                     raise TaskInUse(_held(setup.folder, holder))
-                done = write(opened, kind_name, out, name)
+                done = setup.kind.write(opened, kind_name, out, name, keys)
         except (ValueError, LiulabDataMissing) as e:
             return _StageOut({"error": str(e)}, 2)
         said: dict[str, object] = {"kind": kind_name, "task": str(setup.folder), "out": str(out)}
         rejected = any("problems" in study for study in done.values())
         return _StageOut({**said, "studies": done}, 3 if rejected else 0)
 
-    _emit(for_kind(kind_name, task=task, body=run))
+    return for_kind(kind_name, task=task, body=run)
 
 
 def _held(folder: Path, holder: TaskHolder) -> str:
@@ -140,9 +137,9 @@ def study_write_bounds(
     when a pass's write kept the read waiting, or when the format check rejects a text, whose study
     the JSON names with its problems.
     """
-    from ..study.bounding import KIND_NAME, write_bounds
+    from ..study.bounding import KIND_NAME
 
-    _write(KIND_NAME, write_bounds, out, name, task)
+    _emit(_write(KIND_NAME, out, name, task))
 
 
 @study_app.command("write-reading")
@@ -169,14 +166,141 @@ def study_write_reading(
     reason write-bounds gives. Exit 0 with one object per study; 2 as for write-bounds, or for no
     liulab-data for the format check; 3 as for write-bounds.
     """
-    from ..study.reader import KIND_NAME, write_readings
+    from ..study.reader import KIND_NAME
 
-    _write(KIND_NAME, write_readings, out, name, task)
+    _emit(_write(KIND_NAME, out, name, task))
+
+
+@study_app.command("run")
+def study_run(
+    studies: Path = typer.Option(
+        ...,
+        "--studies",
+        help="The folder of study folders: it runs the studies its pick.yaml lists, or --keys.",
+    ),
+    ceiling_usd: float = typer.Option(
+        ...,
+        "--ceiling-usd",
+        help="Required, no default: the most both passes together may spend, in dollars.",
+    ),
+    model: list[str] = typer.Option(
+        [],
+        "--model",
+        metavar="ROLE=PROVIDER/NAME[,KEY=VALUE...]",
+        help=(
+            "The model for one role, repeatable, as pass start takes it. Each pass whose kind has "
+            "the role takes it; a role neither kind has is refused."
+        ),
+    ),
+    keys_file: Path | None = typer.Option(
+        None, "--keys", help="Run exactly these studies, one key per line, in this order."
+    ),
+    units_at_once: int = typer.Option(32, "--units-at-once", min=1, help="Units run at once."),
+    off_peak_only: bool = typer.Option(
+        False, "--off-peak-only", help="Send calls only outside the model's peak hours."
+    ),
+) -> None:
+    """Bound and read the studies of a folder: four existing verbs, in order, under one ceiling.
+
+    It runs ``pass start study-bounds``, ``study write-bounds``, ``pass start study-reading`` and
+    ``study write-reading``, each with its default task here and the folder's own ``bounds.yaml``
+    and ``reading.yaml``, so the reading pass reads the bounds just written. Bounding spends first,
+    and reading gets what is left of ``--ceiling-usd``. It adds no check of its own. Prints one
+    JSON object, each step's own output in ``steps``. Exit 0 when every step did; otherwise the
+    first step that did not stops the chain, and its exit is the verb's: 2 for a setup it cannot
+    use, 3 at the ceiling, a stopped pass, a held task or a file the format check rejects. Rerun
+    the same command to resume: answered units replay from the gateway's cache at no cost.
+    """
+    _emit(
+        _study_run(
+            studies=studies,
+            ceiling_usd=ceiling_usd,
+            model=model,
+            keys_file=keys_file,
+            units_at_once=units_at_once,
+            off_peak_only=off_peak_only,
+        )
+    )
+
+
+def _study_run(
+    *,
+    studies: Path,
+    ceiling_usd: float,
+    model: list[str],
+    keys_file: Path | None,
+    units_at_once: int,
+    off_peak_only: bool,
+) -> _StageOut:
+    """The body of ``study run``: every setup refusal first, then each pass and its write."""
+    from ..gateway import check_ceiling
+    from ..passes import SetupRefused
+    from ..passes.kinds import kind_named
+    from ..passes.model_text import parse_model, parse_models
+    from ..study import bounding, reader
+    from .passes import _pass_start, _read_keys
+
+    chain = (
+        (bounding.KIND_NAME, "write-bounds", BOUNDS),
+        (reader.KIND_NAME, "write-reading", READING),
+    )
+    said: dict[str, object] = {"studies": str(studies), "ceiling_usd": ceiling_usd}
+    try:
+        check_ceiling(ceiling_usd)
+        kinds = [kind_named(name) for name, _, _ in chain]
+        # Every text is read now, so a text that each pass would refuse is refused before any spend.
+        parse_models(model)
+        roles = {text: parse_model(text)[0] for text in model}
+        known = {role for kind in kinds for role in kind.default_models}
+        if extra := sorted(set(roles.values()) - known):
+            raise SetupRefused(
+                f"no study job has role {', '.join(extra)}; the roles are {', '.join(sorted(known))}"
+            )
+    except SetupRefused as exc:
+        return _StageOut({**said, "error": str(exc), "spent_usd": 0.0, "steps": []}, 2)
+
+    steps: list[dict[str, object]] = []
+    spent = 0.0
+    code = 0
+    for kind, (_, write_verb, file_name) in zip(kinds, chain, strict=True):
+        left = max(0.0, ceiling_usd - spent)
+        ran = _pass_start(
+            name=kind.name,
+            ceiling_usd=left,
+            model=[text for text, role in roles.items() if role in kind.default_models],
+            keys_file=keys_file,
+            studies=studies,
+            only=None,
+            units_at_once=units_at_once,
+            off_peak_only=off_peak_only,
+            label=None,
+            task=None,
+        )
+        steps.append(_step(f"pass start {kind.name}", ran, ceiling_usd=left))
+        # A pass that stopped spent too; a setup it refused, which prints a line, spent nothing.
+        cost = ran.payload.get("spent_usd") if isinstance(ran.payload, dict) else None
+        spent += cost if isinstance(cost, int | float) else 0.0
+        if code := ran.code:
+            break
+        # The task is shared with every earlier chain run here, so the write takes this chain's
+        # studies only: those the pass just ran, which its start has already checked can be read.
+        chosen = _read_keys(keys_file) if keys_file is not None else kind.default_keys(studies)
+        wrote = _write(kind.name, studies, file_name, None, list(chosen))
+        steps.append(_step(f"study {write_verb}", wrote))
+        if code := wrote.code:
+            break
+    return _StageOut({**said, "spent_usd": spent, "steps": steps}, code)
+
+
+def _step(verb: str, out: _StageOut, **more: object) -> dict[str, object]:
+    """One step of ``study run``: the verb it ran, its exit, and what the verb printed."""
+    body = {"error": out.payload} if isinstance(out.payload, str) else out.payload
+    return {"verb": verb, "exit": out.code, **more, **body}
 
 
 @study_app.command("check-bounds")
 def study_check_bounds(
-    file: Path = typer.Argument(..., help="A study's bounds file, such as <ID>/bounds.yaml."),
+    file: Path = typer.Argument(..., help=f"A study's bounds file, such as <ID>/{BOUNDS}."),
 ) -> None:
     """Check one bounds file against the current format.
 
@@ -190,7 +314,7 @@ def study_check_bounds(
 
 @study_app.command("check-reading")
 def study_check_reading(
-    file: Path = typer.Argument(..., help="A study's reading file, such as <ID>/reading.yaml."),
+    file: Path = typer.Argument(..., help=f"A study's reading file, such as <ID>/{READING}."),
 ) -> None:
     """Check one reading file against the current format.
 
@@ -206,7 +330,7 @@ def study_check_reading(
 
 @study_app.command("relations")
 def study_relations(
-    file: Path = typer.Argument(..., help="A study's reading file, such as <ID>/reading.yaml."),
+    file: Path = typer.Argument(..., help=f"A study's reading file, such as <ID>/{READING}."),
 ) -> None:
     """Print the relations between the samples of one valid reading.
 

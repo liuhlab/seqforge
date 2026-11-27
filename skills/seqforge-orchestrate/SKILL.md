@@ -37,9 +37,10 @@ seqforge run FILES... \
 - **`FILES...`** are the FASTQ `.gz` files. Everything else is optional except the genome.
 - **`--accession`** pulls the archive's project/sample/experiment/run records, which match each file
   to its archive sample. Omit it for data that never had one — most data.
-- **`--doc`** hands a paper (or any `.pdf`/`.txt`/`.md`) to the one LLM stage, which turns prose into
-  span-verified claims. **Repeat it once per document** and pass *every* unstructured file the user
-  gave you — the paper AND a sample sheet like `sample_info.txt`, not just one. Each is read
+- **`--doc`** hands a paper (or any `.pdf`/`.txt`/`.md`) to the compiler's one LLM stage, which
+  turns prose into span-verified claims. **Repeat it once per document** and pass *every*
+  unstructured file the user gave you — the paper AND a sample sheet like `sample_info.txt`, not
+  just one. Each is read
   independently (and concurrently), so a sample sheet that names the per-sample diet and a methods PDF
   that describes the chemistry both get mined; dropping either silently loses whatever only it said.
   This stage calls a model through the lab gateway at `LABLLM_GATEWAY` — it is not you. If the
@@ -51,31 +52,39 @@ seqforge run FILES... \
 - **`--fastq-dir`** is where this machine keeps the FASTQs, so `units.tsv` can find them.
 
 **Run it in the foreground — do NOT background it.** `seqforge run` is a single bounded command (the
-read budget caps every FASTQ read; the probe reads ~10 MB of a 20 GB file, not the whole thing) and finishes in
-roughly a minute or two, paper included. Let the command block and read its JSON summary when it
+read budget caps every FASTQ read; the probe reads a short head of each file, never the whole
+thing) and finishes in roughly a minute or two, paper included. Let the command block and read its JSON summary when it
 returns. Backgrounding it is the one reliable way to lose the whole run: in a headless (`-p`) session
 there is no next turn to receive a background-completion notification, so a backgrounded pipeline is
-**killed when the turn ends**, leaving a half-written workspace with only `records/`. If you catch
-yourself starting the pipeline in the background and then "waiting for a notification", stop — the
-notification is never coming. The same holds for the staged verbs: run each to completion in the
-foreground. (It is not slow. The reputation that the probe takes many minutes predates the parallel,
-vectorized resolver; `--cpus` defaults to using several cores.)
+**killed when the turn ends**, leaving a half-written workspace with only `records/`. The same holds
+for the staged verbs: run each to completion in the foreground.
 
 The summary's `snakefile` path is the deliverable. `run` writes `manifest.yaml`, `processing.yaml`,
 and the pipeline directory under `seqforge/`; re-running is resumable through each stage's
 content-addressed cache — **there is no `--resume` flag**, you just run it again.
 
 **A project can split into assays, and then there is more than one deliverable.** When the FASTQ span
-more than one chemistry (say a study with both 10x v2 and v3 libraries), code partitions them: each
+more than one chemistry (say 10x v2 and v3), code partitions them: each
 chemistry becomes an *assay* with its own `seqforge/<assay>/` subdir holding a complete, ordinary
 single-chemistry `manifest.yaml` + Snakefile — the same artifacts a uniform dataset produces, one
 level down. The summary then carries an **`assays`** list (chemistry, subdir, sample count, snakefile)
 instead of the flat `manifest`/`snakefile` keys, and **each assay's Snakefile is submitted on its
 own**. Two project-level files sit at the `seqforge/` top: `sample_metadata.tsv` (one row per sample
 across every assay) and `project.yaml` (the assay index). The partition is decided from bytes, not by
-you — you never sort samples into assays. A single-assay project (the common case) stays flat and
-byte-identical to before, just with the added `sample_metadata.tsv`; `seqforge project metadata`
+you — you never sort samples into assays. A single-assay project stays flat; `seqforge project metadata`
 rebuilds those two project views from the manifests without recompiling.
+
+**`--study <folder>`** on `run` or `project metadata` joins a study reading into
+`sample_metadata.tsv` by BioSample accession. Mismatches warn and exit 0; the manifest is unchanged.
+`run` never starts the study chain; **seqforge-study** runs it. A droplet pipeline's last rule
+writes those labels into each `<sample>.h5ad` as categorical `obs` columns, with `reading_hash` in
+`uns`. After a newer reading, run `project metadata --study` and then the same Snakefile: it re-runs
+only that rule.
+
+**`seqforge report`** writes `report.html` and its data, `report.json`.
+`--study <folder>` adds the study's tab, and given alone needs no compile. With `--study`, `-C`
+repeats: one report, in the study folder, marks who compiled each sample, and warns
+of stale readings.
 
 `compile` is an alias for `run`.
 
@@ -88,7 +97,7 @@ seqforge io records ACC           # accession -> project/sample/experiment/run r
 seqforge records new FASTQ_DIR    # NO accession: draft which files compile together (local)
 seqforge records validate FILE    # ...then edit it. Structure only, never a fact about a sample
 seqforge probe FILES              # bytes -> Observation      (no LLM, no network)
-seqforge harvest extract DOCS --records seqforge/records/ACC.json   # the one LLM touchpoint
+seqforge harvest extract DOCS --records seqforge/records/ACC.json   # the compiler's one LLM stage
 seqforge resolve score FILES      # Obs + KB -> library decision  (no LLM)
 # --- the IR: what the data IS. One per dataset, immutable. Takes no genome. ---
 seqforge manifest fill FILES --accession ACC --assertions seqforge/assertions.json [--records FILE]

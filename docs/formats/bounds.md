@@ -45,13 +45,16 @@ passages:
     record: GSE101112
     field: Series_citation
     quote: "A tool paper that lists this Series among its examples"
+titles:
+  GSE101112: An example Series title
+  pmid:31742554: An example paper title
 ```
 
 This example is made up to show every part. Its quotes, numbers and model names are not real.
 
 ## The fields
 
-Every field below is required. A file with any other field is rejected.
+Every field below is required, except `titles`. A file with any other field is rejected.
 
 | Field | Holds |
 | --- | --- |
@@ -63,6 +66,11 @@ Every field below is required. A file with any other field is rejected.
 | `left_out` | Each linked Series or paper that does not belong. Each is a claim. |
 | `reason` | One line saying why these Series and papers are one study. Cannot be blank. |
 | `passages` | The quotes that back the claims, each under its number. May be empty: `{}`. |
+| `titles` | Optional. Each record's title, under the record's id, copied from its GEO record or its paper. A record with no title has no entry. Each id must be a record the file places, and a title cannot be blank. |
+
+**Titles are copied, not claimed.** The bounding job copies them from the records it read, so that
+a reader of the file needs no record store. The 50 files of the standard set were drawn before
+titles were copied, and have none.
 
 **A study is whole Series.** A Series is in the study or it is left out. No field names some of
 a Series' samples. Telling apart the experiments inside one Series is a later step's job, not the
@@ -165,3 +173,6 @@ one. A file with another number is rejected, and the message names the number th
 
 A change to the format raises the number and rewrites every existing file in the same change. No
 file stays behind in an older format, and git history is the only record of the old form.
+
+`titles` came in without a new number. Every file without it stays valid, so no file had to be
+rewritten.

@@ -1,8 +1,8 @@
-"""``seqforge report`` — render a workspace's compile as one self-contained HTML page.
+"""``seqforge report`` — render a compile, a study or both as one HTML page and its data.
 
 A deterministic reader: it opens the ``seqforge/`` artifacts already on disk (manifest, samples,
 evidence matrix, composed pipeline) and writes a single offline HTML file that makes the whole decision
-legible at a glance. It touches no FASTQ, no network, and no LLM, and it decides nothing — the verdict
+legible at a glance, with ``report.json`` beside it holding the same data for a program. It touches no FASTQ, no network, and no LLM, and it decides nothing — the verdict
 it shows was decided upstream by ``resolve``/``validate``/``compose``.
 
 Exit is ``0`` on a successful render regardless of what the dataset's verdict was: the reader's job is
@@ -21,21 +21,35 @@ from pathlib import Path
 
 import typer
 
-from ..report import collect_report, render_html
-from ..workspace import report_html_path
+from ..report import collect_report, write_report
+from ..workspace import REPORT_HTML, report_html_path
+from ._common import _open_study
 from .root import app
 
 
 @app.command("report")
 def report_cmd(
-    workspace: Path = typer.Option(
-        Path(), "-C", "--workspace", help="Root holding the seqforge/ state to report on."
+    workspaces: list[Path] | None = typer.Option(
+        None,
+        "-C",
+        "--workspace",
+        help="Root holding the seqforge/ state to report on. Default: the current directory, "
+        "unless --study is given alone. Give it more than once, with --study, for a study whose "
+        "samples were compiled in several workspaces.",
+    ),
+    study: Path | None = typer.Option(
+        None,
+        "--study",
+        help="A study folder to show on the Study tab: its bounds as a graph of the records kept "
+        "and left out. Given alone, the report needs no compile and is written into the folder.",
     ),
     output: Path | None = typer.Option(
         None,
         "-o",
         "--output",
-        help="Where to write the HTML (default: seqforge/report.html under the workspace).",
+        help="Where to write the HTML (default: seqforge/report.html under one workspace, or "
+        "report.html in the study folder when no workspace or several are given). The data file "
+        "goes beside it, under the same name with .json.",
     ),
     timestamp: bool = typer.Option(
         True,
@@ -51,7 +65,19 @@ def report_cmd(
         "joined onto the pipeline dir, so pass an absolute path if it lives elsewhere.",
     ),
 ) -> None:
-    """Write one self-contained HTML report of the workspace's compile; print a JSON summary.
+    """Write one self-contained HTML report of a compile, a study or both, and its data; print a summary.
+
+    ``--study`` adds the Study tab, read from the study folder through its format checks: a folder
+    the checks refuse exits 2 before anything is written. Given without ``-C``, the report is the
+    study's alone, needs no compile, and is written into the study folder. Given with several
+    ``-C``, the report starts from the study folder and is written there: each workspace keeps its
+    own compile tabs, the Study tab marks which workspace compiled each sample, and a workspace
+    that joined an older reading is warned stale. Several ``-C`` without ``--study`` exit 2, as
+    the report finds no study by itself.
+
+    ``report.json`` is written beside the page and is what the page is built from: the same data, for
+    a program, with each path in it relative to where the report was written — each ``.h5ad`` the
+    pipeline left included, so a caller opens the matrices without knowing the workspace's layout.
 
     The page inlines every asset it has — one stylesheet and one script — so it opens on a
     double-click with no network. There is no diagram or charting engine to inline: the flow is plain
@@ -64,24 +90,57 @@ def report_cmd(
     ``--results`` is a machine fact, like ``--fastq-dir`` and ``--sif-dir``: it says where this
     machine put the outputs, and it cannot change anything the page says the compiler decided.
     """
-    out = output if output is not None else report_html_path(workspace)
+    roots = list(workspaces or [])
+    if len(roots) > 1 and study is None:
+        typer.echo(
+            json.dumps(
+                {
+                    "error": "several_workspaces_need_a_study",
+                    "detail": "several workspaces are one report only of a study: name it with "
+                    "--study",
+                },
+                indent=2,
+            ),
+            err=True,
+        )
+        raise typer.Exit(2)
+    opened = _open_study(study)
+    if not roots and opened is None:
+        roots = [Path()]
+    # The folder the report starts from is where it writes: one workspace's seqforge/, or the study
+    # folder when it is read alone or with several workspaces. A study read beside one workspace is
+    # read where it is.
+    if output is not None:
+        out = output
+    elif len(roots) == 1:
+        out = report_html_path(roots[0])
+    else:
+        assert opened is not None
+        out = opened.path / REPORT_HTML
     generated_at = datetime.now().strftime("%Y-%m-%d %H:%M") if timestamp else None
     try:
-        report = collect_report(workspace, generated_at=generated_at, results_dir=results)
+        report = collect_report(
+            roots,
+            study=opened,
+            generated_at=generated_at,
+            results_dir=results,
+            report_dir=out.parent,
+        )
     except FileNotFoundError as exc:
         typer.echo(
             json.dumps({"error": "nothing_to_report", "detail": str(exc)}, indent=2), err=True
         )
         raise typer.Exit(1) from exc
 
-    html = render_html(report)
-    out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text(html, encoding="utf-8")
+    written = write_report(report, out)
 
     payload = {
-        "report": str(out),
-        "bytes": len(html.encode("utf-8")),
+        "report": str(written.html),
+        "json": str(written.json),
+        "bytes": written.html_bytes,
         "assays": len(report.assays),
+        "study": None if report.study is None else report.study.study,
+        "warnings": [w.model_dump(mode="json") for w in report.warnings],
         "conclusion": [
             {
                 "assay": a.label,

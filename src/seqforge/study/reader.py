@@ -40,7 +40,7 @@ import datetime
 import hashlib
 import threading
 from collections import defaultdict
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Collection, Mapping
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field, replace
 from pathlib import Path
@@ -79,7 +79,7 @@ from .lists import (
     parse_lists,
     snake,
 )
-from .reading import FORMAT, check_reading
+from .reading import BIOSAMPLE_ACCESSION, FORMAT, check_reading
 
 if TYPE_CHECKING:
     from labdata.ontology import Candidate, OntologyStore, Term
@@ -87,7 +87,7 @@ if TYPE_CHECKING:
 KIND_NAME = name_of(__name__)
 #: Raise it when an instruction, a question, a guide, the answer's shape or a rule of writing the
 #: reading changes.
-KIND_VERSION = "2026.11.9"
+KIND_VERSION = "2026.11.10"
 #: The roles, and the models that fill them unless a pass names others: the writer, and
 #: :data:`.closed.JEV`.
 WRITER_ROLE, JEV_ROLE = "writer", "jev"
@@ -900,6 +900,12 @@ def _read(u: Unit, context: _Context) -> dict[str, Any]:
     }
     if snapshot := _snapshot(rows, shared, terms, context.ontology.date):
         reading["ontology_snapshot"] = snapshot
+    # An id copied from the sample's record, which the compile joins on: never shared, never a claim.
+    accessions = src.biosample_accessions(sources)
+    rows = {
+        g: {BIOSAMPLE_ACCESSION: accessions[g], **row} if g in accessions else row
+        for g, row in rows.items()
+    }
     reading |= {
         "passages": passages.by_number,
         "factors": factors,
@@ -1251,7 +1257,9 @@ def reading_kind(
         text = src.records_text(sources) + "\n\n" + src.papers_text(sources, full=True)
         # A store update can change a reading's terms with no record changed, so the tag names
         # every snapshot pinned: which ones a study will search is not known until it is read.
-        identity = "\n".join([text, *guides, *sorted(ontology.snapshots.values())])
+        # The BioSample accessions are copied into the reading, so a new link is a new reading.
+        accessions = [f"{g} {a}" for g, a in src.biosample_accessions(sources).items()]
+        identity = "\n".join([text, *guides, *sorted(ontology.snapshots.values()), *accessions])
         tag = hashlib.sha256(identity.encode()).hexdigest()[:16]
         return Inputs({"sources": sources, "guides": guides, "writer_text": text}, tag=tag)
 
@@ -1303,14 +1311,16 @@ def reading_file(outcome: Outcome) -> dict[str, Any]:
     return reading
 
 
-def write_readings(task: TaskReader, kind: str, out: Path, name: str) -> dict[str, dict[str, Any]]:
+def write_readings(
+    task: TaskReader, kind: str, out: Path, name: str, keys: Collection[str] | None = None
+) -> dict[str, dict[str, Any]]:
     """Write ``<out>/<key>/<name>`` for each study with an answer, and say how each study ended.
 
     A refused study gets no file, and its reason instead; a file already on disk is never
     overwritten, and a file the format check rejects is not written. See
     :func:`.folder.write_files`.
     """
-    return write_files(task, kind, out, name, reading_file, check_reading)
+    return write_files(task, kind, out, name, reading_file, check_reading, keys=keys)
 
 
 KIND = Kind(
@@ -1318,4 +1328,5 @@ KIND = Kind(
     build=_build,
     default_models={WRITER_ROLE: WRITER, JEV_ROLE: JEV},
     default_keys=picked_studies,
+    write=write_readings,
 )

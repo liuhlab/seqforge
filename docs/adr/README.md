@@ -1,11 +1,12 @@
 # Architecture decision records
 
-One decision per file, one paragraph: `# N. <the decision as a claim>` and one to three sentences on
-what was there, what was decided and why the obvious reading lost. Twelve lines is the ceiling, and a
-`**Status.**` line only where a record was amended or superseded. The bar for writing a new one at all
-is stated in [`AGENTS.md`](../../AGENTS.md).
+One decision per file: `# N. <the decision as a claim>` and a short body on what was there, what was
+decided and why the obvious reading lost, with a `**Status.**` line only where a record was amended or
+superseded. The one length cap is the word cap that `pixi run vale` checks, `Lab.LengthAdr`, explained
+in [`docs/agents/writing.md`](../agents/writing.md). The bar for writing a new one at all is stated in
+[`AGENTS.md`](../../AGENTS.md).
 
-The seven records here are system-wide. The rest sit beside the code they govern, in
+The records here are system-wide. The rest sit beside the code they govern, in
 `src/seqforge/<context>/docs/adr/` — so the records governing `resolve/` are the ones under
 `resolve/`, and no index has to say so. Filenames stay globally unique, so `find . -name '0034-*.md'`
 locates any record wherever it lives.

@@ -99,6 +99,7 @@ shared:
 
 samples:
   GSM9000001:
+    biosample_accession: SAMN90000001
     biosample:    {id: B1, inferred: "One chromatin prep per age gave the pull-down and the input", see: [1], p: 0.7}
     age:          {text: 2 months, value: 2, unit: month, level: young, quoted: [3], p: 0.97}
   GSM9000002:
@@ -240,6 +241,12 @@ A [bounds file](bounds.md) writes its claims and its passages the same way.
 
 Each row under `samples` holds the claims of one sample, each under its label. `shared` holds
 claims in the same form.
+
+A row can also hold one field that is not a claim: `biosample_accession`, the BioSample accession
+that the sample's GEO record links, such as `SAMN90000001`. It is copied from the record and is
+not read from any text, so it has no backing mark and no `p`. The field is absent when the record
+links no BioSample, and it is never under `shared`. Do not confuse it with the `biosample` label
+below, whose `id` is a name made up in the file.
 
 A sample has every claim under `shared`, except for a label that its own row writes. The row's
 claim replaces the shared claim whole: no field of the shared claim carries over. In the example,

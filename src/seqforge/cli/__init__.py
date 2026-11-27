@@ -1,9 +1,8 @@
 """The ``seqforge`` Typer application, assembled from one module per command group.
 
 The CLI is the API: every skill action maps to a deterministic ``seqforge <verb>`` (JSON on stdout by
-default) that runs with no LLM in the loop -- only ``harvest extract``, the opt-in
-``resolve adjudicate`` and ``pass start``, which runs a unit kind's model work through the lab
-gateway, touch an LLM. Exit codes are uniform: ``0`` OK, ``1`` ERROR, ``2`` USAGE,
+default) that runs with no LLM in the loop -- only ``harvest extract`` and ``pass start``, which
+runs a unit kind's model work through the lab gateway, touch an LLM. Exit codes are uniform: ``0`` OK, ``1`` ERROR, ``2`` USAGE,
 ``3`` BLOCKED (a Blocker; for a pass command, a stop to act on before rerunning it, or a
 task another process holds), ``4`` NEEDS_HUMAN (an open Conflict / question).
 

@@ -11,6 +11,8 @@
 # liulab-genome's job here.
 
 import csv
+import os
+import re
 from functools import cache
 
 # seqforge's own helpers, imported rather than restated. `h5ad_suffixes` decides both what the
@@ -27,6 +29,7 @@ from functools import cache
 from seqforge.workflows.h5ad import (
     STAR_BAM,
     STAR_LOG_FILES,
+    UNLABELLED_DIRNAME,
     h5ad_suffixes,
     solo_filtered_files,
     solo_raw_files,
@@ -64,6 +67,9 @@ SOLO = config["solo"]
 # STAR takes --soloFeatures as N space-separated values and writes one Solo.out/<Feature>/ per value.
 FEATURES = SOLO["soloFeatures"].split()
 PRIMARY = config["primary_feature"]
+# The project's sample table, relative to this directory. `seqforge run` and `project metadata`
+# write it after compose, so a pipeline composed alone may run before there is one.
+SAMPLE_TABLE = config["sample_table"]
 
 # The shared genome segment is loaded once and attached by every mapping job, so the rule that loads
 # it needs a file to hang a dependency on. A flag rather than a directory: nothing reads its bytes,
@@ -415,20 +421,59 @@ rule solo_to_h5ad:
 
     No `container:`. Writing an .h5ad is seqforge's own output-format job, not an aligner's; `anndata`
     is a plain dependency of this package. Only `starsolo_count` needs liulab-runtime.
+
+    Its objects land under `unlabelled/` and are kept: `label_h5ad` writes the deliverables from
+    them, and relabelling from a kept object is what lets a new reading skip the alignment.
     """
     input:
         matrices=rules.starsolo_count.output.matrices,
     output:
-        expand(f"{OUTDIR}/{{{{sample}}}}/{{{{sample}}}}{{suffix}}", suffix=h5ad_suffixes(FEATURES)),
+        expand(
+            f"{OUTDIR}/{{{{sample}}}}/{UNLABELLED_DIRNAME}/{{{{sample}}}}{{suffix}}",
+            suffix=h5ad_suffixes(FEATURES),
+        ),
     params:
         solo=lambda wc: f"{OUTDIR}/{wc.sample}/Solo.out",
-        prefix=lambda wc: f"{OUTDIR}/{wc.sample}/{wc.sample}",
+        prefix=lambda wc: f"{OUTDIR}/{wc.sample}/{UNLABELLED_DIRNAME}/{wc.sample}",
         features=" ".join(FEATURES),
         primary=PRIMARY,
     shell:
         r"""
         seqforge io h5ad --solo-dir {params.solo} --features "{params.features}" \
              --primary {params.primary} --out-prefix {params.prefix}
+        """
+
+
+def sample_table(wildcards):
+    """The sample table while it exists, and nothing before it does.
+
+    An input, so snakemake re-runs the labelling when the table is rewritten, as it is for a new
+    reading. Nothing upstream reads the table, so nothing upstream re-runs.
+    """
+    return [SAMPLE_TABLE] if os.path.exists(SAMPLE_TABLE) else []
+
+
+rule label_h5ad:
+    """Write one deliverable .h5ad: the packaging step's object, with its sample's labels.
+
+    Each label a joined study put in the sample table becomes a categorical `obs` column, and the
+    reading's hash goes in `uns`; a sample with no labels gets the object unchanged. A verb in a
+    `shell:`, as `solo_to_h5ad` is, so compose's wiring gate sees it. The reading's hash is in no
+    part of `run_id`, so a new reading lands in this same directory and re-runs only this rule.
+    """
+    input:
+        h5ad=f"{OUTDIR}/{{sample}}/{UNLABELLED_DIRNAME}/{{sample}}{{suffix}}",
+        table=sample_table,
+    output:
+        f"{OUTDIR}/{{sample}}/{{sample}}{{suffix}}",
+    wildcard_constraints:
+        suffix="|".join(re.escape(s) for s in h5ad_suffixes(FEATURES)),
+    params:
+        table=SAMPLE_TABLE,
+    shell:
+        r"""
+        seqforge io h5ad-labels {input.h5ad} --sample {wildcards.sample} \
+             --table {params.table} --out {output}
         """
 
 
@@ -487,12 +532,18 @@ rule qc_bundle:
     report reads that sample's row from -- has to be the correct thing to ask for. What this cost is
     `rule all`'s enumeration, which is the point: those files were listed there because nothing
     downstream consumed them, and something does now.
+
+    The labelled objects are `ancient()`: the bundle waits for them to exist and not for their
+    time. A new reading relabels them after the bundle was written, and a bundle re-run then would
+    need the `temp()` stats back, which is to say the alignment.
     """
     input:
         stats=rules.starsolo_count.output.stats,
         filtered=rules.starsolo_count.output.filtered,
         logs=rules.starsolo_count.output.logs,
-        h5ad=rules.solo_to_h5ad.output,
+        h5ad=ancient(
+            expand(f"{OUTDIR}/{{{{sample}}}}/{{{{sample}}}}{{suffix}}", suffix=h5ad_suffixes(FEATURES))
+        ),
         cram=rules.solo_to_cram.output.cram,
     output:
         f"{OUTDIR}/{{sample}}/{{sample}}{QC_SUFFIX}",

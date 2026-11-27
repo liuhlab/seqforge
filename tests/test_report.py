@@ -9,25 +9,27 @@ degrades honestly when a piece is missing rather than crashing or inventing a ve
 from __future__ import annotations
 
 import ast
+import copy
 import json
 import re
 import shutil
 from collections.abc import Callable
 from html import escape, unescape
 from pathlib import Path
-from typing import TYPE_CHECKING, get_args
+from typing import TYPE_CHECKING, Any, get_args
 
 import pytest
 import yaml
 from typer.testing import CliRunner
 
-from conftest import no_wiring_gate, write_fastq_gz
+from conftest import SynthDataset, no_wiring_gate, write_fastq_gz
 from seqforge import kb
 from seqforge.cli import app
 from seqforge.report import collect_report, render_html
 from seqforge.report.flow import flow_steps
-from seqforge.report.model import AssayReport
+from seqforge.report.model import AssayReport, ProjectReport, WorkspaceReport
 from seqforge.workflows.metrics import Alert, DecisionRef, PipelineStats
+from study_kit import JOINED, READING, VALID, compiled, gap, joined_study, quoted
 
 if TYPE_CHECKING:  # the resolver seam is private, and only its type is wanted at module scope
     from seqforge.models.dataset import DatasetManifest
@@ -47,6 +49,12 @@ runner = CliRunner()
 #: no number because it is still trusted. Re-measure before changing the grouping, not before
 #: reading this.
 pytestmark = pytest.mark.xdist_group("report-workspace")
+
+
+def _with_assays(report: ProjectReport, assays: list[AssayReport]) -> ProjectReport:
+    """``report`` with its one workspace's assays swapped — how a test renders a model it built."""
+    (ws,) = report.workspaces
+    return report.model_copy(update={"workspaces": [ws.model_copy(update={"assays": assays})]})
 
 
 def _build_bulk_workspace(tmp_path: Path) -> Path:
@@ -125,6 +133,80 @@ def test_report_verb_writes_a_self_contained_html_page(own_workspace: Path) -> N
     assert "</html>" in html
     for tab in ("Overview", "Flow", "Samples", "Evidence", "Pipeline"):
         assert f">{tab}</button>" in html
+
+
+def _embedded_report_data(html: str) -> object:
+    """The data block the page carries, parsed — the one ``application/json`` script it embeds."""
+    found = re.findall(
+        r'<script type="application/json" id="seqforge-report-data">(.*?)</script>', html, re.S
+    )
+    assert len(found) == 1, "the page should embed its data exactly once"
+    return json.loads(found[0])
+
+
+def test_the_page_embeds_the_same_data_the_report_writes_to_report_json(
+    own_workspace: Path,
+) -> None:
+    """One file for a person and one for a program, and they are one set of data.
+
+    ``report.json`` lands beside ``report.html``, the stdout summary names it, and the page carries
+    the same data parsed back out of it — so a program that reads the page and one that reads the
+    JSON cannot be told two different things. The project's title in the data is checked against a
+    value the workspace itself fixes, so an empty or truncated data block cannot pass.
+    """
+    result = runner.invoke(app, ["report", "-C", str(own_workspace), "--no-timestamp"])
+    assert result.exit_code == 0, result.stdout
+    payload = json.loads(result.stdout)
+    html_path, json_path = Path(payload["report"]), Path(payload["json"])
+    assert json_path == own_workspace / "seqforge" / "report.json"
+
+    data = json.loads(json_path.read_text())
+    assert _embedded_report_data(html_path.read_text()) == data
+    (ws,) = data["workspaces"]
+    assert ws["name"] == own_workspace.name
+    assert (json_path.parent / ws["path"]).resolve() == own_workspace.resolve()
+    assert [a["chemistry"]["value"] for a in ws["assays"]] == [["bulk-rnaseq"]]
+
+
+@pytest.mark.parametrize("layout", ["per-sample", "fan-in"])
+def test_report_json_points_at_each_h5ad_from_wherever_o_wrote_the_report(
+    own_workspace: Path, tmp_path: Path, layout: str
+) -> None:
+    """A program opens the matrices from ``report.json`` alone, wherever the report was written.
+
+    ``-o`` moves the page and its data together, and each ``.h5ad`` is pointed at relative to that
+    directory — so the pointers resolve from the report's new home rather than from ``seqforge/``,
+    where the workspace layout would have to be known. Both layouts a pipeline writes: a single-cell
+    run's per-sample objects, which carry their sample, and a chimeric plate's one object per
+    Component, which carries none because it holds every cell.
+    """
+    from seqforge.pipeline import CompiledPipeline
+
+    pipeline = CompiledPipeline.discover(own_workspace)
+    assert pipeline is not None
+    if layout == "per-sample":
+        samples = _finish_a_starsolo_pipeline(own_workspace)
+        expected: dict[Path, str | None] = {}
+        for sample in samples:
+            for suffix in (".h5ad", ".velocyto.h5ad"):
+                path = pipeline.results_dir / sample / f"{sample}{suffix}"
+                path.write_bytes(b"")
+                expected[path.resolve()] = sample
+    else:
+        results, _ = _finish_a_chimeric_plate(own_workspace)
+        expected = {p.resolve(): None for p in results.glob("combined.*.h5ad")}
+        assert len(expected) == 2
+
+    out = tmp_path / "shared" / "report.html"
+    result = runner.invoke(
+        app, ["report", "-C", str(own_workspace), "-o", str(out), "--no-timestamp"]
+    )
+    assert result.exit_code == 0, result.stdout
+    assert Path(json.loads(result.stdout)["json"]) == out.with_name("report.json")
+
+    (assay,) = json.loads(out.with_name("report.json").read_text())["workspaces"][0]["assays"]
+    assert {(out.parent / h["path"]).resolve(): h["sample"] for h in assay["h5ad"]} == expected
+    assert not any(Path(h["path"]).is_absolute() for h in assay["h5ad"])
 
 
 @pytest.mark.parametrize("store", ["none", "tiny"])
@@ -352,7 +434,7 @@ def test_the_three_roles_every_pane_needed_are_drawn_by_one_component_each(
             "pipeline_stats": None,
         }
     )
-    page = render_html(report.model_copy(update={"assays": [bare]}))
+    page = render_html(_with_assays(report, [bare]))
 
     for tab in ("samples", "pipeline"):
         assert "sf-empty" in _body_classes(_pane(page, tab)), (
@@ -397,7 +479,7 @@ def test_a_refused_compile_paints_the_two_places_a_reader_looks_and_nothing_else
             )
         }
     )
-    page = render_html(report.model_copy(update={"assays": [refused]}))
+    page = render_html(_with_assays(report, [refused]))
 
     # the verdict is one badge in two places, and on this branch it is the tinted member
     assert (
@@ -873,8 +955,6 @@ def _rich_page(n_samples: int = 0) -> str:
     ``n_samples`` exists for the paging test and changes nothing else: the samples are copies of the
     first one, so a long table is the same table with more rows in it.
     """
-    from seqforge.report.model import ProjectReport
-
     assay = _rich_assay()
     if n_samples:
         first = assay.samples[0]
@@ -887,9 +967,8 @@ def _rich_page(n_samples: int = 0) -> str:
         )
     return render_html(
         ProjectReport(
-            workspace_name="PRJNA1027859",
             report_version="0.0.0",
-            assays=[assay],
+            workspaces=[WorkspaceReport(name="PRJNA1027859", path="..", assays=[assay])],
         )
     )
 
@@ -913,12 +992,15 @@ def test_a_forbidden_matrix_cell_is_a_pinnable_popover_not_a_transient_tooltip()
     assert "title=" not in cell.group(0)  # no transient native tooltip on the cell
 
     # The script's end of the same contract: it selects these cells, it PINS (a click handler, not a
-    # mouseover), it offers Copy, and Escape closes it.
+    # mouseover), it offers Copy, and Escape closes it. Read inside the popover's own initialiser:
+    # the bounds graph's record cards are another component, and they do show on hover.
+    popover = script[script.index("function initProvPopover") : script.index("// ---- boot")]
+    popover = popover[: popover.index("// ---- the bounds graph")]
     assert ".mx-cell" in script
-    assert 'copyBtn.textContent = "Copy"' in script
-    assert 'e.key === "Escape"' in script
-    assert "mouseover" not in script
-    assert "mouseenter" not in script
+    assert 'copyBtn.textContent = "Copy"' in popover
+    assert 'e.key === "Escape"' in popover
+    assert "mouseover" not in popover
+    assert "mouseenter" not in popover
 
 
 def _samples_grid_of(ws: Path, n_samples: int) -> str:
@@ -1696,7 +1778,7 @@ def _render_with_stats(workspace: Path, stats: PipelineStats) -> str:
     """
     report = collect_report(workspace)
     assay = report.assays[0].model_copy(update={"pipeline_stats": stats})
-    return render_html(report.model_copy(update={"assays": [assay]}))
+    return render_html(_with_assays(report, [assay]))
 
 
 def _land_bundles(results: Path, bundles: dict[str, dict[str, object]]) -> PipelineStats:
@@ -2510,7 +2592,7 @@ def test_an_alerts_alternative_reaches_the_page_and_a_nameless_decision_draws_no
     nameless = swapped.model_copy(update={"id": "demo.nameless", "implicates": []})
     assay = report.assays[0].model_copy(update={"alerts": [swapped, nameless]})
 
-    block = _alert_block(render_html(report.model_copy(update={"assays": [assay]})))
+    block = _alert_block(render_html(_with_assays(report, [assay])))
 
     assert block.count("demo.") == 2, "both cards render, or one branch is asserted twice"
     assert "the alternative is <b>R1 = b.fastq.gz, R2 = a.fastq.gz</b>" in block
@@ -3179,3 +3261,487 @@ def test_the_page_keeps_its_standing_guarantees_with_the_gene_model_alert_render
     assert "the alternative is <b>Reverse</b>" in block
     assert not re.findall(r'(?:src|href)\s*=\s*"(?:https?:)?//[^"]+"', html)
     assert html == render_html(collect_report(own_workspace))
+
+
+# -- the Study tab ---------------------------------------------------------------------------------
+#
+# A study folder is built here from the study kit's valid files, with one more record left out:
+# a SuperSeries, which the standard set's study file names. Everything is checked through
+# `report.json`, the file a program reads and the page is rendered from.
+
+
+def _study_folder(root: Path) -> Path:
+    """A study folder with bounds, a reading and a study file: two Series kept under a SuperSeries."""
+    folder = root / "GSE1"
+    folder.mkdir(parents=True)
+    superseries = {"id": "GSE3", "inferred": "A SuperSeries repeats its sub-Series.", "p": 0.95}
+    bounds = {**VALID, "left_out": [superseries, *VALID["left_out"]]}
+    study = {"id": "GSE1", "records": {"series": ["GSE1", "GSE2", "GSE3"], "superseries": "GSE3"}}
+    for name, content in (
+        ("bounds.yaml", bounds),
+        ("reading.yaml", READING),
+        ("study.yaml", study),
+    ):
+        (folder / name).write_text(yaml.safe_dump(content, sort_keys=False))
+    return folder
+
+
+@pytest.mark.parametrize("with_workspace", [False, True], ids=["study folder alone", "workspace"])
+def test_a_study_report_renders_with_no_workspace_and_writes_where_it_started(
+    tmp_path: Path, request: pytest.FixtureRequest, with_workspace: bool
+) -> None:
+    """``report --study`` needs no compile: from a study folder alone it writes the page and its data
+    into that folder, with no workspace in them. With a workspace it writes into ``seqforge/`` as
+    always and reads the study folder where it is, so nothing is written into the folder."""
+    folder = _study_folder(tmp_path / "studies")
+    args = ["report", "--study", str(folder), "--no-timestamp"]
+    where = folder
+    if with_workspace:
+        workspace: Path = request.getfixturevalue("own_workspace")
+        args += ["-C", str(workspace)]
+        where = workspace / "seqforge"
+    result = runner.invoke(app, args)
+    assert result.exit_code == 0, result.output
+
+    payload = json.loads(result.stdout)
+    assert Path(payload["report"]) == where / "report.html"
+    assert Path(payload["json"]) == where / "report.json"
+    data = json.loads((where / "report.json").read_text())
+    assert _embedded_report_data((where / "report.html").read_text()) == data
+    assert len(data["workspaces"]) == int(with_workspace)
+    assert data["study"]["study"] == "GSE1"
+    assert (where / data["study"]["path"]).resolve() == folder.resolve()
+    written = [] if with_workspace else ["report.html", "report.json"]
+    assert sorted(p.name for p in folder.iterdir()) == sorted(
+        ["bounds.yaml", "reading.yaml", "study.yaml", *written]
+    )
+
+
+def test_the_bounds_graph_data_holds_every_kept_and_left_out_record_with_its_reason(
+    tmp_path: Path,
+) -> None:
+    """Every record the bounds placed reaches ``report.json``, kept or left out, with its backing,
+    its reason, its p, the SuperSeries it belongs to and the reading's passages quoted from it:
+    what a reader checks the bounds by, without opening a file."""
+    folder = _study_folder(tmp_path)
+    result = runner.invoke(app, ["report", "--study", str(folder), "--no-timestamp"])
+    assert result.exit_code == 0, result.output
+
+    study = json.loads((folder / "report.json").read_text())["study"]
+    said = {
+        r["id"]: (
+            r["kind"],
+            r["kept"],
+            r["backing"],
+            r["reason"],
+            [q["number"] for q in r["reason_passages"]],
+            r["p"],
+            r["superseries"],
+            [q["number"] for q in r["passages"]],
+        )
+        for r in study["records"]
+    }
+    assert said == {
+        "GSE1": ("series", True, "quoted", None, [1, 2], 0.9, "GSE3", [1]),
+        "GSE2": ("series", True, "inferred", "Same samples, later run.", [2], 1, "GSE3", []),
+        "pmid:11": ("paper", True, None, None, [], None, None, [4]),
+        "GSE3": ("series", False, "inferred", "A SuperSeries repeats its sub-Series.", [], 0.95,
+                 None, []),
+        "pmid:22": ("paper", False, "unknown", "Nothing read says who made it", [], None, None, []),
+    }  # fmt: skip
+    assert study["reason"] == VALID["reason"]
+    assert study["has_reading"] is True
+    assert "joins a SuperSeries" in (folder / "report.html").read_text()
+
+
+def _study_of(root: Path, edit: Callable[[dict[str, Any]], None]) -> dict[str, Any]:
+    """The Study tab's data in ``report.json`` for the study folder, its reading changed by ``edit``."""
+    folder = _study_folder(root)
+    reading = copy.deepcopy(READING)
+    edit(reading)
+    (folder / "reading.yaml").write_text(yaml.safe_dump(reading, sort_keys=False))
+    result = runner.invoke(app, ["report", "--study", str(folder), "--no-timestamp"])
+    assert result.exit_code == 0, result.output
+    study: dict[str, Any] = json.loads((folder / "report.json").read_text())["study"]
+    return study
+
+
+def _one_factor(reading: dict[str, Any]) -> None:
+    """Genotype a label of each sample and no longer a factor: age is the one factor."""
+    del reading["factors"]["genotype"]
+    del reading["shared"]["genotype"]["level"]
+    del reading["samples"]["GSM6"]["genotype"]["level"]
+
+
+def _second_assay(reading: dict[str, Any]) -> None:
+    """The old IgG library sequenced by another assay."""
+    reading["samples"]["GSM9"]["assay"] = quoted("CUT&Tag")
+
+
+@pytest.mark.parametrize(
+    ("edit", "kind", "axes", "groups"),
+    [
+        pytest.param(
+            _second_assay,
+            "cross",
+            (["young", "middle", "old"], ["wt", "ko"]),
+            {
+                ("young", "wt"): {"ChIP-Seq": ["GSM1", "GSM2", "GSM5", "GSM7"]},
+                ("young", "ko"): {"ChIP-Seq": ["GSM6"]},
+                ("middle", "wt"): {"ChIP-Seq": ["GSM3", "GSM8"]},
+                ("middle", "ko"): {},
+                ("old", "wt"): {"ChIP-Seq": ["GSM4"], "CUT&Tag": ["GSM9"]},
+                ("old", "ko"): {},
+            },
+            id="two factors: a cross-table, split by assay",
+        ),
+        pytest.param(
+            _one_factor,
+            "grouped",
+            ([], []),
+            {
+                ("young",): {None: ["GSM1", "GSM2", "GSM5", "GSM6", "GSM7"]},
+                ("middle",): {None: ["GSM3", "GSM8"]},
+                ("old",): {None: ["GSM4", "GSM9"]},
+            },
+            id="one factor: a grouped list",
+        ),
+    ],
+)
+def test_the_design_table_is_a_cross_table_for_two_factors_and_a_grouped_list_otherwise(
+    tmp_path: Path,
+    edit: Callable[[dict[str, Any]], None],
+    kind: str,
+    axes: tuple[list[str], list[str]],
+    groups: dict[tuple[str, ...], dict[str | None, list[str]]],
+) -> None:
+    """With two factors, the minimum design table is one factor's levels by the other's, every
+    pair a cell even when no sample is in it; otherwise it is one row per level combination the
+    samples take. Each count names its samples, split by assay only when the study has two."""
+    design = _study_of(tmp_path, edit)["design"]
+    assert design["kind"] == kind
+    assert (design["rows"], design["columns"]) == axes
+    said = {
+        tuple(g["levels"]): {c["assay"]: c["samples"] for c in g["counts"]}
+        for g in design["groups"]
+    }
+    assert said == groups
+    assert list(said) == list(groups)  # in the factors' level order, a cross-table row by row
+
+
+def _dose_restated(reading: dict[str, Any]) -> None:
+    """One sample's own row writing the shared dose claim again, word for word."""
+    reading["samples"]["GSM2"]["dose"] = copy.deepcopy(reading["shared"]["dose"])
+
+
+def test_each_topic_table_folds_the_labels_the_same_for_every_sample_and_counts_those_that_vary(
+    tmp_path: Path,
+) -> None:
+    """Each label sits in the sample table of the topic its row in the label table declares, and a
+    label of the study's own in Other; a factor is in none, as it is a column of each. A label whose
+    claim is the same for every sample, whether a sample takes it from ``shared`` or writes it
+    again, folds into one line, and what is left are the labels that vary."""
+    study = _study_of(tmp_path, _dose_restated)
+    said = {
+        t["topic"]: (t["labels"], t["varying"], [s["label"] for s in t["same"]])
+        for t in study["topics"]
+    }
+    assert said == {
+        "Assay": (["assay", "target", "control_type"], ["target", "control_type"], ["assay"]),
+        "Organism": (
+            ["species", "sex", "development_stage", "strain"],
+            [],
+            ["species", "sex", "development_stage", "strain"],
+        ),
+        "Material": (
+            ["biosample", "donor", "tissue", "cell_type", "cell_line", "disease"],
+            ["biosample"],
+            ["donor", "tissue", "cell_type", "cell_line", "disease"],
+        ),
+        "Treatment & time": (
+            ["treatment", "dose", "duration"],
+            [],
+            ["treatment", "dose", "duration"],
+        ),
+        "Other": (["diet"], [], ["diet"]),
+    }
+    assay = study["topics"][0]["same"][0]["cell"]
+    assert (assay["value"], assay["backing"], assay["inherited"]) == ("ChIP-Seq", "quoted", True)
+
+
+def _genotype_unknown(reading: dict[str, Any]) -> None:
+    """Nothing read gives one young library's genotype, so it is at neither of the factor's levels."""
+    reading["samples"]["GSM7"]["genotype"] = gap("unknown")
+
+
+def test_a_sample_outside_a_factor_is_at_no_level_of_it(tmp_path: Path) -> None:
+    """A factor may cover only some samples. A sample whose claim on it names no level is at no
+    level, which the design table counts under a level of its own after the factor's, and which
+    the sample's own cell carries, with the gap it is."""
+    study = _study_of(tmp_path, _genotype_unknown)
+    design = study["design"]
+    assert design["columns"] == ["wt", "ko", None]
+    said = {
+        tuple(g["levels"]): [s for c in g["counts"] for s in c["samples"]] for g in design["groups"]
+    }
+    assert said[("young", None)] == ["GSM7"]
+    assert said[("young", "wt")] == ["GSM1", "GSM2", "GSM5"]
+    # Of the young samples, the one at no genotype level comes after those at one.
+    young = ["GSM1", "GSM2", "GSM5", "GSM6", "GSM7"]
+    assert [s["sample"] for s in study["samples"]][:5] == young
+    genotype = next(s for s in study["samples"] if s["sample"] == "GSM7")["cells"]["genotype"]
+    assert (genotype["level"], genotype["value"], genotype["backing"]) == (None, None, "unknown")
+
+
+@pytest.mark.parametrize("titled", [True, False], ids=["with titles", "drawn before titles"])
+def test_a_record_carries_its_title_only_when_the_bounds_file_has_one(
+    tmp_path: Path, titled: bool
+) -> None:
+    """The title comes from the bounds file alone, so the report reads no store. A bounds file
+    drawn before titles were copied has none, and every record goes by its id alone."""
+    folder = _study_folder(tmp_path)
+    if titled:
+        bounds = yaml.safe_load((folder / "bounds.yaml").read_text())
+        bounds["titles"] = {"GSE1": "Kept Series", "pmid:22": "Left-out paper"}
+        (folder / "bounds.yaml").write_text(yaml.safe_dump(bounds, sort_keys=False))
+    result = runner.invoke(app, ["report", "--study", str(folder), "--no-timestamp"])
+    assert result.exit_code == 0, result.output
+
+    records = json.loads((folder / "report.json").read_text())["study"]["records"]
+    titles = {"GSE1": "Kept Series", "pmid:22": "Left-out paper"} if titled else {}
+    assert {r["id"]: r["title"] for r in records} == {
+        r: titles.get(r) for r in ("GSE1", "GSE2", "pmid:11", "GSE3", "pmid:22")
+    }
+
+
+# -- one study, several workspaces -----------------------------------------------------------------
+#
+# Each workspace is a manifest written by hand, one sample per BioSample accession, by the study
+# kit's `compiled`: the report reads a workspace's samples from its manifest and needs no run.
+
+
+def test_several_workspaces_give_one_report_in_the_study_folder_marking_who_compiled_each_sample(
+    tmp_path: Path, synth_10x_v3: SynthDataset
+) -> None:
+    """Named with ``--study``, several workspaces are one report, written where it started: the
+    study folder. Each keeps its own assays, and each reading sample names the workspaces whose
+    manifest holds its BioSample accession, or none. The Study tab says how many samples each
+    workspace compiled whether or not a sample table has rows to mark them in."""
+    folder = joined_study(tmp_path / "GSE1")
+    first, second = tmp_path / "first", tmp_path / "second"
+    compiled(first, synth_10x_v3.manifest, [JOINED["GSM1"], JOINED["GSM3"]])
+    compiled(second, synth_10x_v3.manifest, [JOINED["GSM4"]])
+    result = runner.invoke(
+        app,
+        ["report", "--study", str(folder), "-C", str(first), "-C", str(second), "--no-timestamp"],
+    )
+    assert result.exit_code == 0, result.output
+
+    assert Path(json.loads(result.stdout)["report"]) == folder / "report.html"
+    data = json.loads((folder / "report.json").read_text())
+    named = {ws["path"]: ws["name"] for ws in data["workspaces"]}
+    assert sorted(named.values()) == ["first", "second"]
+    assert all(len(ws["assays"]) == 1 for ws in data["workspaces"])
+    coverage = {s["sample"]: [named[p] for p in s["compiled_in"]] for s in data["study"]["samples"]}
+    assert coverage == {"GSM1": ["first"], "GSM3": ["first"], "GSM4": ["second"], "GSM6": []}
+    page = (folder / "report.html").read_text()
+    lines = re.findall(r"<p [^>]*data-coverage[^>]*>(.*?)</p>", page)
+    assert [unescape(re.sub(r"<[^>]+>", "", line)) for line in lines] == [
+        "Compiled in first: 2 of 4 samples",
+        "Compiled in second: 1 of 4 samples",
+        "In no workspace read: 1 of 4 samples",
+    ]
+    assert "joins a SuperSeries" not in page  # no study file, so no SuperSeries is drawn
+
+
+@pytest.mark.parametrize("stale", [True, False], ids=["reading changed since", "same reading"])
+def test_a_workspace_that_joined_an_older_reading_is_warned_stale(
+    tmp_path: Path, synth_10x_v3: SynthDataset, stale: bool
+) -> None:
+    """A workspace's sample table names the reading it joined by hash. When the study folder's
+    reading has changed since, the labels in that compile are older than the Study tab, and the
+    report says so; a workspace that joined the current reading draws no warning."""
+    folder = joined_study(tmp_path / "GSE1")
+    workspace = tmp_path / "ws"
+    compiled(workspace, synth_10x_v3.manifest, list(JOINED.values()))
+    joined = runner.invoke(
+        app, ["project", "metadata", "-C", str(workspace), "--study", str(folder)]
+    )
+    assert joined.exit_code == 0, joined.output
+    if stale:
+
+        def another_age(reading: dict[str, Any]) -> None:
+            reading["samples"]["GSM3"]["age"]["text"] = "13 months"
+
+        joined_study(folder, another_age)
+    result = runner.invoke(
+        app, ["report", "--study", str(folder), "-C", str(workspace), "--no-timestamp"]
+    )
+    assert result.exit_code == 0, result.output
+
+    data = json.loads((workspace / "seqforge" / "report.json").read_text())
+    joined_hash = json.loads(joined.stdout)["study"]["reading_hash"]
+    assert data["workspaces"][0]["reading_hash"] == joined_hash
+    assert (data["study"]["reading_hash"] != joined_hash) is stale
+    assert [w["code"] for w in data["warnings"]] == (["READING_STALE"] if stale else [])
+
+
+# -- large studies: each section past its cap says how much it hides ------------------------------
+#
+# A study is built here in memory, as large as each case needs, and does not read the standard set,
+# whose largest study reaches no cap.
+
+
+def _large_study(n_samples: int, *, materials: int | None = None) -> dict[str, Any]:
+    """A bounds file and a reading of ``n_samples`` samples, each of its own material unless
+    ``materials`` says how many there are, and every other label the same for all, each factor
+    at its one level."""
+    reading = copy.deepcopy(READING)
+    for factor in reading["factors"].values():
+        factor["levels"] = [factor["baseline"]]
+    reading["samples"] = {
+        f"GSM{i + 1}": {
+            "biosample": {
+                "id": f"B{i % (materials or n_samples) + 1}",
+                "inferred": "One prep per library.",
+                "p": 0.7,
+            }
+        }
+        for i in range(n_samples)
+    }
+    return {"bounds": copy.deepcopy(VALID), "reading": reading}
+
+
+def _levels(factor: str, n: int, *, alone: bool = False) -> Callable[[dict[str, Any]], None]:
+    """``factor`` given ``n`` levels, one sample at each; ``alone`` makes it the study's one factor."""
+
+    def edit(study: dict[str, Any]) -> None:
+        reading = study["reading"]
+        if alone:
+            other = next(f for f in reading["factors"] if f != factor)
+            del reading["factors"][other]
+            del reading["shared"][other]["level"]
+        levels = [f"{factor}{k}" for k in range(n)]
+        reading["factors"][factor] |= {"levels": levels, "baseline": levels[0]}
+        reading["shared"][factor]["level"] = levels[0]
+        for sample, level in zip(reading["samples"].values(), levels, strict=True):
+            sample[factor] = quoted(level, level=level)
+
+    return edit
+
+
+def _kept_series(study: dict[str, Any]) -> None:
+    study["bounds"]["series"] += [
+        {"id": f"GSE{n}", "inferred": "Same samples, later run.", "see": [2], "p": 1}
+        for n in range(10, 17)
+    ]
+
+
+def _left_out_papers(study: dict[str, Any]) -> None:
+    study["bounds"]["left_out"] += [
+        {"id": f"pmid:{n}", "unknown": "Nothing read says who made it", "p": None}
+        for n in range(100, 108)
+    ]
+
+
+def _two_materials(study: dict[str, Any]) -> None:
+    study.update(_large_study(len(study["reading"]["samples"]), materials=2))
+
+
+def _one_compiled(study: dict[str, Any]) -> None:
+    """Two materials, and one sample of the first compiled in a workspace the others are not in."""
+    _two_materials(study)
+    study["reading"]["samples"]["GSM1"]["biosample_accession"] = "SAMN1"
+    study["compiled"] = {"first": ["SAMN1"]}
+
+
+def _long_value(study: dict[str, Any]) -> None:
+    study["reading"]["samples"]["GSM1"]["dose"] = quoted("d" * 81)
+
+
+def _long_quote(study: dict[str, Any]) -> None:
+    study["reading"]["passages"][3]["quote"] = "q" * 81
+
+
+def _cut_counts(study: dict[str, Any]) -> dict[str, int]:
+    """Every count of what the Study tab hides, by section, those that hide nothing left out."""
+    design = study["design"]
+    counts = {f"graph {side}": cut["hidden"] for side, cut in study["graph"].items()}
+    counts["cross-table columns"] = design["cross_columns"] or 0
+    counts["grouped list"] = design["cut"]["hidden"] if design["cut"] else 0
+    for table in study["topics"]:
+        counts[f"{table['topic']} rows"] = table["cut"]["hidden"]
+        counts[f"{table['topic']} folded"] = table["folded"]
+    cells = [c for s in study["samples"] for c in s["cells"].values()]
+    cells += [s["cell"] for t in study["topics"] for s in t["same"]]
+    counts["values"] = sum(c["hidden_chars"] for c in cells)
+    quotes = [*study["passages"]]
+    quotes += [q for r in study["records"] for q in (*r["reason_passages"], *r["passages"])]
+    counts["quotes"] = sum(q["hidden_chars"] for q in quotes)
+    return {section: n for section, n in counts.items() if n}
+
+
+def _unchanged(study: dict[str, Any]) -> None:
+    return None
+
+
+@pytest.mark.parametrize(
+    ("size", "edit", "hidden"),
+    [
+        pytest.param(9, _kept_series, {"graph series": 1}, id="nine kept Series"),
+        pytest.param(9, _left_out_papers, {"graph paper": 1}, id="nine left-out papers"),
+        pytest.param(
+            13,
+            _levels("genotype", 13),
+            {"cross-table columns": 13},
+            id="a cross-table of thirteen columns",
+        ),
+        pytest.param(
+            21,
+            _levels("genotype", 21, alone=True),
+            {"grouped list": 1},
+            id="a grouped list of twenty-one rows",
+        ),
+        pytest.param(51, _unchanged, {"Material rows": 1}, id="fifty-one sample rows"),
+        pytest.param(
+            51, _two_materials, {"Material folded": 49}, id="fifty-one samples of two materials"
+        ),
+        pytest.param(
+            51,
+            _one_compiled,
+            {"Material folded": 48},
+            id="fifty-one samples of two materials, one compiled apart",
+        ),
+        pytest.param(9, _long_value, {"values": 1}, id="a value of eighty-one characters"),
+        pytest.param(9, _long_quote, {"quotes": 1}, id="a quote of eighty-one characters"),
+    ],
+)
+def test_each_study_section_past_its_cap_counts_what_it_hides_in_report_json(
+    tmp_path: Path,
+    request: pytest.FixtureRequest,
+    size: int,
+    edit: Callable[[dict[str, Any]], None],
+    hidden: dict[str, int],
+) -> None:
+    """A large study stays readable: each section shows its first part up to its cap and says how
+    much it hides, and the count is in ``report.json``. A study just past one cap hides exactly
+    what is past it there and nothing anywhere else. A cross-table too wide for the page falls back
+    to the grouped list and says how many columns it would have had; rows the same across a topic
+    table's labels fold into one before any is paged away, and samples compiled in different
+    workspaces never share a row, whose "compiled in" is one answer."""
+    study = _large_study(size)
+    edit(study)
+    folder = tmp_path / "GSE1"
+    folder.mkdir()
+    for name in ("bounds", "reading"):
+        (folder / f"{name}.yaml").write_text(yaml.safe_dump(study[name], sort_keys=False))
+    args = ["report", "--study", str(folder), "--no-timestamp"]
+    for name, accessions in study.get("compiled", {}).items():
+        manifest = request.getfixturevalue("synth_10x_v3").manifest
+        compiled(tmp_path / name, manifest, accessions)
+        args += ["-C", str(tmp_path / name)]
+    result = runner.invoke(app, args)
+    assert result.exit_code == 0, result.output
+
+    said = json.loads(Path(json.loads(result.stdout)["json"]).read_text())["study"]
+    assert _cut_counts(said) == hidden

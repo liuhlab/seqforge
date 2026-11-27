@@ -1,16 +1,20 @@
 """The 18 labels of a reading, one row each: what a label holds and every rule that hangs on it.
 
-The format check, the writer's instructions, Jev's questions and the term lookup all read this
-table, so a label is added, or the vocabulary of its terms changed, in one row. A row's ``holds``
-and ``na`` are the words the writer and Jev read. A label of the study's own, beyond the 18, takes
-:data:`OWN`.
+The format check, the writer's instructions, Jev's questions, the term lookup and the report's
+sample tables all read this table, so a label is added, or the vocabulary of its terms changed, in
+one row. A row's ``holds`` and ``na`` are the words the writer and Jev read. A label of the study's
+own, beyond the 18, takes :data:`OWN`.
 """
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import Literal
+
+#: The topics a label is shown under, one sample table each, in the order the report shows them.
+Topic = Literal["Assay", "Organism", "Material", "Treatment & time", "Other"]
+TOPICS: tuple[Topic, ...] = ("Assay", "Organism", "Material", "Treatment & time", "Other")
 
 
 @dataclass(frozen=True)
@@ -20,6 +24,9 @@ class LabelRow:
     name: str
     #: What the label holds, as the writer and Jev are told.
     holds: str
+    #: The sample table the report shows the label in. Every row names one, so a new label
+    #: cannot be left without one.
+    topic: Topic = field(kw_only=True)
     #: Who writes its values: the writing model lists them, or code writes them on its own.
     written_by: Literal["writer", "code"] = "writer"
     #: Whether its claim may carry a number and a unit.
@@ -60,6 +67,7 @@ LABELS: tuple[LabelRow, ...] = (
     LabelRow(
         "biosample",
         "the piece of material the library was made from",
+        topic="Material",
         written_by="code",
         id_alone=True,
         id_names="the material",
@@ -67,18 +75,21 @@ LABELS: tuple[LabelRow, ...] = (
     LabelRow(
         "donor",
         "the person or animal the material came from",
+        topic="Material",
         written_by="code",
         id_alone=True,
     ),
     LabelRow(
         "assay",
         "the kind of sequencing experiment, such as RNA-Seq, ChIP-Seq or ATAC-seq",
+        topic="Assay",
         vocabulary="efo",
     ),
     LabelRow(
         "target",
         "what a pull-down enriches: a histone mark or a protein; na for an assay with no "
         "pull-down and for a control library",
+        topic="Assay",
         # The relations already keep samples with different targets apart, and a target has no
         # baseline to compare the others with.
         factor=False,
@@ -87,20 +98,28 @@ LABELS: tuple[LabelRow, ...] = (
     LabelRow(
         "control_type",
         "the kind of background-control library, such as input or IgG; na for every other library",
+        topic="Assay",
         na="a library that is not a background control",
     ),
     LabelRow(
-        "species", "the species", written_by="code", vocabulary="ncbitaxon", always_known=True
+        "species",
+        "the species",
+        topic="Organism",
+        written_by="code",
+        vocabulary="ncbitaxon",
+        always_known=True,
     ),
     LabelRow(
         "sex",
         "the sex: female, male, hermaphrodite or mixed",
+        topic="Organism",
         words=("female", "male", "hermaphrodite", "mixed"),
     ),
-    LabelRow("age", "the age, with a number and a unit", number=True),
+    LabelRow("age", "the age, with a number and a unit", topic="Organism", number=True),
     LabelRow(
         "development_stage",
         "the stage of life, such as embryo, larval stage or adult",
+        topic="Organism",
         # A rat stage has no stage list.
         by_species={"9606": "hsapdv", "10090": "mmusdv", "6239": "wbls", "7227": "fbdv"},
         # The mouse's adult stage is named neither: its adult stages share the parent mature stage.
@@ -109,6 +128,7 @@ LABELS: tuple[LabelRow, ...] = (
     LabelRow(
         "tissue",
         "the tissue or organ",
+        topic="Material",
         vocabulary="uberon",
         # C. elegans names its tissues in its own anatomy list.
         by_species={"6239": "wbbt"},
@@ -116,41 +136,54 @@ LABELS: tuple[LabelRow, ...] = (
     LabelRow(
         "cell_type",
         "the cell type",
+        topic="Material",
         vocabulary="cl",
         na="whole tissue with no cell type isolated",
     ),
     LabelRow(
         "cell_line",
         "the cell line",
+        topic="Material",
         vocabulary="cellosaurus",
         na="tissue taken from an animal",
     ),
     LabelRow(
         "disease",
         "the disease or disease model, or healthy",
+        topic="Material",
         vocabulary="mondo",
         ids={"healthy": "PATO:0000461"},
     ),
-    LabelRow("genotype", "the genotype"),
-    LabelRow("strain", "the strain", na="a species with no strains, such as human"),
+    LabelRow("genotype", "the genotype", topic="Organism"),
+    LabelRow(
+        "strain", "the strain", topic="Organism", na="a species with no strains, such as human"
+    ),
     LabelRow(
         "treatment",
         "what was applied to the sample: a drug, a diet, a vector, an infection or a procedure",
+        topic="Treatment & time",
         many_terms=True,
         vocabulary="chebi",
         na="no treatment applied in the study",
     ),
-    LabelRow("dose", "how much of the treatment", number=True, na="no treatment"),
+    LabelRow(
+        "dose",
+        "how much of the treatment",
+        topic="Treatment & time",
+        number=True,
+        na="no treatment",
+    ),
     LabelRow(
         "duration",
         "how long the treatment itself was applied",
+        topic="Treatment & time",
         number=True,
         na="no treatment",
     ),
 )
 
 #: A label of the study's own, which the writer lists under its own name.
-OWN = LabelRow("", "a label of the study's own")
+OWN = LabelRow("", "a label of the study's own", topic="Other")
 
 _BY_NAME = {r.name: r for r in LABELS}
 
@@ -167,3 +200,13 @@ def vocabulary(label: str, taxid: str | None) -> str | None:
     genotype or a sex, or a stage of a species with no stage list, such as the rat.
     """
     return label_row(label).vocabulary_for(taxid)
+
+
+def varies(claims: Sequence[object]) -> bool:
+    """Whether a label varies across samples, given each sample's claim on it: whether any two differ.
+
+    A sample with no claim on the label gives ``None``, which differs from every claim, so a label
+    some samples lack varies even where the others agree. The join and the report's sample tables
+    both ask this, so a label has a column in one exactly when it has one in the other.
+    """
+    return any(claim != claims[0] for claim in claims[1:])
