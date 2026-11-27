@@ -1326,4 +1326,5 @@ KIND = Kind(
     build=_build,
     default_models={WRITER_ROLE: WRITER, JEV_ROLE: JEV},
     default_keys=picked_studies,
+    write=write_readings,
 )

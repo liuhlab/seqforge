@@ -13,12 +13,12 @@ import importlib
 from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from . import SetupRefused
 
 if TYPE_CHECKING:
-    from labllm import Model, UnitKind
+    from labllm import Model, TaskReader, UnitKind
 
 
 def _nothing() -> None:
@@ -48,13 +48,16 @@ class Kind:
     the kind reads, which it opens then, so each unit of the pass reads what was open then. It
     raises :class:`SetupRefused`, naming the store, for one it cannot open. ``default_keys`` gives
     the units a pass over that folder covers when it names none, in the order they should start.
-    ``default_models`` fills every role a pass does not name.
+    ``default_models`` fills every role a pass does not name. ``write`` turns the answers in a task
+    into one file per study, ``write(task, name, out, file_name)``, and says how each study ended:
+    what ``study write-bounds`` and ``study write-reading`` run, and ``study run`` between passes.
     """
 
     name: str
     build: Callable[[Path], Built]
     default_models: Mapping[str, Model]
     default_keys: Callable[[Path], Iterable[str]]
+    write: Callable[[TaskReader, str, Path, str], dict[str, dict[str, Any]]]
 
 
 #: Every seqforge kind, by the name a person types: the module that defines it as its ``KIND``.
