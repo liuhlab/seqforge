@@ -9,13 +9,14 @@ degrades honestly when a piece is missing rather than crashing or inventing a ve
 from __future__ import annotations
 
 import ast
+import copy
 import json
 import re
 import shutil
 from collections.abc import Callable
 from html import escape, unescape
 from pathlib import Path
-from typing import TYPE_CHECKING, get_args
+from typing import TYPE_CHECKING, Any, get_args
 
 import pytest
 import yaml
@@ -28,7 +29,7 @@ from seqforge.report import collect_report, render_html
 from seqforge.report.flow import flow_steps
 from seqforge.report.model import AssayReport, ProjectReport, WorkspaceReport
 from seqforge.workflows.metrics import Alert, DecisionRef, PipelineStats
-from test_study import READING, VALID
+from test_study import READING, VALID, _gap, _said
 
 if TYPE_CHECKING:  # the resolver seam is private, and only its type is wanted at module scope
     from seqforge.models.dataset import DatasetManifest
@@ -3350,3 +3351,142 @@ def test_the_bounds_graph_data_holds_every_kept_and_left_out_record_with_its_rea
     }  # fmt: skip
     assert study["reason"] == VALID["reason"]
     assert study["has_reading"] is True
+
+
+def _study_of(root: Path, edit: Callable[[dict[str, Any]], None]) -> dict[str, Any]:
+    """The Study tab's data in ``report.json`` for the study folder, its reading changed by ``edit``."""
+    folder = _study_folder(root)
+    reading = copy.deepcopy(READING)
+    edit(reading)
+    (folder / "reading.yaml").write_text(yaml.safe_dump(reading, sort_keys=False))
+    result = runner.invoke(app, ["report", "--study", str(folder), "--no-timestamp"])
+    assert result.exit_code == 0, result.output
+    study: dict[str, Any] = json.loads((folder / "report.json").read_text())["study"]
+    return study
+
+
+def _one_factor(reading: dict[str, Any]) -> None:
+    """Genotype a label of each sample and no longer a factor: age is the one factor."""
+    del reading["factors"]["genotype"]
+    del reading["shared"]["genotype"]["level"]
+    del reading["samples"]["GSM6"]["genotype"]["level"]
+
+
+def _second_assay(reading: dict[str, Any]) -> None:
+    """The old IgG library sequenced by another assay."""
+    reading["samples"]["GSM9"]["assay"] = _said("CUT&Tag")
+
+
+@pytest.mark.parametrize(
+    ("edit", "kind", "axes", "groups"),
+    [
+        pytest.param(
+            _second_assay,
+            "cross",
+            (["young", "middle", "old"], ["wt", "ko"]),
+            {
+                ("young", "wt"): {"ChIP-Seq": ["GSM1", "GSM2", "GSM5", "GSM7"]},
+                ("young", "ko"): {"ChIP-Seq": ["GSM6"]},
+                ("middle", "wt"): {"ChIP-Seq": ["GSM3", "GSM8"]},
+                ("middle", "ko"): {},
+                ("old", "wt"): {"ChIP-Seq": ["GSM4"], "CUT&Tag": ["GSM9"]},
+                ("old", "ko"): {},
+            },
+            id="two factors: a cross-table, split by assay",
+        ),
+        pytest.param(
+            _one_factor,
+            "grouped",
+            ([], []),
+            {
+                ("young",): {None: ["GSM1", "GSM2", "GSM5", "GSM6", "GSM7"]},
+                ("middle",): {None: ["GSM3", "GSM8"]},
+                ("old",): {None: ["GSM4", "GSM9"]},
+            },
+            id="one factor: a grouped list",
+        ),
+    ],
+)
+def test_the_design_table_is_a_cross_table_for_two_factors_and_a_grouped_list_otherwise(
+    tmp_path: Path,
+    edit: Callable[[dict[str, Any]], None],
+    kind: str,
+    axes: tuple[list[str], list[str]],
+    groups: dict[tuple[str, ...], dict[str | None, list[str]]],
+) -> None:
+    """With two factors, the minimum design table is one factor's levels by the other's, every
+    pair a cell even when no sample is in it; otherwise it is one row per level combination the
+    samples take. Each count names its samples, split by assay only when the study has two."""
+    design = _study_of(tmp_path, edit)["design"]
+    assert design["kind"] == kind
+    assert (design["rows"], design["columns"]) == axes
+    said = {
+        tuple(g["levels"]): {c["assay"]: c["samples"] for c in g["counts"]}
+        for g in design["groups"]
+    }
+    assert said == groups
+    assert list(said) == list(groups)  # in the factors' level order, a cross-table row by row
+
+
+def _dose_restated(reading: dict[str, Any]) -> None:
+    """One sample's own row writing the shared dose claim again, word for word."""
+    reading["samples"]["GSM2"]["dose"] = copy.deepcopy(reading["shared"]["dose"])
+
+
+def test_each_topic_table_folds_the_labels_the_same_for_every_sample_and_counts_those_that_vary(
+    tmp_path: Path,
+) -> None:
+    """Each label sits in the sample table of the topic its row in the label table declares, and a
+    label of the study's own in Other; a factor is in none, as it is a column of each. A label whose
+    claim is the same for every sample, whether a sample takes it from ``shared`` or writes it
+    again, folds into one line, and what is left are the labels that vary."""
+    study = _study_of(tmp_path, _dose_restated)
+    said = {
+        t["topic"]: (t["labels"], t["varying"], [s["label"] for s in t["same"]])
+        for t in study["topics"]
+    }
+    assert said == {
+        "Assay": (["assay", "target", "control_type"], ["target", "control_type"], ["assay"]),
+        "Organism": (
+            ["species", "sex", "development_stage", "strain"],
+            [],
+            ["species", "sex", "development_stage", "strain"],
+        ),
+        "Material": (
+            ["biosample", "donor", "tissue", "cell_type", "cell_line", "disease"],
+            ["biosample"],
+            ["donor", "tissue", "cell_type", "cell_line", "disease"],
+        ),
+        "Treatment & time": (
+            ["treatment", "dose", "duration"],
+            [],
+            ["treatment", "dose", "duration"],
+        ),
+        "Other": (["diet"], [], ["diet"]),
+    }
+    assay = study["topics"][0]["same"][0]["cell"]
+    assert (assay["value"], assay["backing"], assay["inherited"]) == ("ChIP-Seq", "quoted", True)
+
+
+def _genotype_unknown(reading: dict[str, Any]) -> None:
+    """Nothing read gives one young library's genotype, so it is at neither of the factor's levels."""
+    reading["samples"]["GSM7"]["genotype"] = _gap("unknown")
+
+
+def test_a_sample_outside_a_factor_is_at_no_level_of_it(tmp_path: Path) -> None:
+    """A factor may cover only some samples. A sample whose claim on it names no level is at no
+    level, which the design table counts under a level of its own after the factor's, and which
+    the sample's own cell carries, with the gap it is."""
+    study = _study_of(tmp_path, _genotype_unknown)
+    design = study["design"]
+    assert design["columns"] == ["wt", "ko", None]
+    said = {
+        tuple(g["levels"]): [s for c in g["counts"] for s in c["samples"]] for g in design["groups"]
+    }
+    assert said[("young", None)] == ["GSM7"]
+    assert said[("young", "wt")] == ["GSM1", "GSM2", "GSM5"]
+    # Of the young samples, the one at no genotype level comes after those at one.
+    young = ["GSM1", "GSM2", "GSM5", "GSM6", "GSM7"]
+    assert [s["sample"] for s in study["samples"]][:5] == young
+    genotype = next(s for s in study["samples"] if s["sample"] == "GSM7")["cells"]["genotype"]
+    assert (genotype["level"], genotype["value"], genotype["backing"]) == (None, None, "unknown")

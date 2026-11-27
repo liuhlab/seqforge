@@ -49,6 +49,9 @@ from .model import (
     ChemistryDecision,
     ConclusionView,
     DecisionField,
+    DesignCount,
+    DesignGroup,
+    DesignTable,
     ElementView,
     EvidenceRef,
     FileView,
@@ -63,8 +66,13 @@ from .model import (
     ProjectReport,
     ReadView,
     RuledOut,
+    SameForAll,
     SampleView,
+    StudyCell,
+    StudyFactor,
     StudyReport,
+    StudySample,
+    TopicTable,
     WorkspaceReport,
 )
 
@@ -72,6 +80,7 @@ if TYPE_CHECKING:
     from ..harvest.artifacts import HarvestLog
     from ..study.claims import Claim, Passage
     from ..study.folder import StudyFolder
+    from ..study.reading import Reading, SampleClaim
 
 #: A handful of common lab organisms, so the Overview can say "C. elegans" not just "taxid 6239".
 #: Deliberately tiny and unauthoritative — an unknown taxid degrades to "taxid N", never a wrong name.
@@ -208,12 +217,188 @@ def collect_study(study: StudyFolder, report_dir: Path) -> StudyReport:
     records = [record(c.id, c, kept=True) for c in bounds.series]
     records += [record(paper, None, kept=True) for paper in bounds.papers]
     records += [record(c.id, c, kept=False) for c in bounds.left_out]
-    return StudyReport(
+    view = StudyReport(
         study=bounds.study,
         path=_relative(study.path, report_dir),
         reason=bounds.reason,
         records=records,
         has_reading=study.reading is not None,
+    )
+    if study.reading is None:
+        return view
+    return view.model_copy(update=_reading_view(study.reading))
+
+
+def _reading_view(reading: Reading) -> dict[str, Any]:
+    """The reading's part of the Study tab: its samples, factors, design table and topic tables."""
+    factors = [
+        StudyFactor(label=label, levels=f.levels, baseline=f.baseline, ordered=f.ordered, p=f.p)
+        for label, f in reading.factors.items()
+    ]
+    samples = [
+        StudySample(
+            sample=sample,
+            biosample_accession=reading.samples[sample].biosample_accession,
+            cells={
+                label: _study_cell(
+                    label, claim, inherited=label not in reading.samples[sample].claims
+                )
+                for label, claim in row.items()
+            },
+        )
+        for sample, row in reading.rows().items()
+    ]
+
+    def rank(sample: StudySample) -> list[int]:
+        # A sample at no level of a factor comes after every sample at one.
+        return [
+            f.levels.index(level)
+            if (level := _level(sample, f.label)) is not None
+            else len(f.levels)
+            for f in factors
+        ]
+
+    samples.sort(key=rank)  # stable: the reading's own order within a group
+    return {
+        "passages": [_passage_view(n, q) for n, q in sorted(reading.passages.items())],
+        "factors": factors,
+        "samples": samples,
+        "design": _design_table(factors, samples),
+        "topics": _topic_tables(reading, samples),
+    }
+
+
+def _topic_tables(reading: Reading, samples: list[StudySample]) -> list[TopicTable]:
+    """One sample table per topic that has a label, factors aside, in the label table's order.
+
+    A label's topic is the one its row in the label table declares; a label of the study's own is
+    in Other. A label whose claim is the same for every sample folds into the table's "same for
+    all" line, whether each sample takes the claim from ``shared`` or writes it again.
+    """
+    from ..study.labels import LABELS, TOPICS, label_row
+
+    written = [label for s in samples for label in s.cells]
+    labels = [
+        label
+        for label in dict.fromkeys([*(row.name for row in LABELS), *written])
+        if label in written and label not in reading.factors
+    ]
+    tables = []
+    for topic in TOPICS:
+        mine = [label for label in labels if label_row(label).topic == topic]
+        if not mine:
+            continue
+        varying, same = [], []
+        for label in mine:
+            if (folded := _same_for_all(label, samples)) is None:
+                varying.append(label)
+            else:
+                same.append(SameForAll(label=label, cell=folded))
+        tables.append(TopicTable(topic=topic, labels=mine, varying=varying, same=same))
+    return tables
+
+
+def _same_for_all(label: str, samples: list[StudySample]) -> StudyCell | None:
+    """The one claim every sample has on ``label``, or ``None`` when two samples differ.
+
+    Where a sample took the claim from makes no difference to what it says, so the folded claim
+    is inherited only when every sample's is.
+    """
+    cells = [s.cells.get(label) for s in samples]
+    if any(c is None for c in cells):
+        return None
+    said = [c.model_copy(update={"inherited": False}) for c in cells if c is not None]
+    if any(c != said[0] for c in said):
+        return None
+    return said[0].model_copy(update={"inherited": all(c.inherited for c in cells if c)})
+
+
+def _study_cell(label: str, claim: SampleClaim, *, inherited: bool) -> StudyCell:
+    """One claim as a sample table's cell: what it says, its level, and how it is backed."""
+    from ..study.join import cell
+
+    term = claim.term
+    return StudyCell(
+        # The level is a field of its own, so the value is what the claim says beside it.
+        value=cell(label, claim.model_copy(update={"level": None})) if claim.says else None,
+        term=[term] if isinstance(term, str) else list(term or []),
+        level=claim.level,
+        backing="na" if claim.na is not None else _backing(claim),
+        note=claim.inferred or claim.unknown or claim.na,
+        p=claim.p,
+        inherited=inherited,
+        passages=claim.quoted or claim.see or [],
+        against=claim.against or [],
+    )
+
+
+def _level(sample: StudySample, factor: str) -> str | None:
+    """The level of ``factor`` the sample is at, or ``None`` when its claim names none."""
+    claim = sample.cells.get(factor)
+    return None if claim is None else claim.level
+
+
+def _assay(sample: StudySample) -> str:
+    """The sample's assay as the design table splits by it: what its claim says, or its gap."""
+    claim = sample.cells.get("assay")
+    if claim is None:
+        return "no claim"
+    return claim.value if claim.value is not None else claim.backing
+
+
+def _design_table(factors: list[StudyFactor], samples: list[StudySample]) -> DesignTable:
+    """The samples counted by combination of factor levels: a cross-table for two factors.
+
+    ``samples`` are in the factors' level order, so a grouped list's groups are too.
+    """
+    assays = list(dict.fromkeys(_assay(s) for s in samples))
+    split = len(assays) > 1
+
+    def counts(members: list[StudySample]) -> list[DesignCount]:
+        if not split:
+            return [DesignCount(samples=[s.sample for s in members])] if members else []
+        return [
+            DesignCount(assay=a, samples=[s.sample for s in members if _assay(s) == a])
+            for a in assays
+            if any(_assay(s) == a for s in members)
+        ]
+
+    if len(factors) == 2:
+        first, second = factors
+
+        def axis(f: StudyFactor) -> list[str | None]:
+            outside = any(_level(s, f.label) is None for s in samples)
+            return [*f.levels, *([None] if outside else [])]
+
+        rows, columns = axis(first), axis(second)
+        groups = [
+            DesignGroup(
+                levels=[r, c],
+                counts=counts(
+                    [
+                        s
+                        for s in samples
+                        if _level(s, first.label) == r and _level(s, second.label) == c
+                    ]
+                ),
+            )
+            for r in rows
+            for c in columns
+        ]
+        return DesignTable(
+            kind="cross",
+            rows=rows,
+            columns=columns,
+            groups=groups,
+            assays=assays if split else [],
+        )
+    by_levels: dict[tuple[str | None, ...], list[StudySample]] = {}
+    for s in samples:
+        by_levels.setdefault(tuple(_level(s, f.label) for f in factors), []).append(s)
+    return DesignTable(
+        kind="grouped",
+        groups=[DesignGroup(levels=list(k), counts=counts(v)) for k, v in by_levels.items()],
+        assays=assays if split else [],
     )
 
 
