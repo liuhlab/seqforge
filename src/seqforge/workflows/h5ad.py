@@ -490,7 +490,9 @@ def label_h5ad(source: Path, out: Path, obs: Mapping[str, str], uns: Mapping[str
     nothing to add, ``out`` is a hard link to ``source``, so a compile with no labels delivers
     exactly the object the packaging step wrote and keeps one copy of its matrices on disk; a copy
     stands in only where the file system cannot link. The link is then touched, which touches
-    ``source`` too: ``out`` is never older than the sample table snakemake compares it with.
+    ``source`` too: ``out`` is never older than the sample table snakemake compares it with. With
+    labels, ``out`` is replaced whole, so a link an earlier call made never carries them to
+    ``source``.
     """
     out.parent.mkdir(parents=True, exist_ok=True)
     if not obs and not uns:
@@ -508,7 +510,14 @@ def label_h5ad(source: Path, out: Path, obs: Mapping[str, str], uns: Mapping[str
         adata.obs[name] = [value or None] * adata.n_obs
         adata.obs[name] = adata.obs[name].astype("category")
     adata.uns.update(uns)
-    adata.write_h5ad(out)
+    # ``out`` may be a link an earlier call made to ``source``: writing through it would label the
+    # kept object, so the labelled one is written beside it and then takes its name.
+    partial = out.with_name(f".{out.name}.partial")
+    try:
+        adata.write_h5ad(partial)
+        os.replace(partial, out)
+    finally:
+        partial.unlink(missing_ok=True)
     return out
 
 

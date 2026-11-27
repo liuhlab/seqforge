@@ -338,12 +338,16 @@ def test_each_h5ad_carries_its_samples_labels_as_categorical_obs_and_the_reading
     compiled(tmp_path, synth_10x_v3.manifest, list(JOINED.values()))
     plain = runner.invoke(app, ["project", "metadata", "-C", str(tmp_path)])
     assert plain.exit_code == 0, plain.output
-    plain_h5ad = label("s_SAMN3", tmp_path / "plain.h5ad")
-    assert plain_h5ad.read_bytes() == counts.read_bytes()
+    kept = counts.read_bytes()
+    plain_h5ad = label("s_SAMN3", tmp_path / "s_SAMN3.h5ad")
+    assert plain_h5ad.read_bytes() == kept
     assert plain_h5ad.samefile(counts)
 
+    # Labelled later at the same path, the deliverable is a file of its own and the kept object
+    # stays the one the packaging step wrote, so a label a later reading drops leaves no trace.
     said, _ = _metadata(tmp_path, joined_study(tmp_path / "GSE1"))
-    labelled = ad.read_h5ad(label("s_SAMN3", tmp_path / "s_SAMN3.h5ad"))
+    labelled = ad.read_h5ad(label("s_SAMN3", plain_h5ad))
+    assert counts.read_bytes() == kept
 
     obs: Any = labelled.obs
     assert list(obs.columns) == ["age", "genotype", "biosample"]
