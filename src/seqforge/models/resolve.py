@@ -125,14 +125,20 @@ class MetadataResolution(BaseModel):
 
 
 class ArbitrationRequest(BaseModel):
-    """LLM job (b) INPUT schema (opt-in ``resolve adjudicate``)."""
+    """The arbitration model's input: one conflict code has flagged, and its positions.
+
+    For a verb not built yet; no command sends it today.
+    """
 
     conflict_id: str
     positions: list[ConflictPosition]
 
 
 class ArbitrationResponse(BaseModel):
-    """LLM job (b) OUTPUT schema — references a position by index, re-derives no values."""
+    """The arbitration model's answer: a position chosen by index, no value re-derived.
+
+    For a verb not built yet; no command reads it today.
+    """
 
     conflict_id: str
     chosen_index: int
