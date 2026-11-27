@@ -17,10 +17,8 @@ seqforge resolve score FILES [--explain] [--assert-chemistry ID]   # the LIBRARY
 `--explain` emits the evidence matrix `M[role][file]` — read it when asked *why*. No `--json` flag:
 JSON on stdout is the default.
 
-`resolve apply` and `resolve adjudicate` are **not built**. This skill listed both as if they were,
-which is a confident instruction to fail — found 2026-07-16 when the verb guard learned to check
-subcommands. `adjudicate` is LLM job (b) and is modelled (`ArbitrationRequest`/`ArbitrationResponse`)
-but has no verb.
+`resolve apply` and `resolve adjudicate` are **not built**. Arbitration of a flagged conflict is
+modelled (`ArbitrationRequest`/`ArbitrationResponse`) but has no verb.
 
 ## There are two resolvers
 
@@ -43,7 +41,7 @@ a chemistry. You act only on what code has already flagged:
 ## On exit 4
 
 The choice set is fixed by code. Your job is to help a human pick *within* it — never to widen it,
-and never to pick for them unless `adjudicate` is explicitly enabled (it is off in `run` by design).
+and never to pick for them.
 
 Two things worth knowing when you explain a conflict:
 

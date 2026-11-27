@@ -10,7 +10,8 @@ description: >-
 
 # seqforge io
 
-The **only** place seqforge touches the network.
+The verbs that read archives and remote files over the network. Harvest and the passes also reach
+the network, through the model gateway.
 
 ```bash
 seqforge io resolve ACC                 # accession -> runs + declared metadata + dropped-read check
