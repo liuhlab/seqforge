@@ -235,7 +235,7 @@ def test_project_views_union_every_assays_samples(own_two_chemistry_project: Pro
         info["chemistry"] = doc["library"]["chemistry"]["value"][0]
         info["n_samples"] = len(doc["experiment"]["samples"])
 
-    tsv_path, project_path = write_project_views(workspace, infos)
+    tsv_path, project_path, _ = write_project_views(workspace, infos)
 
     # The TSV lives at the project top, not inside an assay subdir.
     assert tsv_path == workspace / "seqforge" / "sample_metadata.tsv"

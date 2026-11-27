@@ -18,12 +18,20 @@ implemented and green (`pixi run check`); the demo dataset PRJNA1027859 compiles
 
 **A model writes an answer only where code can check it, and code decides whether it stands.** In
 the compiler a model parses prose into span-verified `Assertion`s and arbitrates ambiguity code has
-*already flagged* (verb unbuilt); instructions and sample metadata enter as `Assertion`s too. In the
-study chain, models draw bounds and write readings; code owns the checks and the threshold that
-settles them. An assay that seems to need the model to **act** is the signal to re-read this
-paragraph, not to relax it.
+*already flagged* (verb unbuilt); instructions enter as `Assertion`s too. In the study chain, models
+draw bounds and write readings; code owns the checks and the threshold that settles them. An assay
+that seems to need the model to **act** is the signal to re-read this paragraph, not to relax it.
+
+**The reading owns a sample's biology.**
 
 ```text
+STUDY CHAIN  -> <study>/            `pass start study-bounds|study-reading`, `study write-*|check-*`
+bounding pass  (records, papers)   -> bounds.yaml   which Series and papers are one study
+reading pass   (bounds, sources)   -> reading.yaml  what each sample WAS, per GEO Sample, each row
+                                                    carrying the BioSample accession its record links
+      │ reading.yaml, only with `--study <folder>`: joined into sample_metadata.tsv, below
+══════╪═══════════════════════════════════════════════════════════════════════════════════════
+COMPILER -> seqforge/
 probe(files)                    -> Observation   bytes only, no LLM, no network; `io probe-remote`
                                                  is the same bounded read against a URL
 records(accession?)             -> ArchiveRecord project/sample/experiment/run. OPTIONAL — most
@@ -35,10 +43,12 @@ score(Observation, KB, hypo?)   -> candidates x role_assignment, Conflicts, Ques
                                    library IS, from BYTES; a hypothesis breaks ties and never enters
                                    the evidence matrix. BLOCKS on observed↔asserted
 resolve_metadata(FileIdentity,  -> samples, Warnings. Which sample each file is, from RECORDS, no
-                 records?)         probe signal. What a sample was lives in a study reading.
-                                   DECIDES, and only WARNS (ADR-0010)
+                 records?)         probe signal. DECIDES, and only WARNS (ADR-0010)
 ──────────────────────────────────────────────────────────────────────────────────────────────
   => manifest.yaml     THE IR.    What the data IS. One per dataset. Immutable, hashed.
+  => sample_metadata.tsv   One row per sample. With `--study`, the reading joins in by BioSample
+                           accession: a column per factor and varying label, and `reading_hash`.
+                           Mismatches only WARN; the manifest and its hash do not change
 plan(Assertions, flags, policy) -> ProcessingSection   precedence: flag > instruction > policy
   => processing.yaml   THE FLAGS. What to DO with it. Many per dataset. Sparse; empty is legal.
 compose(manifest, processing)   -> Snakefile + config + units.tsv   deterministic
@@ -46,9 +56,13 @@ compose(manifest, processing)   -> Snakefile + config + units.tsv   deterministi
      processing ⊕ kb ⊕ workflow); running it ends in <sample>.h5ad, `rule all` demanding the
      matrices and not a folder. `seqforge run` chains the whole diagram headless, stops at the
      first refusal, adds no authority, and has no `--resume` — each stage resumes from its cache.
+     It never starts the study chain: `--study` names a folder that chain already wrote.
+══════╪══════════════════════════════════════════════════════════════════════════════════════
+      │ seqforge/, and the study folder once the Study tab is built
+REPORT -> seqforge/report.html    `seqforge report`; one page, and nothing written back into either
 ```
 
-## Non-negotiable rules: R1–R11
+## Non-negotiable rules: R1–R12
 
 Imperatives only. Each row cites the records that decided it **by number, never by path** — a record
 moves between directories and its number does not; `—` means no record cites that rule today.
@@ -66,6 +80,7 @@ moves between directories and its number does not; `—` means no record cites t
 | R9 | **Cheap first, expensive only on ambiguity.** Rungs 0–3 by default; escalate past 3 only on a processing-divergent tie. Record which rung resolved each field. | ADR-0011 |
 | R10 | **Consumer, not parallel universe.** Never define genome-file machinery, and never let a rule or the wheel resolve an aligner from our tables — they belong to `liulab-genome` (assemblies by UCSC id, and an annotation is a **registered GTF `name`**: it fetches no annotations, so seqforge stages the GTF and registers it under a `name`) and to `liulab-runtime` (an aligner environment is its **literal** name — `align-rna`, `align-dna`, `ml`, `ml-gpu` — with no profile indirection). The one exception is `test-star`, which ships nowhere and no rule can see. Ontology terms come the same way, from `liulab-data`'s ontology store: its dated snapshots and term search, which a study reading opens and names. | ADR-0046 |
 | R11 | **Two artifacts, and the instructable surface is closed.** The dataset is write-once, the recipe plural; parse-keys and count-keys are disjoint; produce every answer rather than ask. | ADR-0004, ADR-0005, ADR-0011 |
+| R12 | **One owner per fact, one folder per part, one report for the reader.** Nothing is written twice; a part writes only its own folder; readers start from the report. | — |
 
 ## Where to read next
 

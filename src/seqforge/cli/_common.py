@@ -10,6 +10,7 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import typer
 import yaml
@@ -18,6 +19,9 @@ from pydantic import ValidationError
 from ..io.taxonomy import resolve as resolve_organism
 from ..models.dataset import DatasetManifest
 from ..models.processing import ProcessingManifest
+
+if TYPE_CHECKING:
+    from ..study.folder import StudyFolder
 
 
 def _today() -> str:
@@ -53,6 +57,27 @@ def _emit(out: _StageOut) -> None:
     body = out.payload if isinstance(out.payload, str) else json.dumps(out.payload, indent=2)
     typer.echo(body, err=out.err)
     raise typer.Exit(out.code)
+
+
+def _open_study(folder: Path | None) -> StudyFolder | None:
+    """The study folder ``--study`` names, opened through its checks, or ``None`` when none is named.
+
+    A folder the reader refuses, or one it cannot check without liulab-data, is an unusable setup:
+    the verb exits 2 before it does anything, naming each file and its problems.
+    """
+    if folder is None:
+        return None
+    from ..liulab_data import LiulabDataMissing
+    from ..study.folder import StudyFolderRefused, open_study_folder
+
+    try:
+        return open_study_folder(folder)
+    except StudyFolderRefused as exc:
+        said: dict[str, object] = {"error": "study_refused", "problems": exc.problems}
+    except LiulabDataMissing as exc:
+        said = {"error": "study_unchecked", "detail": str(exc)}
+    typer.echo(json.dumps({**said, "folder": str(folder)}, indent=2), err=True)
+    raise typer.Exit(2)
 
 
 def _auto_cpus(cpus: int) -> int:

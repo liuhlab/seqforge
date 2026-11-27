@@ -18,6 +18,8 @@ valid one.
 from __future__ import annotations
 
 import datetime
+import hashlib
+import json
 from collections.abc import Iterator, Mapping
 from typing import Any, Literal
 
@@ -137,6 +139,15 @@ class Reading(Strict):
     def rows(self) -> dict[str, dict[str, SampleClaim]]:
         """Every sample's claims by label, once the shared claims are applied."""
         return {sample: {**self.shared, **own.claims} for sample, own in self.samples.items()}
+
+    def content_hash(self) -> str:
+        """The reading's identity: a sha256 over its content, so a change of layout changes nothing.
+
+        A compile records it beside the labels it joined from the reading, and the report compares
+        it with the reading on disk to tell a label that a newer reading has replaced.
+        """
+        canonical = json.dumps(self.model_dump(mode="json"), sort_keys=True, separators=(",", ":"))
+        return hashlib.sha256(canonical.encode()).hexdigest()
 
 
 def _number_or_range(value: object) -> bool:
