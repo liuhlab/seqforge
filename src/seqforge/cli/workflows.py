@@ -1,8 +1,8 @@
 """`seqforge io`, the half that fronts the ``workflows`` package: the steps a compiled pipeline runs.
 
-A rule file's ``shell:`` calls these after alignment: ``h5ad``, ``qc-bundle``, ``fragments``,
-``fragments-qc``, ``cram``, ``umi-extract``, ``umi-count`` and ``split-chimera``. They touch no
-network. They register on the ``io`` group, beside the network verbs in :mod:`seqforge.cli.io`,
+A rule file's ``shell:`` calls these after alignment: ``h5ad``, ``h5ad-labels``, ``qc-bundle``,
+``fragments``, ``fragments-qc``, ``cram``, ``umi-extract``, ``umi-count`` and ``split-chimera``.
+They touch no network. They register on the ``io`` group, beside the network verbs in :mod:`seqforge.cli.io`,
 because every pipeline directory already compiled calls them as ``seqforge io <verb>``.
 """
 
@@ -61,6 +61,34 @@ def io_h5ad(
         typer.echo(json.dumps({"error": str(exc)}), err=True)
         raise typer.Exit(3) from exc
     typer.echo(json.dumps({"written": [str(p) for p in written]}, indent=2))
+
+
+@io_app.command("h5ad-labels")
+def io_h5ad_labels(
+    source: Path = typer.Argument(..., help="The packaging step's unlabelled .h5ad."),
+    sample: str = typer.Option(..., "--sample", help="The sample id the object counts."),
+    table: Path = typer.Option(
+        ..., "--table", help="The workspace's sample_metadata.tsv. Absent means no labels."
+    ),
+    out: Path = typer.Option(..., "--out", help="Output .h5ad path."),
+) -> None:
+    """Label one sample's .h5ad from the sample table — the last step of a droplet pipeline.
+
+    Each label a joined study put in the table becomes a categorical `obs` column, and the
+    reading's hash goes in `uns`. A sample with no labels (no study, no table, or a sample the join
+    did not reach) gets the object as the packaging step wrote it. Called by `starsolo.smk`'s
+    `label_h5ad` rule; its input is the table, so a new reading re-runs this step and nothing
+    upstream of it.
+    """
+    from ..project import sample_labels
+    from ..study.join import READING_HASH
+    from ..workflows.h5ad import label_h5ad
+
+    labels, digest = sample_labels(table, sample)
+    uns = {READING_HASH: digest} if digest is not None else {}
+    written = label_h5ad(source, out, labels, uns)
+    said = {"written": str(written), "labels": list(labels), READING_HASH: digest}
+    typer.echo(json.dumps(said, indent=2))
 
 
 @io_app.command("qc-bundle")

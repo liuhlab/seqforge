@@ -27,8 +27,8 @@ app.add_typer(kb_app, name="kb")
 
 io_app = typer.Typer(
     help="The network + onlist surface (pooch-cached, sha256-verified), and the steps a compiled "
-    "pipeline runs after alignment: h5ad, qc-bundle, fragments, fragments-qc, cram, umi-extract, "
-    "umi-count, split-chimera."
+    "pipeline runs after alignment: h5ad, h5ad-labels, qc-bundle, fragments, fragments-qc, cram, "
+    "umi-extract, umi-count, split-chimera."
 )
 app.add_typer(io_app, name="io")
 
