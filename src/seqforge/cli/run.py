@@ -581,14 +581,16 @@ def run_cmd(
     # compiler decided. Without it, re-running `run` over a pipeline relocated by `snakemake
     # --directory` re-rendered the page claiming the pipeline had never been run.
     try:
-        from ..report import collect_report, render_html
+        from ..report import collect_report, write_report
         from ..workspace import report_html_path
 
         report_model = collect_report(workspace, results_dir=results)
-        html_path = report_html_path(workspace)
-        html_path.parent.mkdir(parents=True, exist_ok=True)
-        html_path.write_text(render_html(report_model), encoding="utf-8")
-        stages["report"] = {"report": str(html_path), "assays": len(report_model.assays)}
+        written = write_report(report_model, report_html_path(workspace))
+        stages["report"] = {
+            "report": str(written.html),
+            "json": str(written.json),
+            "assays": len(report_model.assays),
+        }
     except Exception as exc:  # a glance layer must never fail a compile
         stages["report"] = {"skipped": "render_failed", "detail": str(exc)}
 

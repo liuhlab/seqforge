@@ -187,8 +187,8 @@ class PlanView(_View):
 
     ``config`` is a flat list of ``(key, value)`` strings taken verbatim from the composed
     ``config.yaml``: the report never types STARsolo's fields, it shows whatever the composer emitted.
-    The ``*_rel`` paths are workspace-relative links to the deliverables, or ``None`` when this assay
-    reached the IR but was never composed.
+    The ``*_rel`` paths point at the deliverables from the report's own directory, or are ``None``
+    when this assay reached the IR but was never composed.
 
     ``quantification_kind`` is the one exception to "everything here is a display string", and it
     exists because the stage diagram has to *branch*. It used to branch on the caption in ``fields``
@@ -252,6 +252,18 @@ class ArchiveProjectView(_View):
     abstract: str | None = None
 
 
+class H5adPointer(_View):
+    """One ``.h5ad`` a finished pipeline left on disk — the matrices stay there, and this points.
+
+    ``path`` is relative to the directory the report was written into, so it holds wherever ``-o``
+    put the report. ``sample`` is the sample the file belongs to, or ``None`` for a **Fan-in
+    artifact**, which has no sample in its path because it holds every one.
+    """
+
+    path: str
+    sample: str | None = None
+
+
 class ConclusionView(_View):
     """How this assay's compile ended — derived honestly from which artifacts are on disk.
 
@@ -303,6 +315,10 @@ class AssayReport(_View):
     #: and not inside it for the reason that one is beside `conclusion`: the stats are what the
     #: pipeline reported, an alert is a judgement about a decision, and one judgement is one envelope.
     alerts: list[Alert] = Field(default_factory=list)
+    #: Every ``.h5ad`` the pipeline wrote, found on disk rather than predicted: a pointer to a file
+    #: that is not there would send a program to nothing. Empty before the pipeline runs, and for
+    #: the bulk and ATAC pipelines, which write no ``.h5ad``.
+    h5ad: list[H5adPointer] = Field(default_factory=list)
     provenance: list[tuple[str, str]] = Field(default_factory=list)
     #: True iff archive records were joined (the samples have a declared source).
     has_records: bool = False
@@ -331,17 +347,40 @@ class AssayReport(_View):
         return self.subdir or (self.chemistry.value[0] if self.chemistry.value else "assay")
 
 
+class WorkspaceReport(_View):
+    """One compile workspace the report read: where it is, and its assays.
+
+    ``path`` is the workspace root **relative to the report's own directory**, as every path in
+    ``report.json`` is, so a program holding the JSON finds the manifest and the pipeline without
+    knowing where the report was written or how a workspace is laid out.
+    """
+
+    name: str
+    path: str
+    assays: list[AssayReport] = Field(default_factory=list)
+
+
 class ProjectReport(_View):
-    """Everything the report renders: one or more assays under a single workspace.
+    """Everything the report renders, and exactly what ``report.json`` holds.
+
+    The page is built from this tree *after* it has been through JSON, and it embeds the same JSON,
+    so the file a program reads and the page a person reads carry one set of data. The top level is
+    a list of workspaces rather than one workspace's fields because a report is not bound to one
+    compile: a study read before anything was compiled, and one compiled across several workspaces,
+    are the same document with zero or several entries here and a part of their own beside it.
 
     ``generated_at`` is injectable (default ``None``) so a test can pin it and assert two renders are
     byte-identical; when ``None`` the page simply omits a timestamp.
     """
 
-    workspace_name: str
     report_version: str
     generated_at: str | None = None
-    assays: list[AssayReport] = Field(default_factory=list)
+    workspaces: list[WorkspaceReport] = Field(default_factory=list)
+
+    @property
+    def assays(self) -> list[AssayReport]:
+        """Every assay in the report, workspace by workspace, in the order they were read."""
+        return [a for ws in self.workspaces for a in ws.assays]
 
     @property
     def is_multi_assay(self) -> bool:
@@ -379,7 +418,9 @@ __all__ = [  # noqa: RUF022 - grouped by concept under comments, not alphabetica
     "ArtifactEmbed",
     "PipelineStage",
     "ArchiveProjectView",
+    "H5adPointer",
     "ConclusionView",
     "AssayReport",
+    "WorkspaceReport",
     "ProjectReport",
 ]
