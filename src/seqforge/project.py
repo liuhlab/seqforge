@@ -14,11 +14,14 @@ from typing import Any
 
 import yaml
 
+from .models.blocker import BlockerSubject, ValidationWarning
 from .models.dataset import DatasetManifest
+from .study.folder import StudyFolder
+from .study.join import CompiledSample, join_reading
 from .workspace import state_dir
 
 #: The table's columns, in order. What a sample WAS (its tissue, strain or treatment) is not among
-#: them: a study reading holds it.
+#: them: a study reading holds it, and a compile that names its study joins those labels in after.
 _COLUMNS: tuple[str, ...] = ("sample_id", "accession", "assay", "organism", "n_files", "files")
 
 #: The project-level file names, written at the top of ``seqforge/`` (never inside an assay subdir).
@@ -116,13 +119,58 @@ def _relative_to(path: Any, workspace: str | Path) -> Any:
         return path
 
 
-def write_project_views(workspace: str | Path, assays: list[dict[str, Any]]) -> tuple[Path, Path]:
+def join_study(
+    columns: list[str],
+    rows: list[dict[str, str]],
+    manifests: list[DatasetManifest],
+    study: StudyFolder,
+) -> tuple[list[str], list[dict[str, str]], dict[str, Any]]:
+    """The table with the study's reading joined in by BioSample accession, and what the join said.
+
+    The manifests are untouched: the labels are a view of the reading and land in the table alone.
+    A folder with no reading yet joins nothing, and says so.
+    """
+    said: dict[str, Any] = {"folder": str(study.path)}
+    if study.reading is None:
+        warning = ValidationWarning(
+            code="STUDY_HAS_NO_READING",
+            message=f"{study.path} holds no reading yet, so no labels were joined",
+            subject=BlockerSubject(kind="file", ref=study.path.name),
+        )
+        return columns, rows, {**said, "reading_hash": None, "warnings": [warning.model_dump()]}
+    samples = [
+        CompiledSample(
+            sample_id=sample.sample_id,
+            accession=sample.accession,
+            taxid=str(manifest.experiment.organism.value),
+            assay_terms=tuple(label.curie for label in manifest.library.assay),
+        )
+        for manifest in manifests
+        for sample in manifest.experiment.samples
+    ]
+    joined = join_reading(study.reading, samples, taken=columns)
+    rows = [{**row, **joined.cells.get(row["sample_id"], {})} for row in rows]
+    said |= {
+        "reading_hash": joined.reading_hash,
+        "columns": joined.columns,
+        "warnings": [w.model_dump() for w in joined.warnings],
+        "unchecked": joined.unchecked,
+    }
+    return [*columns, *joined.columns], rows, said
+
+
+def write_project_views(
+    workspace: str | Path, assays: list[dict[str, Any]], study: StudyFolder | None = None
+) -> tuple[Path, Path, dict[str, Any] | None]:
     """Write ``sample_metadata.tsv`` + ``project.yaml`` at the project top and return their paths.
 
     ``assays`` is one dict per assay carrying at least ``chemistry``, ``subdir``, ``n_samples`` and a
     ``manifest`` path (optionally ``pipeline``/``snakefile``); the manifests are loaded to build the
     flat table. Written even for a single-assay project — the "one study" view is always useful. Paths
     in ``project.yaml`` are stored relative to ``workspace`` so the index is portable.
+
+    With a ``study``, its reading is joined into the table (:func:`join_study`), and what the join
+    said is returned third; without one, the third is ``None`` and the table is the manifests' alone.
     """
     root = state_dir(workspace)
     root.mkdir(parents=True, exist_ok=True)
@@ -131,6 +179,9 @@ def write_project_views(workspace: str | Path, assays: list[dict[str, Any]]) -> 
         for a in assays
     ]
     columns, rows = sample_metadata_table(manifests)
+    joined = None
+    if study is not None:
+        columns, rows, joined = join_study(columns, rows, manifests, study)
     tsv_path = root / SAMPLE_METADATA_TSV
     tsv_path.write_text(format_tsv(columns, rows))
 
@@ -143,7 +194,7 @@ def write_project_views(workspace: str | Path, assays: list[dict[str, Any]]) -> 
     ]
     yaml_path = root / PROJECT_YAML
     yaml_path.write_text(yaml.safe_dump(project_index(portable), sort_keys=True))
-    return tsv_path, yaml_path
+    return tsv_path, yaml_path, joined
 
 
 __all__ = [
@@ -151,6 +202,7 @@ __all__ = [
     "SAMPLE_METADATA_TSV",
     "discover_assays",
     "format_tsv",
+    "join_study",
     "project_index",
     "sample_metadata_table",
     "write_project_views",

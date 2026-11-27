@@ -77,6 +77,10 @@ you — you never sort samples into assays. A single-assay project (the common c
 byte-identical to before, just with the added `sample_metadata.tsv`; `seqforge project metadata`
 rebuilds those two project views from the manifests without recompiling.
 
+**`--study <folder>`** on `run` or `project metadata` joins a study reading into
+`sample_metadata.tsv` by BioSample accession. Mismatches warn and exit 0; the manifest is unchanged.
+`run` never starts the study chain.
+
 `compile` is an alias for `run`.
 
 ## When you need the stages one at a time
