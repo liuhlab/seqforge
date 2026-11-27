@@ -1656,9 +1656,12 @@ def study_pane(study: StudyReport, workspaces: dict[str, str] | None = None) -> 
         '<p class="m-0 mt-3 max-w-[70ch] text-sm text-dim">'
         f"<b>Why these are one study:</b> {esc(study.reason)}</p>"
     )
+    drawn = {r.id for r in study.records if r.drawn}
+    joined = any(r.drawn and r.superseries in drawn for r in study.records)
     legend = (
         '<p class="m-0 mb-3 text-xs text-dim">Solid: kept. Dashed and struck through: left out. '
-        "A thin line joins a SuperSeries to its sub-Series. Hover a record for why.</p>"
+        + ("A thin line joins a SuperSeries to its sub-Series. " if joined else "")
+        + "Hover a record for why.</p>"
     )
     pane = _panel(
         "Bounds",

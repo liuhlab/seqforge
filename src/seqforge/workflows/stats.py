@@ -644,6 +644,22 @@ def read_pipeline_stats(
     )
 
 
+def delivered_h5ad(results_dir: Path, samples: Sequence[str]) -> list[tuple[str | None, Path]]:
+    """Every ``.h5ad`` a pipeline delivered, each with the sample it is of, on disk now.
+
+    Each sample's objects sit in its own directory, and a **Fan-in artifact** in the results
+    directory itself, which no sample owns. What is listed is what is on disk: what the pipeline
+    still owes is :func:`read_pipeline_stats`'s question.
+    """
+    found: list[tuple[str | None, Path]] = [
+        (sample, path)
+        for sample in samples
+        for path in sorted((results_dir / sample).glob("*.h5ad"))
+    ]
+    found += [(None, path) for path in sorted(results_dir.glob("*.h5ad"))]
+    return [(sample, path) for sample, path in found if path.is_file()]
+
+
 def modules_with_stats() -> list[str]:
     """Registered modules this reader can report on — the drift guard's other half."""
     return sorted(_SPECS)
@@ -733,6 +749,7 @@ __all__ = [
     "CrossCheck",
     "SampleArtifact",
     "StatsSpec",
+    "delivered_h5ad",
     "modules_with_cross_checks",
     "modules_with_stats",
     "read_pipeline_stats",

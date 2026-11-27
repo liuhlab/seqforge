@@ -264,7 +264,6 @@ def collect_study(
     """
     bounds = study.bounds
     quotes = study.reading.passages if study.reading is not None else {}
-    parent, subseries = _superseries(study.study)
 
     def record(id_: str, claim: Claim | None, *, kept: bool) -> BoundsRecord:
         backing = None if claim is None else _backing(claim)
@@ -278,7 +277,7 @@ def collect_study(
             reason=None if claim is None else (claim.inferred or claim.unknown),
             reason_passages=[_passage_view(n, bounds.passages[n]) for n in cites],
             p=None if claim is None else claim.p,
-            superseries=parent if id_ in subseries else None,
+            superseries=study.superseries if id_ in study.subseries else None,
             passages=[
                 _passage_view(n, q) for n, q in sorted(quotes.items()) if _quotes_from(q, id_)
             ],
@@ -550,21 +549,6 @@ def _backing(claim: Claim) -> Literal["quoted", "inferred", "unknown"]:
     if claim.quoted is not None:
         return "quoted"
     return "inferred" if claim.inferred is not None else "unknown"
-
-
-def _superseries(study_file: dict[str, Any] | None) -> tuple[str | None, set[str]]:
-    """The SuperSeries the standard set's study file names, and the Series under it.
-
-    Only that file says which Series is the SuperSeries; a bounds file does not, so any other folder
-    has none. The file has no format check, so each field is taken only in the shape it is written.
-    """
-    records = (study_file or {}).get("records")
-    if not isinstance(records, dict):
-        return None, set()
-    parent, series = records.get("superseries"), records.get("series")
-    if not isinstance(parent, str) or not isinstance(series, list):
-        return None, set()
-    return parent, {s for s in series if isinstance(s, str) and s != parent}
 
 
 def _quotes_from(passage: Passage, record: str) -> bool:
@@ -1140,8 +1124,7 @@ def _pipeline_stats(
     module = pipeline.module
     if module is None:
         return None
-    samples = pipeline.samples or [s.sample_id for s in manifest.experiment.samples]
-    where = pipeline.directory / results_dir if results_dir is not None else pipeline.results_dir
+    where, samples = _results(pipeline, manifest, results_dir)
     # Imported here and not at module scope: `stats` reaches its adapter through `qc` -> `h5ad`,
     # which imports scipy — ~0.3 s measured — and `cli/__init__` imports this module to register the
     # verb, so at module scope every `seqforge` invocation would pay it to register `report`.
@@ -1153,6 +1136,18 @@ def _pipeline_stats(
         return None
 
 
+def _results(
+    pipeline: CompiledPipeline, manifest: DatasetManifest, results_dir: Path | None
+) -> tuple[Path, list[str]]:
+    """Where the pipeline's outputs are, and the samples it was contracted to produce.
+
+    ``results_dir``, a machine fact, overrides where; the manifest's sample ids stand in for a
+    config written before ``samples`` existed. :func:`_pipeline_stats` says why each holds.
+    """
+    where = pipeline.directory / results_dir if results_dir is not None else pipeline.results_dir
+    return where, pipeline.samples or [s.sample_id for s in manifest.experiment.samples]
+
+
 def _h5ad(
     pipeline: CompiledPipeline | None,
     manifest: DatasetManifest,
@@ -1161,23 +1156,18 @@ def _h5ad(
 ) -> list[H5adPointer]:
     """Every ``.h5ad`` the finished pipeline wrote, each pointed at from the report's directory.
 
-    Read from the same two places :func:`_pipeline_stats` reads, and found through the same owner:
-    each contracted sample's own directory, then the results directory itself, which is where a
-    **Fan-in artifact** lands. What is listed is what is on disk, because a pointer is for opening —
-    what the pipeline still owes is the run state's question, and it is answered beside this.
+    Read from the same two places :func:`_pipeline_stats` reads, and found through the same owner,
+    which knows where a pipeline leaves each sample's objects and a **Fan-in artifact**.
     """
     if pipeline is None:
         return []
-    where = pipeline.directory / results_dir if results_dir is not None else pipeline.results_dir
-    samples = pipeline.samples or [s.sample_id for s in manifest.experiment.samples]
-    found: list[tuple[str | None, Path]] = [
-        (sample, path) for sample in samples for path in sorted((where / sample).glob("*.h5ad"))
-    ]
-    found += [(None, path) for path in sorted(where.glob("*.h5ad"))]
+    # Imported here for the reason `_pipeline_stats` gives.
+    from ..workflows.stats import delivered_h5ad
+
+    where, samples = _results(pipeline, manifest, results_dir)
     return [
         H5adPointer(path=_relative(path, report_dir), sample=sample)
-        for sample, path in found
-        if path.is_file()
+        for sample, path in delivered_h5ad(where, samples)
     ]
 
 

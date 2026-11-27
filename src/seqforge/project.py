@@ -209,6 +209,15 @@ def _write_if_changed(path: Path, text: str) -> None:
     path.write_text(text)
 
 
+def _read_table(table: Path) -> tuple[list[str], list[dict[str, str]]]:
+    """The header and the rows of a table :func:`write_project_views` wrote; empty when absent."""
+    if not table.is_file():
+        return [], []
+    lines = table.read_text().splitlines()
+    header = lines[0].split("\t") if lines else []
+    return header, [dict(zip(header, line.split("\t"), strict=True)) for line in lines[1:]]
+
+
 def sample_labels(table: Path, sample_id: str) -> tuple[dict[str, str], str | None]:
     """One sample's labels in a table :func:`write_project_views` wrote, and the reading's hash.
 
@@ -217,20 +226,12 @@ def sample_labels(table: Path, sample_id: str) -> tuple[dict[str, str], str | No
     written with no study, a sample the join did not reach and a sample not in the table all mean;
     each reads as ``({}, None)``.
     """
-    if not table.is_file():
+    header, rows = _read_table(table)
+    row = next((r for r in rows if r.get("sample_id") == sample_id), {})
+    digest = row.get(READING_HASH) or None
+    if digest is None:
         return {}, None
-    lines = table.read_text().splitlines()
-    header = lines[0].split("\t") if lines else []
-    for line in lines[1:]:
-        row = dict(zip(header, line.split("\t"), strict=True))
-        if row.get("sample_id") != sample_id:
-            continue
-        digest = row.get(READING_HASH) or None
-        if digest is None:
-            return {}, None
-        labels = {c: row[c] for c in header if c not in _COLUMNS and c != READING_HASH}
-        return labels, digest
-    return {}, None
+    return {c: row[c] for c in header if c not in _COLUMNS and c != READING_HASH}, digest
 
 
 def joined_reading_hash(workspace: str | Path) -> str | None:
@@ -240,16 +241,8 @@ def joined_reading_hash(workspace: str | Path) -> str | None:
     labelled carries the same hash; a workspace with no table, or one written with no study, has
     none to give.
     """
-    table = sample_metadata_path(workspace)
-    if not table.is_file():
-        return None
-    lines = table.read_text().splitlines()
-    header = lines[0].split("\t") if lines else []
-    if READING_HASH not in header:
-        return None
-    column = header.index(READING_HASH)
-    hashes = (line.split("\t")[column] for line in lines[1:])
-    return next((digest for digest in hashes if digest), None)
+    _, rows = _read_table(sample_metadata_path(workspace))
+    return next((digest for r in rows if (digest := r.get(READING_HASH))), None)
 
 
 __all__ = [

@@ -3353,6 +3353,7 @@ def test_the_bounds_graph_data_holds_every_kept_and_left_out_record_with_its_rea
     }  # fmt: skip
     assert study["reason"] == VALID["reason"]
     assert study["has_reading"] is True
+    assert "joins a SuperSeries" in (folder / "report.html").read_text()
 
 
 def _study_of(root: Path, edit: Callable[[dict[str, Any]], None]) -> dict[str, Any]:
@@ -3552,6 +3553,7 @@ def test_several_workspaces_give_one_report_in_the_study_folder_marking_who_comp
         "Compiled in second: 1 of 4 samples",
         "In no workspace read: 1 of 4 samples",
     ]
+    assert "joins a SuperSeries" not in page  # no study file, so no SuperSeries is drawn
 
 
 @pytest.mark.parametrize("stale", [True, False], ids=["reading changed since", "same reading"])
