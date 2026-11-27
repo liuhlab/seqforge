@@ -78,7 +78,9 @@ rebuilds those two project views from the manifests without recompiling.
 
 **`--study <folder>`** on `run` or `project metadata` joins a study reading into
 `sample_metadata.tsv` by BioSample accession. Mismatches warn and exit 0; the manifest is unchanged.
-`run` never starts the study chain.
+`run` never starts the study chain. A droplet pipeline's last rule writes those labels into each
+`<sample>.h5ad` as categorical `obs` columns, with `reading_hash` in `uns`. After a newer reading,
+run `project metadata --study` and then the same Snakefile: it re-runs only that rule.
 
 `compile` is an alias for `run`.
 

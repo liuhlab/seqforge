@@ -43,6 +43,7 @@ from conftest import (
 from seqforge import kb
 from seqforge.compose import ComposeError, compose, core, params_gate, plan
 from seqforge.compose.chimera import components
+from seqforge.compose.core import SAMPLE_TABLE_KEY
 from seqforge.compose.params import derived_params, param_block_key, param_owners
 from seqforge.io import OnlistRegistry
 from seqforge.manifest.hash import dataset_content_hash
@@ -2854,6 +2855,9 @@ def test_every_chemistry_emits_its_required_keys_and_passes_the_params_gate(
     status, problems = params_gate(manifest, processing, spec, config)
     assert status == "pass", problems
 
+    # The sample table's path is owed by the module that labels from it and by no other, so a bulk
+    # or ATAC config stays as it was.
+    labels = {SAMPLE_TABLE_KEY} & set(get_module(module_name).required_config)
     assert set(config) - {"primary_feature"} == {
         "chemistry",
         "container",
@@ -2865,6 +2869,7 @@ def test_every_chemistry_emits_its_required_keys_and_passes_the_params_gate(
         "threads",
         "units_tsv",
         block,
+        *labels,
     }, f"{tech} -> {module_name}: the composer emitted a top-level config key nothing owns"
 
 

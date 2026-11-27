@@ -51,7 +51,7 @@ from ..models.resolve import ComposeResult, GateVerdict, ModuleSelection, Sample
 from ..pipeline import CONFIG_NAME, DEFAULT_OUTDIR, UNITS_TSV_NAME, CompiledPipeline
 from ..resolve.group import lane_of, run_key
 from ..workflows import WorkflowModule, container_uri, get_module, resolve_pipeline
-from ..workspace import pipeline_dir, readable
+from ..workspace import pipeline_dir, readable, sample_metadata_from_pipeline
 from .admission import Admission, admit, render_record
 from .chimera import components
 from .params import (
@@ -62,6 +62,11 @@ from .params import (
     processing_params,
     render_param,
 )
+
+
+#: The config key naming the project's sample table, for a module whose rules label what they write
+#: from it. Emitted only to a module that reads it, which the module's source says.
+SAMPLE_TABLE_KEY = "sample_table"
 
 
 class ComposeError(RuntimeError):
@@ -176,8 +181,12 @@ def plan(
     outdir: str = DEFAULT_OUTDIR,
     fastq_dir: str | Path | None = None,
     sif_dir: str | Path | None = None,
+    subdir: str | None = None,
 ) -> ComposePlan:
     """Build the config + units + module selection for one (dataset, processing) pair.
+
+    ``subdir`` is the assay's, as :func:`compose` takes it: it places the pipeline directory, and so
+    where the project's sample table is from inside it.
 
     Both inputs are positional and required. Composing one dataset two ways is literally two calls
     with one argument changed, producing two ``run_id``s over one unchanged ``dataset_hash``.
@@ -308,6 +317,12 @@ def plan(
         "units_tsv": UNITS_TSV_NAME,
     }
     config[param_block_key(spec)] = params
+    if SAMPLE_TABLE_KEY in module.required_config:
+        # Only for a module that labels what it writes from the sample table, which `seqforge run`
+        # and `project metadata` write after this compile. A path and no content: the labels are
+        # the table's, so a new reading rewrites the table and leaves this config, and `run_id`, as
+        # they are.
+        config[SAMPLE_TABLE_KEY] = sample_metadata_from_pipeline(subdir)
     primary = _primary_feature(intent.quantification.value)
     if primary is not None:
         # Top level, NOT inside config["solo"] — that block must stay "every key is a STAR CLI flag"
@@ -439,7 +454,13 @@ def compose(
     defaults to ``None`` (the flat, single-assay layout), which is byte-identical to before.
     """
     p = plan(
-        manifest, processing, registry=registry, outdir=outdir, fastq_dir=fastq_dir, sif_dir=sif_dir
+        manifest,
+        processing,
+        registry=registry,
+        outdir=outdir,
+        fastq_dir=fastq_dir,
+        sif_dir=sif_dir,
+        subdir=subdir,
     )
 
     # Keyed by the RUN, not by the workspace. A fixed `.seqforge/pipeline/` path meant recipe B

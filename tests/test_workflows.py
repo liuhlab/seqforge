@@ -15,12 +15,15 @@ params gate — is ``test_compose.py``.
 
 from __future__ import annotations
 
+import csv
 import gzip
 import json
 import math
+import os
 import re
 import shutil
 import subprocess
+import time
 from array import array
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, replace
@@ -41,6 +44,7 @@ from conftest import (
     PLATE_CELL_DEPTH,
     DryRun,
     SrcTrees,
+    SynthDataset,
     _build,
     _processing,
     _rendered_shell,
@@ -199,6 +203,7 @@ from seqforge.workflows.umite.extract import (
     geometry_for_read,
     tagged_read_geometry,
 )
+from seqforge.workspace import sample_metadata_path
 
 # ================================================================================================
 # h5ad — packaging Solo.out as the deliverable
@@ -2863,6 +2868,50 @@ def test_the_bulk_module_keeps_the_junctions_it_can_use_and_sweeps_the_logs_noth
     }
     assert removed == {f"results/{s}/{f}" for s in samples for f in STAR_PROGRESS_LOGS}, (
         f"a finished bulk run sweeps exactly the two logs nothing reads; it swept {sorted(removed)}"
+    )
+
+
+def test_a_new_sample_table_relabels_a_finished_droplet_run_and_runs_nothing_else(
+    tmp_path: Path, synth_10x_v3: SynthDataset, dry_run: DryRun
+) -> None:
+    """A new reading changes the sample table and nothing that ``run_id`` folds, so the finished run
+    in the same pipeline directory plans the labelling step again and nothing upstream of it: not
+    the packaging step, not the completion record, and not the alignment whose ``temp()`` inputs
+    are long gone. Read off snakemake's own plan of a run left as a finished one leaves it."""
+    result = compose(
+        synth_10x_v3.manifest,
+        _processing(synth_10x_v3.manifest),
+        registry=synth_10x_v3.registry,
+        workspace=tmp_path,
+    )
+    run_dir = (tmp_path / result.snakefile_path).parent
+    table = sample_metadata_path(tmp_path)
+    table.write_text("sample_id\n")
+    sources = [table]
+    units = (run_dir / "units.tsv").read_text().splitlines()
+    for row in csv.DictReader(units, delimiter="\t"):
+        sources.append(run_dir / row["path"])
+        sources[-1].parent.mkdir(parents=True, exist_ok=True)
+        sources[-1].touch()
+
+    whole = dry_run(run_dir)
+    swept = {ln.split()[-1] for ln in whole.splitlines() if ln.startswith("Would remove temporary")}
+    kept = [p for job in _planned_jobs(whole) for p in job.outputs if p not in swept]
+    for path in kept:
+        (run_dir / path).parent.mkdir(parents=True, exist_ok=True)
+        (run_dir / path).touch()
+    finished = time.time() - 60
+    for path in sources:
+        os.utime(path, (finished - 60, finished - 60))
+    for path in kept:
+        os.utime(run_dir / path, (finished, finished))
+    assert {job.rule for job in _planned_jobs(dry_run(run_dir))} <= {"all"}
+
+    table.write_text("sample_id\treading_hash\n")
+    again = {job.rule for job in _planned_jobs(dry_run(run_dir))} - {"all"}
+    assert again == {"label_h5ad"}, (
+        f"a new sample table re-plans {sorted(again)}; only the labelling step reads it, and "
+        f"anything upstream of it costs the alignment again"
     )
 
 
