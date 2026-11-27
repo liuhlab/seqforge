@@ -42,6 +42,12 @@ from ..recordset import saved_record_set
 from ..workflows.metrics import Alert, Decision, DecisionRef, PipelineStats, gather_alerts
 from ..workspace import report_html_path, state_dir
 from .model import (
+    CROSS_COLUMNS_CAP,
+    GRAPH_KEPT_CAP,
+    GRAPH_LEFT_OUT_CAP,
+    GROUPED_ROWS_CAP,
+    SAMPLE_ROWS_CAP,
+    TEXT_CAP,
     ArchiveProjectView,
     ArtifactEmbed,
     AssayLabelView,
@@ -49,6 +55,7 @@ from .model import (
     BoundsRecord,
     ChemistryDecision,
     ConclusionView,
+    Cut,
     DecisionField,
     DesignCount,
     DesignGroup,
@@ -155,7 +162,10 @@ def collect_report(
             report_version=REPORT_VERSION, generated_at=generated_at, workspaces=read
         )
     view = collect_study(study, where)
-    view = view.model_copy(update={"samples": [_coverage(sample, read) for sample in view.samples]})
+    samples = [_coverage(sample, read) for sample in view.samples]
+    view = view.model_copy(
+        update={"samples": samples, "topics": [_split_folds(t, samples) for t in view.topics]}
+    )
     return ProjectReport(
         report_version=REPORT_VERSION,
         generated_at=generated_at,
@@ -207,6 +217,30 @@ def _coverage(sample: StudySample, workspaces: list[WorkspaceReport]) -> StudySa
                 for ws in workspaces
                 if any(s.accession == accession for a in ws.assays for s in a.samples)
             ]
+        }
+    )
+
+
+def _split_folds(table: TopicTable, samples: list[StudySample]) -> TopicTable:
+    """``table`` with each folded row split by the workspaces that compiled its samples.
+
+    Rows fold before coverage is known, and the table's "compiled in" column shows one answer per
+    row, so samples compiled in different workspaces cannot share one.
+    """
+    where = {s.sample: tuple(s.compiled_in) for s in samples}
+    rows: list[list[str]] = []
+    for members in table.rows:
+        groups: dict[tuple[str, ...], list[str]] = {}
+        for name in members:
+            groups.setdefault(where[name], []).append(name)
+        rows.extend(groups.values())
+    return table.model_copy(
+        update={
+            "rows": rows,
+            "folded": sum(len(row) - 1 for row in rows),
+            "cut": Cut(
+                shown=min(len(rows), SAMPLE_ROWS_CAP), hidden=max(len(rows) - SAMPLE_ROWS_CAP, 0)
+            ),
         }
     )
 
@@ -278,17 +312,44 @@ def collect_study(study: StudyFolder, report_dir: Path) -> StudyReport:
     records = [record(c.id, c, kept=True) for c in bounds.series]
     records += [record(paper, None, kept=True) for paper in bounds.papers]
     records += [record(c.id, c, kept=False) for c in bounds.left_out]
+    records, graph = _drawn(records)
     view = StudyReport(
         study=bounds.study,
         path=_relative(study.path, report_dir),
         reason=bounds.reason,
         records=records,
+        graph=graph,
         has_reading=study.reading is not None,
         reading_hash=None if study.reading is None else study.reading.content_hash(),
     )
     if study.reading is None:
         return view
     return view.model_copy(update=_reading_view(study.reading))
+
+
+def _drawn(
+    records: list[BoundsRecord],
+) -> tuple[list[BoundsRecord], dict[Literal["series", "paper"], Cut]]:
+    """Which records the graph draws, and how many of each side's it draws and lists instead.
+
+    Each side draws its first kept records and its first left-out ones, each up to its cap; the
+    rest of the side are listed under one "+k more" node.
+    """
+    seen: dict[tuple[str, bool], int] = {}
+    drawn = []
+    for r in records:
+        at = seen[r.kind, r.kept] = seen.get((r.kind, r.kept), 0) + 1
+        cap = GRAPH_KEPT_CAP if r.kept else GRAPH_LEFT_OUT_CAP
+        drawn.append(r if at <= cap else r.model_copy(update={"drawn": False}))
+    kinds: tuple[Literal["series", "paper"], ...] = ("series", "paper")
+    graph = {
+        kind: Cut(
+            shown=sum(r.drawn for r in drawn if r.kind == kind),
+            hidden=sum(not r.drawn for r in drawn if r.kind == kind),
+        )
+        for kind in kinds
+    }
+    return drawn, graph
 
 
 def _reading_view(reading: Reading) -> dict[str, Any]:
@@ -356,8 +417,44 @@ def _topic_tables(reading: Reading, samples: list[StudySample]) -> list[TopicTab
                 varying.append(label)
             else:
                 same.append(SameForAll(label=label, cell=folded))
-        tables.append(TopicTable(topic=topic, labels=mine, varying=varying, same=same))
+        rows = _rows([*reading.factors, *varying], samples) if varying else []
+        tables.append(
+            TopicTable(
+                topic=topic,
+                labels=mine,
+                varying=varying,
+                same=same,
+                rows=rows,
+                folded=sum(len(row) - 1 for row in rows),
+                cut=Cut(
+                    shown=min(len(rows), SAMPLE_ROWS_CAP),
+                    hidden=max(len(rows) - SAMPLE_ROWS_CAP, 0),
+                ),
+            )
+        )
     return tables
+
+
+def _rows(labels: list[str], samples: list[StudySample]) -> list[list[str]]:
+    """A topic table's rows, each the samples it shows: one each, up to the cap.
+
+    Past the cap, the samples whose row shows the same on every one of ``labels`` share one row,
+    placed where its first sample is. A row shows a cell's value, level, backing, p and whether it
+    is inherited, so those are what must be the same; the passages behind a cell are not shown in
+    the row, and the first sample's open on a click.
+    """
+    if len(samples) <= SAMPLE_ROWS_CAP:
+        return [[s.sample] for s in samples]
+    rows: dict[tuple[object, ...], list[str]] = {}
+    for s in samples:
+        shown = tuple(
+            None
+            if (c := s.cells.get(label)) is None
+            else (c.value, c.level, c.backing, c.p, c.inherited)
+            for label in labels
+        )
+        rows.setdefault(shown, []).append(s.sample)
+    return list(rows.values())
 
 
 def _same_for_all(label: str, samples: list[StudySample]) -> StudyCell | None:
@@ -380,9 +477,11 @@ def _study_cell(label: str, claim: SampleClaim, *, inherited: bool) -> StudyCell
     from ..study.join import cell
 
     term = claim.term
+    # The level is a field of its own, so the value is what the claim says beside it.
+    value = cell(label, claim.model_copy(update={"level": None})) if claim.says else None
     return StudyCell(
-        # The level is a field of its own, so the value is what the claim says beside it.
-        value=cell(label, claim.model_copy(update={"level": None})) if claim.says else None,
+        value=value,
+        hidden_chars=_hidden_chars(value),
         term=[term] if isinstance(term, str) else list(term or []),
         level=claim.level,
         backing="na" if claim.na is not None else _backing(claim),
@@ -425,13 +524,14 @@ def _design_table(factors: list[StudyFactor], samples: list[StudySample]) -> Des
             if any(_assay(s) == a for s in members)
         ]
 
-    if len(factors) == 2:
+    def axis(f: StudyFactor) -> list[str | None]:
+        outside = any(_level(s, f.label) is None for s in samples)
+        return [*f.levels, *([None] if outside else [])]
+
+    # Two factors whose cross-table is too wide for the page fall back to the grouped list.
+    wide = len(factors) == 2 and len(axis(factors[1])) > CROSS_COLUMNS_CAP
+    if len(factors) == 2 and not wide:
         first, second = factors
-
-        def axis(f: StudyFactor) -> list[str | None]:
-            outside = any(_level(s, f.label) is None for s in samples)
-            return [*f.levels, *([None] if outside else [])]
-
         rows, columns = axis(first), axis(second)
         groups = [
             DesignGroup(
@@ -461,6 +561,11 @@ def _design_table(factors: list[StudyFactor], samples: list[StudySample]) -> Des
         kind="grouped",
         groups=[DesignGroup(levels=list(k), counts=counts(v)) for k, v in by_levels.items()],
         assays=assays if split else [],
+        cross_columns=len(axis(factors[1])) if wide else None,
+        cut=Cut(
+            shown=min(len(by_levels), GROUPED_ROWS_CAP),
+            hidden=max(len(by_levels) - GROUPED_ROWS_CAP, 0),
+        ),
     )
 
 
@@ -503,7 +608,17 @@ def _passage_view(number: int, passage: Passage) -> PassageView:
         record = passage.record
         named = ", ".join(record) if isinstance(record, list) else record
         source = f"{named} · {passage.field}"
-    return PassageView(number=number, source=source, quote=passage.quote)
+    return PassageView(
+        number=number,
+        source=source,
+        quote=passage.quote,
+        hidden_chars=_hidden_chars(passage.quote),
+    )
+
+
+def _hidden_chars(text: str | None) -> int:
+    """How many characters of ``text`` are past the cap, and so cut on the page until a click."""
+    return max(len(text or "") - TEXT_CAP, 0)
 
 
 # ---- one assay ----------------------------------------------------------------------------------

@@ -3576,3 +3576,144 @@ def test_a_workspace_that_joined_an_older_reading_is_warned_stale(
     assert data["workspaces"][0]["reading_hash"] == joined_hash
     assert (data["study"]["reading_hash"] != joined_hash) is stale
     assert [w["code"] for w in data["warnings"]] == (["READING_STALE"] if stale else [])
+
+
+# -- large studies: each section past its cap says how much it hides ------------------------------
+#
+# A study is built here in memory, as large as each case needs, and does not read the standard set,
+# whose largest study reaches no cap.
+
+
+def _large_study(n_samples: int, *, materials: int | None = None) -> dict[str, Any]:
+    """A bounds file and a reading of ``n_samples`` samples, each of its own material unless
+    ``materials`` says how many there are, and every other label the same for all, each factor
+    at its one level."""
+    reading = copy.deepcopy(READING)
+    for factor in reading["factors"].values():
+        factor["levels"] = [factor["baseline"]]
+    reading["samples"] = {
+        f"GSM{i + 1}": {
+            "biosample": {
+                "id": f"B{i % (materials or n_samples) + 1}",
+                "inferred": "One prep per library.",
+                "p": 0.7,
+            }
+        }
+        for i in range(n_samples)
+    }
+    return {"bounds": copy.deepcopy(VALID), "reading": reading}
+
+
+def _levels(factor: str, n: int, *, alone: bool = False) -> Callable[[dict[str, Any]], None]:
+    """``factor`` given ``n`` levels, one sample at each; ``alone`` makes it the study's one factor."""
+
+    def edit(study: dict[str, Any]) -> None:
+        reading = study["reading"]
+        if alone:
+            other = next(f for f in reading["factors"] if f != factor)
+            del reading["factors"][other]
+            del reading["shared"][other]["level"]
+        levels = [f"{factor}{k}" for k in range(n)]
+        reading["factors"][factor] |= {"levels": levels, "baseline": levels[0]}
+        reading["shared"][factor]["level"] = levels[0]
+        for sample, level in zip(reading["samples"].values(), levels, strict=True):
+            sample[factor] = _said(level, level=level)
+
+    return edit
+
+
+def _kept_series(study: dict[str, Any]) -> None:
+    study["bounds"]["series"] += [
+        {"id": f"GSE{n}", "inferred": "Same samples, later run.", "see": [2], "p": 1}
+        for n in range(10, 17)
+    ]
+
+
+def _left_out_papers(study: dict[str, Any]) -> None:
+    study["bounds"]["left_out"] += [
+        {"id": f"pmid:{n}", "unknown": "Nothing read says who made it", "p": None}
+        for n in range(100, 108)
+    ]
+
+
+def _two_materials(study: dict[str, Any]) -> None:
+    study.update(_large_study(len(study["reading"]["samples"]), materials=2))
+
+
+def _long_value(study: dict[str, Any]) -> None:
+    study["reading"]["samples"]["GSM1"]["dose"] = _said("d" * 81)
+
+
+def _long_quote(study: dict[str, Any]) -> None:
+    study["reading"]["passages"][3]["quote"] = "q" * 81
+
+
+def _cut_counts(study: dict[str, Any]) -> dict[str, int]:
+    """Every count of what the Study tab hides, by section, those that hide nothing left out."""
+    design = study["design"]
+    counts = {f"graph {side}": cut["hidden"] for side, cut in study["graph"].items()}
+    counts["cross-table columns"] = design["cross_columns"] or 0
+    counts["grouped list"] = design["cut"]["hidden"] if design["cut"] else 0
+    for table in study["topics"]:
+        counts[f"{table['topic']} rows"] = table["cut"]["hidden"]
+        counts[f"{table['topic']} folded"] = table["folded"]
+    cells = [c for s in study["samples"] for c in s["cells"].values()]
+    cells += [s["cell"] for t in study["topics"] for s in t["same"]]
+    counts["values"] = sum(c["hidden_chars"] for c in cells)
+    quotes = [*study["passages"]]
+    quotes += [q for r in study["records"] for q in (*r["reason_passages"], *r["passages"])]
+    counts["quotes"] = sum(q["hidden_chars"] for q in quotes)
+    return {section: n for section, n in counts.items() if n}
+
+
+def _unchanged(study: dict[str, Any]) -> None:
+    return None
+
+
+@pytest.mark.parametrize(
+    ("size", "edit", "hidden"),
+    [
+        pytest.param(9, _kept_series, {"graph series": 1}, id="nine kept Series"),
+        pytest.param(9, _left_out_papers, {"graph paper": 1}, id="nine left-out papers"),
+        pytest.param(
+            13,
+            _levels("genotype", 13),
+            {"cross-table columns": 13},
+            id="a cross-table of thirteen columns",
+        ),
+        pytest.param(
+            21,
+            _levels("genotype", 21, alone=True),
+            {"grouped list": 1},
+            id="a grouped list of twenty-one rows",
+        ),
+        pytest.param(51, _unchanged, {"Material rows": 1}, id="fifty-one sample rows"),
+        pytest.param(
+            51, _two_materials, {"Material folded": 49}, id="fifty-one samples of two materials"
+        ),
+        pytest.param(9, _long_value, {"values": 1}, id="a value of eighty-one characters"),
+        pytest.param(9, _long_quote, {"quotes": 1}, id="a quote of eighty-one characters"),
+    ],
+)
+def test_each_study_section_past_its_cap_counts_what_it_hides_in_report_json(
+    tmp_path: Path,
+    size: int,
+    edit: Callable[[dict[str, Any]], None],
+    hidden: dict[str, int],
+) -> None:
+    """A large study stays readable: each section shows its first part up to its cap and says how
+    much it hides, and the count is in ``report.json``. A study just past one cap hides exactly
+    what is past it there and nothing anywhere else. A cross-table too wide for the page falls back
+    to the grouped list and says how many columns it would have had; rows the same across a topic
+    table's labels fold into one before any is paged away."""
+    study = _large_study(size)
+    edit(study)
+    folder = tmp_path / "GSE1"
+    folder.mkdir()
+    for name in ("bounds", "reading"):
+        (folder / f"{name}.yaml").write_text(yaml.safe_dump(study[name], sort_keys=False))
+    result = runner.invoke(app, ["report", "--study", str(folder), "--no-timestamp"])
+    assert result.exit_code == 0, result.output
+
+    said = json.loads((folder / "report.json").read_text())["study"]
+    assert _cut_counts(said) == hidden

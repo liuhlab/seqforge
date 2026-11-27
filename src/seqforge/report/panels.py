@@ -30,6 +30,8 @@ from ..workflows.metrics import (
 )
 from .flow import FlowStep, flow_steps
 from .model import (
+    SAMPLE_ROWS_CAP,
+    TEXT_CAP,
     ArtifactEmbed,
     AssayReport,
     BoundsRecord,
@@ -154,11 +156,19 @@ def _panel(title: str, body: str, *, sub: str = "") -> str:
 _SAMPLE_PAGE_SIZES = (25, 50, 100)
 
 
-def _sample_pager(body_id: str, n_samples: int) -> str:
+def _sample_pager(
+    body_id: str,
+    n_samples: int,
+    *,
+    sizes: tuple[int, ...] = _SAMPLE_PAGE_SIZES,
+    unit: str = "samples",
+) -> str:
     """The bar under a table of samples: which rows are showing, how many at a time, and prev/next.
 
     Both grids that hold one row per sample use it — Samples and Results — off the one ``data-smp``
-    marker that says where a sample starts, so paging a second table cost the script nothing.
+    marker that says where a sample starts, so paging a second table cost the script nothing. The
+    Study tab's sample tables page by their cap alone, ``sizes``, and count their rows as ``unit``,
+    because a row there can hold several samples.
 
     Rendered **hidden**, and ``report.js`` is what unhides it. A control that pages a table is a lie
     without the script that pages it, so a page opened with JS off shows every row and no bar — which
@@ -170,20 +180,19 @@ def _sample_pager(body_id: str, n_samples: int) -> str:
     The script finds every part by ``data-*`` and never by a class, so restyling the bar cannot
     silently unhook it.
     """
-    if n_samples <= _SAMPLE_PAGE_SIZES[0]:
+    if n_samples <= sizes[0]:
         return ""
-    sizes = "".join(
-        f'<option value="{n}">{n}</option>' for n in _SAMPLE_PAGE_SIZES if n < n_samples
-    )
+    options = "".join(f'<option value="{n}">{n}</option>' for n in sizes if n < n_samples)
     return (
         '<nav class="mt-3 flex flex-wrap items-center gap-3 text-sm text-dim" hidden '
-        f'data-pager="{esc(body_id)}" aria-label="Sample table pages">'
+        f'data-pager="{esc(body_id)}" data-pager-unit="{esc(unit)}" '
+        'aria-label="Sample table pages">'
         # `role="status"` and not `aria-live` alone: a reader who cannot see the table change still
         # hears which rows are now under them.
         '<span role="status" data-pager-status></span>'
         '<span class="flex-1"></span>'
         '<label class="flex items-center gap-2">Rows'
-        f'<select class="sf-select" data-pager-size>{sizes}'
+        f'<select class="sf-select" data-pager-size>{options}'
         f'<option value="0">All {n_samples}</option></select></label>'
         '<span class="flex items-center gap-2" data-pager-nav>'
         '<button type="button" class="sf-icon-btn disabled:cursor-default disabled:opacity-40" '
@@ -1670,11 +1679,16 @@ def _bounds_graph(study: StudyReport) -> str:
     Each record is a box joined to the study. A kept record is drawn solid and a left-out one
     dashed, its id struck through. Each box is focusable and names a hover card, rendered here
     beside the figure with every value escaped, which the script shows while the pointer or the
-    focus is on the box.
+    focus is on the box, and pins on a click. A side past its cap draws one "+k more" box last,
+    whose card lists the side's records it does not draw.
     """
-    series = [(i, r) for i, r in enumerate(study.records) if r.kind == "series"]
-    papers = [(i, r) for i, r in enumerate(study.records) if r.kind == "paper"]
-    rows = max(len(series), len(papers), 1)
+    drawn = [(i, r) for i, r in enumerate(study.records) if r.drawn]
+    series = [(i, r) for i, r in drawn if r.kind == "series"]
+    papers = [(i, r) for i, r in drawn if r.kind == "paper"]
+    more = {kind: cut.hidden for kind, cut in study.graph.items() if cut.hidden}
+    n_series = len(series) + (1 if "series" in more else 0)
+    n_papers = len(papers) + (1 if "paper" in more else 0)
+    rows = max(n_series, n_papers, 1)
     height = _GRAPH_TOP + rows * _GRAPH_ROW
     cy = _GRAPH_TOP + rows * _GRAPH_ROW / 2
     cx = _GRAPH_W / 2
@@ -1684,14 +1698,19 @@ def _bounds_graph(study: StudyReport) -> str:
         return [_GRAPH_TOP + (k + 0.5) * step for k in range(n)]
 
     at: dict[int, tuple[float, float]] = {}
-    for (i, _r), y in zip(series, ys(len(series)), strict=True):
+    series_ys, papers_ys = ys(n_series), ys(n_papers)
+    for (i, _r), y in zip(series, series_ys, strict=False):
         at[i] = (_GRAPH_SIDE_X, y)
-    for (i, _r), y in zip(papers, ys(len(papers)), strict=True):
+    for (i, _r), y in zip(papers, papers_ys, strict=False):
         at[i] = (_GRAPH_W - _GRAPH_SIDE_X, y)
 
     edges, boxes, joins = "", "", ""
     half = _NODE_W / 2
-    for i, record in enumerate(study.records):
+    if "series" in more:
+        boxes += _more_node("series", more["series"], _GRAPH_SIDE_X, series_ys[-1])
+    if "paper" in more:
+        boxes += _more_node("paper", more["paper"], _GRAPH_W - _GRAPH_SIDE_X, papers_ys[-1])
+    for i, record in drawn:
         x, y = at[i]
         side = -1 if record.kind == "series" else 1  # which side of the study the record is on
         x0, bend, x1 = x - side * half, cx + side * 120, cx + side * 60
@@ -1703,8 +1722,8 @@ def _bounds_graph(study: StudyReport) -> str:
             f'd="M{x0:.1f},{y:.1f} C{bend:.1f},{y:.1f} {bend:.1f},{cy:.1f} {x1:.1f},{cy:.1f}"/>'
         )
         boxes += _graph_node(i, record, x, y)
-    for i, record in enumerate(study.records):
-        parent = next((j for j, r in enumerate(study.records) if r.id == record.superseries), None)
+    for i, record in drawn:
+        parent = next((j for j, r in drawn if r.id == record.superseries), None)
         if parent is None:
             continue
         (px, py), (_x, y) = at[parent], at[i]
@@ -1733,8 +1752,38 @@ def _bounds_graph(study: StudyReport) -> str:
         f"<title>The records of study {esc(study.study)}, kept and left out</title>"
         f"{heads}{joins}{edges}{centre}{boxes}</svg>"
     )
-    tips = "".join(_graph_tip(i, r, study) for i, r in enumerate(study.records))
+    tips = "".join(_graph_tip(i, r, study) for i, r in drawn)
+    tips += "".join(_more_tip(kind, study) for kind in more)
     return f'<div class="sf-scroll-x p-2">{svg}</div>{tips}'
+
+
+def _more_node(kind: str, hidden: int, x: float, y: float) -> str:
+    """The "+k more" box a side past its cap draws last, naming its card of the rest."""
+    return (
+        f'<g data-bounds-node="bounds-more-{kind}" tabindex="0" '
+        f'aria-label="{hidden} more records not drawn">'
+        f'<rect class="fill-surface stroke-faint" stroke-width="1.5" x="{x - _NODE_W / 2:.1f}" '
+        f'y="{y - _NODE_H / 2:.1f}" width="{_NODE_W}" height="{_NODE_H}" rx="8"/>'
+        f'<text class="fill-dim font-sans" font-size="12" x="{x:.1f}" y="{y + 4:.1f}" '
+        f'text-anchor="middle">+{hidden} more</text></g>'
+    )
+
+
+def _more_tip(kind: str, study: StudyReport) -> str:
+    """The card of a side's "+k more" box: each record it does not draw, kept or left out."""
+    rest = [r for r in study.records if r.kind == kind and not r.drawn]
+    items = "".join(
+        f'<li><span class="font-mono">{esc(r.id)}</span> · {"kept" if r.kept else "left out"}'
+        + (f" · {esc(r.title)}" if r.title else "")
+        + "</li>"
+        for r in rest
+    )
+    side = "Series" if kind == "series" else "papers"
+    return (
+        f'<div class="prov-pop" id="bounds-more-{kind}" role="tooltip" hidden>'
+        f'<div class="pp-head">{len(rest)} more {side}</div>'
+        f'<ul class="m-0 mt-2 list-none p-0 text-xs">{items}</ul></div>'
+    )
 
 
 def _graph_node(i: int, record: BoundsRecord, x: float, y: float) -> str:
@@ -1792,7 +1841,23 @@ def _tip_quote(passage: PassageView) -> str:
     """One passage in a hover card: where it was read, then the quote."""
     return (
         f'<blockquote class="pp-quote"><div class="text-xs not-italic text-faint">'
-        f"[{passage.number}] {esc(passage.source)}</div>{esc(passage.quote)}</blockquote>"
+        f"[{passage.number}] {esc(passage.source)}</div>"
+        f"{_cut_text(passage.quote, passage.hidden_chars)}</blockquote>"
+    )
+
+
+def _cut_text(text: str, hidden: int) -> str:
+    """``text`` cut at its cap, saying how many characters it hides, with the full text beside it.
+
+    Both are rendered, the full text ``hidden``: a click that pins a hover card swaps them, and a
+    cell's own click opens its full value in the popover, so the cut text is all a row shows.
+    """
+    if not hidden:
+        return esc(text)
+    return (
+        f"<span data-cut>{esc(text[:TEXT_CAP])}…"
+        f'<span class="text-xs text-faint"> +{hidden} characters</span></span>'
+        f"<span data-full hidden>{esc(text)}</span>"
     )
 
 
@@ -1891,15 +1956,17 @@ def _design_panel(study: StudyReport) -> str:
             )
     else:
         head = "".join(f"<th>{esc(f.label)}</th>" for f in study.factors) + "<th>n</th>"
+        shown = design.cut.shown if design.cut is not None else len(design.groups)
         body = "".join(
-            "<tr>"
+            # Past the cap a row is marked, and the script hides it until "show all".
+            ("<tr>" if k < shown else "<tr data-over-cap>")
             + "".join(
                 f"<td>{_level_chip(f, level)}</td>"
                 for f, level in zip(study.factors, g.levels, strict=True)
             )
             + count(g)
             + "</tr>"
-            for g in design.groups
+            for k, g in enumerate(design.groups)
         )
     said = [
         f"{f.label}{' (ordered)' if f.ordered else ''}" + (f" p {f.p:g}" if f.p is not None else "")
@@ -1912,9 +1979,22 @@ def _design_panel(study: StudyReport) -> str:
     )
     split = ", split by assay" if design.assays else ""
     table = (
-        f'<div class="sf-scroll-x"><table><thead><tr>{head}</tr></thead>'
+        f'<div class="sf-scroll-x" id="design-list"><table><thead><tr>{head}</tr></thead>'
         f"<tbody>{body}</tbody></table></div>"
     )
+    if design.cut is not None and design.cut.hidden:
+        n = len(design.groups)
+        # Hidden, as the pager is: without the script every row shows and the line would be false.
+        table += (
+            '<p class="m-0 mt-2 text-xs text-dim" hidden data-show-all="design-list">'
+            f'Showing {design.cut.shown} of {n} groups. <button type="button" class="st-subtab">'
+            f"Show all {n}</button></p>"
+        )
+    if design.cross_columns is not None:
+        table = (
+            f'<p class="sf-empty">{esc(study.factors[1].label)} has {design.cross_columns} '
+            "columns, too many for a cross-table, so each group of levels is one row.</p>" + table
+        )
     if not study.factors:
         table = (
             '<p class="sf-empty">The reading names no factor, so every sample is one group.</p>'
@@ -1958,6 +2038,20 @@ def _cell_text(cell: StudyCell) -> str:
     return "n/a" if cell.backing == "na" else "?"
 
 
+def _cell_shown(cell: StudyCell) -> str:
+    """A cell's text as its row shows it: cut at the cap, saying how much it hides.
+
+    The click that opens the cell's popover shows its full value, so the row carries no second copy.
+    """
+    text = _cell_text(cell)
+    if not cell.hidden_chars:
+        return esc(text)
+    return (
+        f"{esc(text[:TEXT_CAP])}…"
+        f'<span class="text-xs text-faint"> +{cell.hidden_chars} characters</span>'
+    )
+
+
 def _cell_class(cell: StudyCell) -> str:
     return f"st-cell st-{cell.backing}" + (" st-inh" if cell.inherited else "")
 
@@ -1994,7 +2088,7 @@ def _samples_panel(study: StudyReport, workspaces: dict[str, str]) -> str:
         for i, t in enumerate(study.topics)
     )
     panes = "".join(
-        f'<div data-topic-pane="{i}">{_topic_table(study, t, workspaces)}</div>'
+        f'<div data-topic-pane="{i}">{_topic_table(study, t, workspaces, i)}</div>'
         for i, t in enumerate(study.topics)
     )
     return _panel(
@@ -2006,11 +2100,14 @@ def _samples_panel(study: StudyReport, workspaces: dict[str, str]) -> str:
     )
 
 
-def _topic_table(study: StudyReport, table: TopicTable, workspaces: dict[str, str]) -> str:
+def _topic_table(
+    study: StudyReport, table: TopicTable, workspaces: dict[str, str], index: int
+) -> str:
     """One topic's table: the labels the same for every sample on one line, then the rest.
 
     With any workspace read, a column after the sample names the workspaces that compiled it, or
-    says none did.
+    says none did. Past the cap, the rows the same on every label are one row "× n", which names
+    its samples on hover, and the rows are paged by the cap.
     """
     n = len(study.samples)
     head = (
@@ -2025,7 +2122,7 @@ def _topic_table(study: StudyReport, table: TopicTable, workspaces: dict[str, st
             + "".join(
                 f'<span class="{_cell_class(s.cell)}" style="{_cell_style(s.cell)}" '
                 f"{_cell_attrs(f'all {n} samples', s.label, s.cell)}>"
-                f"<b>{esc(s.label)}</b> {esc(_cell_text(s.cell))}</span>"
+                f"<b>{esc(s.label)}</b> {_cell_shown(s.cell)}</span>"
                 for s in table.same
             )
             + "</p>"
@@ -2040,8 +2137,23 @@ def _topic_table(study: StudyReport, table: TopicTable, workspaces: dict[str, st
         + "".join(f"<th>{esc(f.label)} ★</th>" for f in study.factors)
         + "".join(f"<th>{esc(label)}</th>" for label in table.varying)
     )
-    rows = ""
-    for sample in study.samples:
+    by_id = {s.sample: s for s in study.samples}
+    body_id = f"topic-rows-{index}"
+    rows, tips = "", ""
+    for r, members in enumerate(table.rows):
+        sample = by_id[members[0]]
+        ident = esc(sample.sample)
+        if len(members) > 1:
+            tip = f"topic-fold-{index}-{r}"
+            ident += (
+                f' <span class="text-xs font-normal text-faint" data-hover-card="{tip}" '
+                f'tabindex="0">× {len(members)}</span>'
+            )
+            tips += (
+                f'<div class="prov-pop" id="{tip}" role="tooltip" hidden>'
+                f'<div class="pp-head">{len(members)} samples, one row</div>'
+                f'<p class="m-0 mt-2 font-mono text-xs">{esc(", ".join(members))}</p></div>'
+            )
         cells = ""
         if workspaces:
             where = ", ".join(workspaces.get(p, p) for p in sample.compiled_in)
@@ -2066,12 +2178,18 @@ def _topic_table(study: StudyReport, table: TopicTable, workspaces: dict[str, st
                 continue
             cells += (
                 f'<td class="{_cell_class(claim)}" style="{_cell_style(claim)}" '
-                f"{_cell_attrs(sample.sample, label, claim)}>{esc(_cell_text(claim))}</td>"
+                f"{_cell_attrs(sample.sample, label, claim)}>{_cell_shown(claim)}</td>"
             )
-        rows += f'<tr><th class="font-mono">{esc(sample.sample)}</th>{cells}</tr>'
+        rows += f'<tr data-smp><th class="font-mono">{ident}</th>{cells}</tr>'
+    if table.folded:
+        head += (
+            f'<p class="m-0 mb-2 text-xs text-dim">{n} samples in {len(table.rows)} rows: the '
+            "samples the same on every label of this table are one row, × how many.</p>"
+        )
+    pager = _sample_pager(body_id, len(table.rows), sizes=(SAMPLE_ROWS_CAP,), unit="rows")
     return (
         head + line + f'<div class="sf-scroll-x"><table><thead><tr>{cols}</tr></thead>'
-        f"<tbody>{rows}</tbody></table></div>"
+        f'<tbody id="{body_id}">{rows}</tbody></table></div>{pager}{tips}'
     )
 
 
