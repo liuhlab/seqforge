@@ -183,9 +183,7 @@ def _collect_assay(
         else None
     )
     pipeline = CompiledPipeline.discover(ws, subdir=subdir)
-    plan = (
-        _plan(report_dir, proc, pipeline, assertions, doc_index) if proc is not None else None
-    )
+    plan = _plan(report_dir, proc, pipeline, assertions, doc_index) if proc is not None else None
     conclusion = _conclusion(has_manifest=True, snakefile=pipeline is not None)
 
     samples = _samples(manifest)
@@ -729,7 +727,9 @@ def _h5ad(
         return []
     where = pipeline.directory / results_dir if results_dir is not None else pipeline.results_dir
     samples = pipeline.samples or [s.sample_id for s in manifest.experiment.samples]
-    found = [(sample, path) for sample in samples for path in sorted((where / sample).glob("*.h5ad"))]
+    found: list[tuple[str | None, Path]] = [
+        (sample, path) for sample in samples for path in sorted((where / sample).glob("*.h5ad"))
+    ]
     found += [(None, path) for path in sorted(where.glob("*.h5ad"))]
     return [
         H5adPointer(path=_relative(path, report_dir), sample=sample)

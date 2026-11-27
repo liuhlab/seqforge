@@ -184,7 +184,7 @@ def test_report_json_points_at_each_h5ad_from_wherever_o_wrote_the_report(
     assert pipeline is not None
     if layout == "per-sample":
         samples = _finish_a_starsolo_pipeline(own_workspace)
-        expected = {}
+        expected: dict[Path, str | None] = {}
         for sample in samples:
             for suffix in (".h5ad", ".velocyto.h5ad"):
                 path = pipeline.results_dir / sample / f"{sample}{suffix}"
@@ -196,7 +196,9 @@ def test_report_json_points_at_each_h5ad_from_wherever_o_wrote_the_report(
         assert len(expected) == 2
 
     out = tmp_path / "shared" / "report.html"
-    result = runner.invoke(app, ["report", "-C", str(own_workspace), "-o", str(out), "--no-timestamp"])
+    result = runner.invoke(
+        app, ["report", "-C", str(own_workspace), "-o", str(out), "--no-timestamp"]
+    )
     assert result.exit_code == 0, result.stdout
     assert Path(json.loads(result.stdout)["json"]) == out.with_name("report.json")
 
