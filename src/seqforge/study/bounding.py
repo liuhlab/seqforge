@@ -239,4 +239,5 @@ KIND = Kind(
     build=_build,
     default_models={ROLE: JEV},
     default_keys=picked_studies,
+    write=write_bounds,
 )

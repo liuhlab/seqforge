@@ -39,6 +39,7 @@ EXPECTED = {
     "seqforge-compose",
     "seqforge-io",
     "seqforge-kb-author",
+    "seqforge-study",
 }
 
 

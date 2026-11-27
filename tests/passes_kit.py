@@ -2,18 +2,23 @@
 
 The pass commands are exercised on the run engine's test-only kind, apart from any production
 kind: one writer role that writes a text in capitals, over fixture texts, behind liulab-llms's fake
-gateway. It lives here and not in ``conftest.py`` so that no other test session imports liulab-llms.
+gateway. `seqforge study run` chains two passes of it, under the two study jobs' names. It lives
+here and not in ``conftest.py`` so that no other test session imports liulab-llms.
 """
 
 from __future__ import annotations
 
 import json
+from collections.abc import Callable
+from pathlib import Path
 from typing import Any
 
-from labllm import Held, Inputs, Model, Role, Unit, UnitKind
+import yaml
+from labllm import Held, Inputs, Model, Role, TaskReader, Unit, UnitKind
 from labllm.testing import Price
 
 from seqforge.passes.kinds import Built, Kind
+from seqforge.study.folder import BOUNDS, write_files
 
 #: The texts the echo kind's units read, by key, in the kind's default order.
 ECHO_TEXTS = {"u1": "alpha", "u2": "beta", "u3": "gamma", "u4": "delta"}
@@ -73,10 +78,39 @@ def echo_unit_kind(texts: dict[str, str], *, name: str = "echo") -> UnitKind:
     )
 
 
+def write_answers(task: TaskReader, kind: str, out: Path, name: str) -> dict[str, dict[str, Any]]:
+    """Each answer of the echo kind as a study's file, ``{word: ...}``, through the study writer."""
+    return write_files(task, kind, out, name, lambda outcome: outcome.answer, lambda data: [])
+
+
+def _echo_kind(name: str, build: Callable[[Path], Built]) -> Kind:
+    return Kind(
+        name=name,
+        build=build,
+        default_models={"writer": ECHO_WEAK},
+        default_keys=lambda folder: list(ECHO_TEXTS),
+        write=write_answers,
+    )
+
+
 #: The echo kind, which a test lists in the kind table as ``echo``, under this module's name.
-KIND = Kind(
-    name="echo",
-    build=lambda folder: Built(echo_unit_kind(ECHO_TEXTS)),
-    default_models={"writer": ECHO_WEAK},
-    default_keys=lambda folder: list(ECHO_TEXTS),
-)
+KIND = _echo_kind("echo", lambda folder: Built(echo_unit_kind(ECHO_TEXTS)))
+
+
+def study_chain(bounding: str, reading: str) -> tuple[Kind, Kind]:
+    """The study chain played by the echo kind, under the two jobs' names.
+
+    The bounding kind writes each of :data:`ECHO_TEXTS` in capitals, as that study's bounds file.
+    The reading kind reads the folder's bounds files once, when its pass starts, and writes each
+    one's word in capitals again: a study with no bounds file by then is held.
+    """
+
+    def from_bounds(folder: Path) -> Built:
+        files = {key: folder / key / BOUNDS for key in ECHO_TEXTS}
+        texts = {k: yaml.safe_load(p.read_text())["word"] for k, p in files.items() if p.is_file()}
+        return Built(echo_unit_kind(texts, name=reading))
+
+    return (
+        _echo_kind(bounding, lambda folder: Built(echo_unit_kind(ECHO_TEXTS, name=bounding))),
+        _echo_kind(reading, from_bounds),
+    )
