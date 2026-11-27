@@ -16,12 +16,23 @@ metrics and neither tool's vocabulary is typed here either.
 
 from __future__ import annotations
 
+import os
+from pathlib import Path
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
 from ..models.blocker import ValidationWarning
 from ..workflows.metrics import Alert, PipelineStats
+
+
+def relative_path(path: Path, report_dir: Path) -> str:
+    """``path`` as the report's directory reaches it — the one form every path in the report takes.
+
+    Resolved on both sides, so a symlinked temp directory cannot make two spellings of one folder
+    look like a climb out of it; POSIX separators, so the JSON reads the same on every machine.
+    """
+    return Path(os.path.relpath(path.resolve(), report_dir.resolve())).as_posix()
 
 
 class _View(BaseModel):
@@ -386,6 +397,11 @@ class Cut(_View):
     shown: int
     hidden: int = 0
 
+    @classmethod
+    def capped(cls, n: int, cap: int) -> Cut:
+        """``n`` items under ``cap``: the first ``cap`` shown, and the rest hidden."""
+        return cls(shown=min(n, cap), hidden=max(n - cap, 0))
+
 
 class PassageView(_View):
     """One quote of a study file under its number, and where it was read.
@@ -532,8 +548,9 @@ class TopicTable(_View):
 
     ``rows`` are the table's rows, in the order of :attr:`StudyReport.samples`, and empty when no
     label varies. Each row is one sample, until the study has more samples than the cap: then the
-    samples whose row is the same on every factor and every varying label share one row, shown as
-    its first sample "× n", and ``folded`` counts the samples a row holds beside its first. ``cut``
+    samples whose row is the same on every factor and every varying label, and that the same
+    workspaces compiled, share one row, shown as its first sample "× n", and ``folded`` counts the
+    samples a row holds beside its first. ``cut``
     is how many rows the first page shows, and how many are on the pages after it.
     """
 

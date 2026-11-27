@@ -1,6 +1,6 @@
 # AGENTS.md
 
-The router — `CLAUDE.md` is a symlink to this file: one canonical copy, no fork. Read it in full;
+The router; `CLAUDE.md` is a symlink to it. Read it in full;
 everything else is looked up. Terms are defined once in [`GLOSSARY-MAP.md`](GLOSSARY-MAP.md) — a
 shared kernel of the words every context uses, plus one `GLOSSARY.md` per bounded context —
 and decisions once in [`docs/adr/`](docs/adr/), the system-wide ones there and the rest beside the
@@ -13,8 +13,7 @@ human/DB metadata)` into a validated, machine-independent **`manifest.yaml`** (w
 content-addressed, immutable), then compiles that under a **`processing.yaml`** (the recipe: what to
 DO with it) into a runnable Snakemake config — headless, across ~10⁴ public datasets, into a
 genomic-AI corpus. Same manifest + a different recipe = a different pipeline, hash unchanged; the last
-artifact is the point, **a Snakefile the user submits**, and `seqforge` does not submit jobs. It is
-implemented and green (`pixi run check`); the demo dataset PRJNA1027859 compiles end to end.
+artifact is the point, **a Snakefile the user submits**, and `seqforge` does not submit jobs.
 
 **A model writes an answer only where code can check it, and code decides whether it stands.** In
 the compiler a model parses prose into span-verified `Assertion`s and arbitrates ambiguity code has
@@ -84,12 +83,15 @@ moves between directories and its number does not; `—` means no record cites t
 | R9 | **Cheap first, expensive only on ambiguity.** Rungs 0–3 by default; escalate past 3 only on a processing-divergent tie. Record which rung resolved each field. | ADR-0011 |
 | R10 | **Consumer, not parallel universe.** Never define genome-file machinery, and never let a rule or the wheel resolve an aligner from our tables — they belong to `liulab-genome` (assemblies by UCSC id, and an annotation is a **registered GTF `name`**: it fetches no annotations, so seqforge stages the GTF and registers it under a `name`) and to `liulab-runtime` (an aligner environment is its **literal** name — `align-rna`, `align-dna`, `ml`, `ml-gpu` — with no profile indirection). The one exception is `test-star`, which ships nowhere and no rule can see. Ontology terms come the same way, from `liulab-data`'s ontology store: its dated snapshots and term search, which a study reading opens and names. | ADR-0046 |
 | R11 | **Two artifacts, and the instructable surface is closed.** The dataset is write-once, the recipe plural; parse-keys and count-keys are disjoint; produce every answer rather than ask. | ADR-0004, ADR-0005, ADR-0011 |
-| R12 | **One owner per fact, one folder per part, one report for the reader.** Nothing is written twice; a part writes only its own folder; readers start from the report. | — |
+| R12 | **One owner per fact, one folder per part, one report for the reader.** Nothing is written twice; a part writes only its own folder, and the report writes only its own two files, into the folder it starts from; readers start from the report. | — |
 
 ## Where to read next
 
 - **A term, or a synonym to avoid** — [`GLOSSARY-MAP.md`](GLOSSARY-MAP.md) and the six
   per-context `GLOSSARY.md` files it lists under `src/seqforge/<context>/`.
+- **A study: its bounds, and what each sample was** — the
+  [Study glossary](src/seqforge/study/GLOSSARY.md), and its verbs: `seqforge study run` bounds
+  and reads; `study check-bounds` and `study check-reading` check one file.
 - **A decision — why it is this way, and what lost** — [`docs/adr/`](docs/adr/), or
   `src/seqforge/<context>/docs/adr/`; filenames are unique, so `find . -name '0008-*.md'` finds one.
 - **A measurement — a number, and the method that produced it** — [`docs/research/`](docs/research/),
@@ -106,7 +108,7 @@ test was considered and declined, and is the fallback if the bar drifts.
 - **Tests: run the narrowest thing that can go red, then stop.** Four rungs, and the last one is
   reading rather than running. **While editing** — the narrowest selector that can go red and
   nothing else: `pixi run -e test pytest tests/test_<package>.py -k <expr>` (`test_<package>[_<module>].py`). A
-  run naming a selector stays serial, which is why it costs a second or two. **After a red run** —
+  run naming a selector stays serial, so it costs a second or two. **After a red run** —
   `pixi run test-failed`, which re-runs only what failed, serially, and stops at the first one. Its
   cache is local, so a failure only CI has seen is not in it: run the test CI named, and the verb
   has it from then on. **Once, before pushing** — `pixi run check`: the three test lanes plus lint,

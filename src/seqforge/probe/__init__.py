@@ -1,7 +1,7 @@
 """``probe`` — deterministic, bounded FASTQ fingerprinting (no LLM, no network).
 
 Turns bytes into an :class:`~seqforge.models.Observation` from a bounded, head-limited decompressed
-stream. Every touch is bounded by a read budget (``--max-reads``, default 200 000) and a byte cap
+stream. Every touch is bounded by a read budget (``--max-reads``, default 2 000) and a byte cap
 (``--max-bytes``, default 256 MB decompressed); wall-clock is never a budget, and a code path that
 *can* stream a whole multi-GB FASTQ is a bug.
 

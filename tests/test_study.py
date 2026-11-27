@@ -7,7 +7,6 @@ standard set is listed, in ``test_study_folder.py``.
 from __future__ import annotations
 
 import copy
-import datetime
 import json
 import sys
 from pathlib import Path
@@ -18,27 +17,9 @@ import yaml
 from typer.testing import CliRunner
 
 from seqforge.cli import app
+from study_kit import READING, VALID, gap, quoted
 
 runner = CliRunner()
-
-#: One claim of each backing: a quoted Series, an inferred Series, and a left-out paper marked unknown.
-VALID: dict[str, Any] = {
-    "format": 1,
-    "study": "GSE1",
-    "models": {"bounds": "test/large", "probabilities": "test/small"},
-    "series": [
-        {"id": "GSE1", "quoted": [1, 2], "p": 0.9},
-        {"id": "GSE2", "inferred": "Same samples, later run.", "see": [2], "p": 1},
-    ],
-    "papers": ["pmid:11"],
-    "left_out": [{"id": "pmid:22", "unknown": "Nothing read says who made it", "p": None}],
-    "reason": "One paper and the two Series it deposited.",
-    "passages": {
-        1: {"record": "GSE1", "field": "Series_summary", "quote": "a quote"},
-        2: {"paper": "pmid:11", "section": "Methods", "quote": "another"},
-    },
-}
-
 
 #: A rejection whose reason is the type checker's own wording is held by its field alone.
 ITS_TYPE = ""
@@ -213,109 +194,10 @@ def test_a_broken_bounds_file_is_rejected_with_the_field_and_the_reason(
     assert any(p["field"] == field and reason in p["reason"] for p in said["problems"]), said
 
 
-def _said(text: str, **more: Any) -> dict[str, Any]:
-    return {"text": text, **more, "quoted": [1], "p": 0.9}
-
-
-def _gap(mark: str, **more: Any) -> dict[str, Any]:
-    return {mark: "A note on the gap.", **more, "p": 0.8}
-
-
-def _material(biosample: str, **own: Any) -> dict[str, Any]:
-    return {"biosample": {"id": biosample, "inferred": "One prep per library.", "p": 0.7}, **own}
-
-
-#: Nine libraries of one pull-down study: two young wild-type replicates, one middle and one old
-#: wild-type library, and one young knockout. An input was made from the material of the first
-#: replicate and of the middle library, and an IgG library from the old one's. One more pull-down
-#: from the first replicate's material has a control type that nothing read gives.
-READING: dict[str, Any] = {
-    "format": 2,
-    "study": "GSE1",
-    "models": {"reading": "test/large", "probabilities": "test/small"},
-    "read": ["records", "abstract", "full_text"],
-    "read_detail": "The Series, its six samples and the one paper.",
-    "ontology_snapshot": {"source": "a test snapshot", "date": datetime.date(2026, 11, 21)},
-    "passages": {
-        1: {"record": "GSE1", "field": "Series_overall_design", "quote": "a quote"},
-        2: {"record": "each_sample", "field": "Sample_organism_ch1", "quote": "Mus musculus"},
-        3: {"record": ["GSM5"], "field": "Sample_title", "quote": "input"},
-        4: {"paper": "pmid:11", "section": "Methods", "quote": "fed standard chow"},
-    },
-    "factors": {
-        "age": {
-            "levels": ["young", "middle", "old"],
-            "baseline": "young",
-            "ordered": True,
-            "quoted": [1],
-            "p": 0.9,
-        },
-        "genotype": {
-            "levels": ["wt", "ko"],
-            "baseline": "wt",
-            "ordered": False,
-            "inferred": "The titles name two genotypes.",
-            "see": [1],
-            "p": 0.8,
-        },
-    },
-    "shared": {
-        "donor": _gap("na"),
-        "assay": _said("ChIP-Seq"),
-        "target": _said("H3K4me3"),
-        "control_type": _gap("na", see=[1]),
-        "species": {"text": "Mus musculus", "term": "NCBITaxon:10090", "quoted": [2], "p": 0.99},
-        "sex": {"unknown": "No record gives it.", "see": [1], "p": None},
-        "age": _said("2 months", value=2, unit="month", level="young"),
-        "development_stage": _gap("unknown"),
-        "tissue": _said("liver", term="UBERON:0002107"),
-        "cell_type": _gap("na"),
-        "cell_line": _gap("na"),
-        "disease": {
-            "text": "healthy",
-            "term": "PATO:0000461",
-            "inferred": "No disease is named.",
-            "p": 0.8,
-        },
-        "genotype": _said("wild type", level="wt"),
-        "strain": _gap("unknown"),
-        "treatment": _said("bleomycin and DMSO", term=["CHEBI:22907", "CHEBI:28262"]),
-        "dose": _said("per side"),
-        "duration": _said("overnight"),
-        "diet": {"text": "standard chow", "value": 5, "unit": "% fat", "quoted": [4], "p": 0.9},
-    },
-    "samples": {
-        "GSM1": _material("B1"),
-        "GSM2": _material("B2"),
-        "GSM3": _material("B3", age=_said("12 months", value=12, unit="month", level="middle")),
-        "GSM4": _material(
-            "B4", age=_said("20 to 24 months", value=[20, 24], level="old", against=[4])
-        ),
-        "GSM5": _material(
-            "B1", target=_gap("na"), control_type={"text": "input", "quoted": [3], "p": 0.9}
-        ),
-        "GSM6": _material("B5", genotype=_said("knockout", level="ko")),
-        "GSM7": _material("B1", control_type=_gap("unknown")),
-        "GSM8": _material(
-            "B3",
-            target=_gap("na"),
-            control_type=_said("input"),
-            age=_said("12 months", value=12, unit="month", level="middle"),
-        ),
-        "GSM9": _material(
-            "B4",
-            target=_gap("na"),
-            control_type=_said("IgG"),
-            age=_said("20 to 24 months", value=[20, 24], level="old"),
-        ),
-    },
-}
-
-
 def _a_factor_one_row_writes(reading: dict[str, Any]) -> None:
     reading["factors"]["batch"] = {**reading["factors"]["genotype"], "levels": ["a", "b"]}
     reading["factors"]["batch"]["baseline"] = None
-    reading["samples"]["GSM1"]["batch"] = _said("first", level="a")
+    reading["samples"]["GSM1"]["batch"] = quoted("first", level="a")
 
 
 def test_a_reading_in_the_current_format_is_accepted(tmp_path: Path) -> None:
@@ -392,7 +274,7 @@ def test_a_reading_in_the_current_format_is_accepted(tmp_path: Path) -> None:
             id="a label no row and no shared claim writes",
         ),
         pytest.param(
-            _with(_gap("unknown"), "shared", "species"),
+            _with(gap("unknown"), "shared", "species"),
             "shared.species",
             "never unknown or na",
             id="a species that is not known",
@@ -626,17 +508,28 @@ def test_a_factor_with_no_baseline_contrasts_each_pair_of_its_levels_once(tmp_pa
     ]
 
 
+@pytest.mark.parametrize(
+    "verb",
+    [
+        pytest.param(["study", "check-reading", "GSE1/reading.yaml"], id="study check-reading"),
+        pytest.param(["standard-set", "list", "--dir", "."], id="standard-set list"),
+    ],
+)
 def test_a_reading_check_without_liulab_data_refuses_to_run_and_names_the_remedy(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, verb: list[str]
 ) -> None:
     """liulab-data holds each vocabulary's id prefixes, and an installed copy of seqforge can lack
     it. The check then cannot judge an id: it refuses the run as a setup it cannot use, and names
-    the remedy, rather than reject a file that is valid."""
+    the remedy, rather than reject a file that is valid. Listing a set whose study holds a reading
+    runs the same check, and refuses the same way."""
     monkeypatch.setitem(sys.modules, "labdata.ontology.vocabularies", None)
-    path = tmp_path / "reading.yaml"
-    path.write_text(yaml.safe_dump(READING, sort_keys=False))
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "GSE1").mkdir()
+    (tmp_path / "pick.yaml").write_text(yaml.safe_dump({"studies": [{"id": "GSE1"}]}))
+    for name, content in (("bounds.yaml", VALID), ("reading.yaml", READING)):
+        (tmp_path / "GSE1" / name).write_text(yaml.safe_dump(content, sort_keys=False))
 
-    result = runner.invoke(app, ["study", "check-reading", str(path)])
+    result = runner.invoke(app, verb)
 
     assert result.exit_code == 2
     assert "liulab-runtime" in result.output

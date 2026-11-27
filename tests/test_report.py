@@ -29,9 +29,7 @@ from seqforge.report import collect_report, render_html
 from seqforge.report.flow import flow_steps
 from seqforge.report.model import AssayReport, ProjectReport, WorkspaceReport
 from seqforge.workflows.metrics import Alert, DecisionRef, PipelineStats
-from test_project import JOINED, _compiled
-from test_project import _study as _joined_study
-from test_study import READING, VALID, _gap, _said
+from study_kit import JOINED, READING, VALID, compiled, gap, joined_study, quoted
 
 if TYPE_CHECKING:  # the resolver seam is private, and only its type is wanted at module scope
     from seqforge.models.dataset import DatasetManifest
@@ -3267,7 +3265,7 @@ def test_the_page_keeps_its_standing_guarantees_with_the_gene_model_alert_render
 
 # -- the Study tab ---------------------------------------------------------------------------------
 #
-# A study folder is built here from the study tests' own valid files, with one more record left out:
+# A study folder is built here from the study kit's valid files, with one more record left out:
 # a SuperSeries, which the standard set's study file names. Everything is checked through
 # `report.json`, the file a program reads and the page is rendered from.
 
@@ -3353,6 +3351,7 @@ def test_the_bounds_graph_data_holds_every_kept_and_left_out_record_with_its_rea
     }  # fmt: skip
     assert study["reason"] == VALID["reason"]
     assert study["has_reading"] is True
+    assert "joins a SuperSeries" in (folder / "report.html").read_text()
 
 
 def _study_of(root: Path, edit: Callable[[dict[str, Any]], None]) -> dict[str, Any]:
@@ -3376,7 +3375,7 @@ def _one_factor(reading: dict[str, Any]) -> None:
 
 def _second_assay(reading: dict[str, Any]) -> None:
     """The old IgG library sequenced by another assay."""
-    reading["samples"]["GSM9"]["assay"] = _said("CUT&Tag")
+    reading["samples"]["GSM9"]["assay"] = quoted("CUT&Tag")
 
 
 @pytest.mark.parametrize(
@@ -3472,7 +3471,7 @@ def test_each_topic_table_folds_the_labels_the_same_for_every_sample_and_counts_
 
 def _genotype_unknown(reading: dict[str, Any]) -> None:
     """Nothing read gives one young library's genotype, so it is at neither of the factor's levels."""
-    reading["samples"]["GSM7"]["genotype"] = _gap("unknown")
+    reading["samples"]["GSM7"]["genotype"] = gap("unknown")
 
 
 def test_a_sample_outside_a_factor_is_at_no_level_of_it(tmp_path: Path) -> None:
@@ -3517,8 +3516,8 @@ def test_a_record_carries_its_title_only_when_the_bounds_file_has_one(
 
 # -- one study, several workspaces -----------------------------------------------------------------
 #
-# Each workspace is a manifest written by hand, one sample per BioSample accession, as the join's
-# own tests build them: the report reads a workspace's samples from its manifest and needs no run.
+# Each workspace is a manifest written by hand, one sample per BioSample accession, by the study
+# kit's `compiled`: the report reads a workspace's samples from its manifest and needs no run.
 
 
 def test_several_workspaces_give_one_report_in_the_study_folder_marking_who_compiled_each_sample(
@@ -3526,11 +3525,12 @@ def test_several_workspaces_give_one_report_in_the_study_folder_marking_who_comp
 ) -> None:
     """Named with ``--study``, several workspaces are one report, written where it started: the
     study folder. Each keeps its own assays, and each reading sample names the workspaces whose
-    manifest holds its BioSample accession, or none."""
-    folder = _joined_study(tmp_path / "GSE1")
+    manifest holds its BioSample accession, or none. The Study tab says how many samples each
+    workspace compiled whether or not a sample table has rows to mark them in."""
+    folder = joined_study(tmp_path / "GSE1")
     first, second = tmp_path / "first", tmp_path / "second"
-    _compiled(first, synth_10x_v3.manifest, [JOINED["GSM1"], JOINED["GSM3"]])
-    _compiled(second, synth_10x_v3.manifest, [JOINED["GSM4"]])
+    compiled(first, synth_10x_v3.manifest, [JOINED["GSM1"], JOINED["GSM3"]])
+    compiled(second, synth_10x_v3.manifest, [JOINED["GSM4"]])
     result = runner.invoke(
         app,
         ["report", "--study", str(folder), "-C", str(first), "-C", str(second), "--no-timestamp"],
@@ -3544,6 +3544,14 @@ def test_several_workspaces_give_one_report_in_the_study_folder_marking_who_comp
     assert all(len(ws["assays"]) == 1 for ws in data["workspaces"])
     coverage = {s["sample"]: [named[p] for p in s["compiled_in"]] for s in data["study"]["samples"]}
     assert coverage == {"GSM1": ["first"], "GSM3": ["first"], "GSM4": ["second"], "GSM6": []}
+    page = (folder / "report.html").read_text()
+    lines = re.findall(r"<p [^>]*data-coverage[^>]*>(.*?)</p>", page)
+    assert [unescape(re.sub(r"<[^>]+>", "", line)) for line in lines] == [
+        "Compiled in first: 2 of 4 samples",
+        "Compiled in second: 1 of 4 samples",
+        "In no workspace read: 1 of 4 samples",
+    ]
+    assert "joins a SuperSeries" not in page  # no study file, so no SuperSeries is drawn
 
 
 @pytest.mark.parametrize("stale", [True, False], ids=["reading changed since", "same reading"])
@@ -3553,9 +3561,9 @@ def test_a_workspace_that_joined_an_older_reading_is_warned_stale(
     """A workspace's sample table names the reading it joined by hash. When the study folder's
     reading has changed since, the labels in that compile are older than the Study tab, and the
     report says so; a workspace that joined the current reading draws no warning."""
-    folder = _joined_study(tmp_path / "GSE1")
+    folder = joined_study(tmp_path / "GSE1")
     workspace = tmp_path / "ws"
-    _compiled(workspace, synth_10x_v3.manifest, list(JOINED.values()))
+    compiled(workspace, synth_10x_v3.manifest, list(JOINED.values()))
     joined = runner.invoke(
         app, ["project", "metadata", "-C", str(workspace), "--study", str(folder)]
     )
@@ -3565,7 +3573,7 @@ def test_a_workspace_that_joined_an_older_reading_is_warned_stale(
         def another_age(reading: dict[str, Any]) -> None:
             reading["samples"]["GSM3"]["age"]["text"] = "13 months"
 
-        _joined_study(folder, another_age)
+        joined_study(folder, another_age)
     result = runner.invoke(
         app, ["report", "--study", str(folder), "-C", str(workspace), "--no-timestamp"]
     )
@@ -3617,7 +3625,7 @@ def _levels(factor: str, n: int, *, alone: bool = False) -> Callable[[dict[str, 
         reading["factors"][factor] |= {"levels": levels, "baseline": levels[0]}
         reading["shared"][factor]["level"] = levels[0]
         for sample, level in zip(reading["samples"].values(), levels, strict=True):
-            sample[factor] = _said(level, level=level)
+            sample[factor] = quoted(level, level=level)
 
     return edit
 
@@ -3640,8 +3648,15 @@ def _two_materials(study: dict[str, Any]) -> None:
     study.update(_large_study(len(study["reading"]["samples"]), materials=2))
 
 
+def _one_compiled(study: dict[str, Any]) -> None:
+    """Two materials, and one sample of the first compiled in a workspace the others are not in."""
+    _two_materials(study)
+    study["reading"]["samples"]["GSM1"]["biosample_accession"] = "SAMN1"
+    study["compiled"] = {"first": ["SAMN1"]}
+
+
 def _long_value(study: dict[str, Any]) -> None:
-    study["reading"]["samples"]["GSM1"]["dose"] = _said("d" * 81)
+    study["reading"]["samples"]["GSM1"]["dose"] = quoted("d" * 81)
 
 
 def _long_quote(study: dict[str, Any]) -> None:
@@ -3691,12 +3706,19 @@ def _unchanged(study: dict[str, Any]) -> None:
         pytest.param(
             51, _two_materials, {"Material folded": 49}, id="fifty-one samples of two materials"
         ),
+        pytest.param(
+            51,
+            _one_compiled,
+            {"Material folded": 48},
+            id="fifty-one samples of two materials, one compiled apart",
+        ),
         pytest.param(9, _long_value, {"values": 1}, id="a value of eighty-one characters"),
         pytest.param(9, _long_quote, {"quotes": 1}, id="a quote of eighty-one characters"),
     ],
 )
 def test_each_study_section_past_its_cap_counts_what_it_hides_in_report_json(
     tmp_path: Path,
+    request: pytest.FixtureRequest,
     size: int,
     edit: Callable[[dict[str, Any]], None],
     hidden: dict[str, int],
@@ -3705,15 +3727,21 @@ def test_each_study_section_past_its_cap_counts_what_it_hides_in_report_json(
     much it hides, and the count is in ``report.json``. A study just past one cap hides exactly
     what is past it there and nothing anywhere else. A cross-table too wide for the page falls back
     to the grouped list and says how many columns it would have had; rows the same across a topic
-    table's labels fold into one before any is paged away."""
+    table's labels fold into one before any is paged away, and samples compiled in different
+    workspaces never share a row, whose "compiled in" is one answer."""
     study = _large_study(size)
     edit(study)
     folder = tmp_path / "GSE1"
     folder.mkdir()
     for name in ("bounds", "reading"):
         (folder / f"{name}.yaml").write_text(yaml.safe_dump(study[name], sort_keys=False))
-    result = runner.invoke(app, ["report", "--study", str(folder), "--no-timestamp"])
+    args = ["report", "--study", str(folder), "--no-timestamp"]
+    for name, accessions in study.get("compiled", {}).items():
+        manifest = request.getfixturevalue("synth_10x_v3").manifest
+        compiled(tmp_path / name, manifest, accessions)
+        args += ["-C", str(tmp_path / name)]
+    result = runner.invoke(app, args)
     assert result.exit_code == 0, result.output
 
-    said = json.loads((folder / "report.json").read_text())["study"]
+    said = json.loads(Path(json.loads(result.stdout)["json"]).read_text())["study"]
     assert _cut_counts(said) == hidden

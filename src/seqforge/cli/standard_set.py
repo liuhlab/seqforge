@@ -11,6 +11,7 @@ from pathlib import Path
 
 import typer
 
+from ..liulab_data import LiulabDataMissing
 from ..study.folder import StudyFolderRefused, default_set_dir, open_study_folder, pick_entries
 from .root import standard_set_app
 
@@ -23,14 +24,15 @@ def standard_set_list(set_dir: Path | None = _DIR) -> None:
 
     The studies are the pick's, in the pick's order, as the jobs read them. Each object gives the
     study's record identifiers, the reason it was picked and its bounds, as its bounds file holds
-    them. Exit 2 when a study's folder fails its format checks, naming each problem.
+    them. Exit 2 when a study's folder fails its format checks, naming each problem, or when
+    liulab-data, which the reading check needs, is not importable.
     """
     root = set_dir or default_set_dir()
     payload = []
     for key in pick_entries(root):
         try:
             opened = open_study_folder(root / key)
-        except StudyFolderRefused as exc:
+        except (StudyFolderRefused, LiulabDataMissing) as exc:
             typer.echo(str(exc), err=True)
             raise typer.Exit(2) from exc
         study = opened.study or {}

@@ -9,6 +9,7 @@ drift from them) and **deterministic** (sorted rows and columns), so regeneratin
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -119,25 +120,50 @@ def _relative_to(path: Any, workspace: str | Path) -> Any:
         return path
 
 
+@dataclass(frozen=True)
+class StudyJoin:
+    """What joining a study folder's reading into the sample table said.
+
+    ``reading_hash`` is ``None`` for a folder with no reading yet, which joins nothing.
+    ``columns`` are the label columns the join added, and ``unchecked`` each check it could not
+    make, and why.
+    """
+
+    folder: str
+    reading_hash: str | None
+    columns: tuple[str, ...] = ()
+    warnings: tuple[ValidationWarning, ...] = ()
+    unchecked: tuple[str, ...] = ()
+
+    def payload(self) -> dict[str, Any]:
+        """The join as a verb's JSON says it."""
+        return {
+            "folder": self.folder,
+            "reading_hash": self.reading_hash,
+            "columns": list(self.columns),
+            "warnings": [w.model_dump() for w in self.warnings],
+            "unchecked": list(self.unchecked),
+        }
+
+
 def join_study(
     columns: list[str],
     rows: list[dict[str, str]],
     manifests: list[DatasetManifest],
     study: StudyFolder,
-) -> tuple[list[str], list[dict[str, str]], dict[str, Any]]:
+) -> tuple[list[str], list[dict[str, str]], StudyJoin]:
     """The table with the study's reading joined in by BioSample accession, and what the join said.
 
     The manifests are untouched: the labels are a view of the reading and land in the table alone.
     A folder with no reading yet joins nothing, and says so.
     """
-    said: dict[str, Any] = {"folder": str(study.path)}
     if study.reading is None:
         warning = ValidationWarning(
             code="STUDY_HAS_NO_READING",
             message=f"{study.path} holds no reading yet, so no labels were joined",
             subject=BlockerSubject(kind="file", ref=study.path.name),
         )
-        return columns, rows, {**said, "reading_hash": None, "warnings": [warning.model_dump()]}
+        return columns, rows, StudyJoin(str(study.path), None, warnings=(warning,))
     samples = [
         CompiledSample(
             sample_id=sample.sample_id,
@@ -150,18 +176,19 @@ def join_study(
     ]
     joined = join_reading(study.reading, samples, taken=columns)
     rows = [{**row, **joined.cells.get(row["sample_id"], {})} for row in rows]
-    said |= {
-        "reading_hash": joined.reading_hash,
-        "columns": joined.columns,
-        "warnings": [w.model_dump() for w in joined.warnings],
-        "unchecked": joined.unchecked,
-    }
+    said = StudyJoin(
+        folder=str(study.path),
+        reading_hash=joined.reading_hash,
+        columns=tuple(joined.columns),
+        warnings=tuple(joined.warnings),
+        unchecked=tuple(joined.unchecked),
+    )
     return [*columns, *joined.columns], rows, said
 
 
 def write_project_views(
     workspace: str | Path, assays: list[dict[str, Any]], study: StudyFolder | None = None
-) -> tuple[Path, Path, dict[str, Any] | None]:
+) -> tuple[Path, Path, StudyJoin | None]:
     """Write ``sample_metadata.tsv`` + ``project.yaml`` at the project top and return their paths.
 
     ``assays`` is one dict per assay carrying at least ``chemistry``, ``subdir``, ``n_samples`` and a
@@ -183,7 +210,7 @@ def write_project_views(
     if study is not None:
         columns, rows, joined = join_study(columns, rows, manifests, study)
     tsv_path = root / SAMPLE_METADATA_TSV
-    tsv_path.write_text(format_tsv(columns, rows))
+    _write_if_changed(tsv_path, format_tsv(columns, rows))
 
     portable = [
         {
@@ -193,8 +220,29 @@ def write_project_views(
         for a in assays
     ]
     yaml_path = root / PROJECT_YAML
-    yaml_path.write_text(yaml.safe_dump(project_index(portable), sort_keys=True))
+    _write_if_changed(yaml_path, yaml.safe_dump(project_index(portable), sort_keys=True))
     return tsv_path, yaml_path, joined
+
+
+def _write_if_changed(path: Path, text: str) -> None:
+    """Write ``text`` to ``path`` unless the file already holds it.
+
+    A compiled pipeline's labelling rule takes the sample table as an input, and snakemake re-runs a
+    rule whose input is newer than its output: a table rewritten with the same text would relabel
+    every sample on every run.
+    """
+    if path.is_file() and path.read_text() == text:
+        return
+    path.write_text(text)
+
+
+def _read_table(table: Path) -> tuple[list[str], list[dict[str, str]]]:
+    """The header and the rows of a table :func:`write_project_views` wrote; empty when absent."""
+    if not table.is_file():
+        return [], []
+    lines = table.read_text().splitlines()
+    header = lines[0].split("\t") if lines else []
+    return header, [dict(zip(header, line.split("\t"), strict=True)) for line in lines[1:]]
 
 
 def sample_labels(table: Path, sample_id: str) -> tuple[dict[str, str], str | None]:
@@ -205,20 +253,12 @@ def sample_labels(table: Path, sample_id: str) -> tuple[dict[str, str], str | No
     written with no study, a sample the join did not reach and a sample not in the table all mean;
     each reads as ``({}, None)``.
     """
-    if not table.is_file():
+    header, rows = _read_table(table)
+    row = next((r for r in rows if r.get("sample_id") == sample_id), {})
+    digest = row.get(READING_HASH) or None
+    if digest is None:
         return {}, None
-    lines = table.read_text().splitlines()
-    header = lines[0].split("\t") if lines else []
-    for line in lines[1:]:
-        row = dict(zip(header, line.split("\t"), strict=True))
-        if row.get("sample_id") != sample_id:
-            continue
-        digest = row.get(READING_HASH) or None
-        if digest is None:
-            return {}, None
-        labels = {c: row[c] for c in header if c not in _COLUMNS and c != READING_HASH}
-        return labels, digest
-    return {}, None
+    return {c: row[c] for c in header if c not in _COLUMNS and c != READING_HASH}, digest
 
 
 def joined_reading_hash(workspace: str | Path) -> str | None:
@@ -228,21 +268,14 @@ def joined_reading_hash(workspace: str | Path) -> str | None:
     labelled carries the same hash; a workspace with no table, or one written with no study, has
     none to give.
     """
-    table = sample_metadata_path(workspace)
-    if not table.is_file():
-        return None
-    lines = table.read_text().splitlines()
-    header = lines[0].split("\t") if lines else []
-    if READING_HASH not in header:
-        return None
-    column = header.index(READING_HASH)
-    hashes = (line.split("\t")[column] for line in lines[1:])
-    return next((digest for digest in hashes if digest), None)
+    _, rows = _read_table(sample_metadata_path(workspace))
+    return next((digest for r in rows if (digest := r.get(READING_HASH))), None)
 
 
 __all__ = [
     "PROJECT_YAML",
     "SAMPLE_METADATA_TSV",
+    "StudyJoin",
     "discover_assays",
     "format_tsv",
     "join_study",

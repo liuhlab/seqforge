@@ -45,6 +45,7 @@ and carry real counts in the other; 22,319 barcodes on that sample were exactly 
 
 from __future__ import annotations
 
+import os
 import shutil
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
@@ -477,6 +478,7 @@ def write_h5ad(
 #: Where the packaging step leaves each object, under the sample's directory, for the labelling step
 #: to read. Kept, not ``temp()``: the labels change whenever a reading does, and relabelling from a
 #: kept object costs one copy of the matrices on disk where rebuilding it would cost the alignment.
+#: A sample with no labels costs no copy: its deliverable is a hard link to the kept object.
 UNLABELLED_DIRNAME = "unlabelled"
 
 
@@ -485,12 +487,19 @@ def label_h5ad(source: Path, out: Path, obs: Mapping[str, str], uns: Mapping[str
 
     A label names the sample, so every cell carries the same value; categorical, so objects
     concatenated across samples group by it. An empty value is missing, not a category. With
-    nothing to add, ``out`` is ``source``'s bytes, so a compile with no labels delivers exactly the
-    object the packaging step wrote.
+    nothing to add, ``out`` is a hard link to ``source``, so a compile with no labels delivers
+    exactly the object the packaging step wrote and keeps one copy of its matrices on disk; a copy
+    stands in only where the file system cannot link. The link is then touched, which touches
+    ``source`` too: ``out`` is never older than the sample table snakemake compares it with.
     """
     out.parent.mkdir(parents=True, exist_ok=True)
     if not obs and not uns:
-        shutil.copyfile(source, out)
+        out.unlink(missing_ok=True)
+        try:
+            os.link(source, out)
+        except OSError:
+            shutil.copyfile(source, out)
+        os.utime(out)
         return out
     import anndata as ad
 

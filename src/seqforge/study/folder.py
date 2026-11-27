@@ -86,12 +86,32 @@ class StudyFolder:
 
     ``study`` is the standard set's own study file, which only a study of the set has. A folder
     always holds its bounds, and its reading once the reading job has written one.
+
+    ``superseries`` is the SuperSeries the study file names, and ``subseries`` the Series under it.
+    Only that file says which Series is the SuperSeries; a bounds file does not, so any other
+    folder has none.
     """
 
     path: Path
     study: dict[str, Any] | None
     bounds: Bounds
     reading: Reading | None
+    superseries: str | None = None
+    subseries: frozenset[str] = frozenset()
+
+
+def _superseries(study: dict[str, Any] | None) -> tuple[str | None, frozenset[str]]:
+    """The SuperSeries a study file names, and the Series under it.
+
+    The file has no format check, so each field is taken only in the shape it is written.
+    """
+    records = (study or {}).get("records")
+    if not isinstance(records, dict):
+        return None, frozenset()
+    parent, series = records.get("superseries"), records.get("series")
+    if not isinstance(parent, str) or not isinstance(series, list):
+        return None, frozenset()
+    return parent, frozenset(s for s in series if isinstance(s, str) and s != parent)
 
 
 def _checked[T](
@@ -140,7 +160,15 @@ def open_study_folder(folder: Path) -> StudyFolder:
     problems = {name: found for name, found in problems.items() if found}
     if problems or bounds is None:
         raise StudyFolderRefused(folder, problems)
-    return StudyFolder(path=folder, study=study, bounds=bounds, reading=reading)
+    parent, subseries = _superseries(study)
+    return StudyFolder(
+        path=folder,
+        study=study,
+        bounds=bounds,
+        reading=reading,
+        superseries=parent,
+        subseries=subseries,
+    )
 
 
 def bounds_in(folder: Path, key: str) -> Bounds:

@@ -37,9 +37,10 @@ seqforge run FILES... \
 - **`FILES...`** are the FASTQ `.gz` files. Everything else is optional except the genome.
 - **`--accession`** pulls the archive's project/sample/experiment/run records, which match each file
   to its archive sample. Omit it for data that never had one — most data.
-- **`--doc`** hands a paper (or any `.pdf`/`.txt`/`.md`) to the one LLM stage, which turns prose into
-  span-verified claims. **Repeat it once per document** and pass *every* unstructured file the user
-  gave you — the paper AND a sample sheet like `sample_info.txt`, not just one. Each is read
+- **`--doc`** hands a paper (or any `.pdf`/`.txt`/`.md`) to the compiler's one LLM stage, which
+  turns prose into span-verified claims. **Repeat it once per document** and pass *every*
+  unstructured file the user gave you — the paper AND a sample sheet like `sample_info.txt`, not
+  just one. Each is read
   independently (and concurrently), so a sample sheet that names the per-sample diet and a methods PDF
   that describes the chemistry both get mined; dropping either silently loses whatever only it said.
   This stage calls a model through the lab gateway at `LABLLM_GATEWAY` — it is not you. If the
@@ -96,7 +97,7 @@ seqforge io records ACC           # accession -> project/sample/experiment/run r
 seqforge records new FASTQ_DIR    # NO accession: draft which files compile together (local)
 seqforge records validate FILE    # ...then edit it. Structure only, never a fact about a sample
 seqforge probe FILES              # bytes -> Observation      (no LLM, no network)
-seqforge harvest extract DOCS --records seqforge/records/ACC.json   # the one LLM touchpoint
+seqforge harvest extract DOCS --records seqforge/records/ACC.json   # the compiler's one LLM stage
 seqforge resolve score FILES      # Obs + KB -> library decision  (no LLM)
 # --- the IR: what the data IS. One per dataset, immutable. Takes no genome. ---
 seqforge manifest fill FILES --accession ACC --assertions seqforge/assertions.json [--records FILE]

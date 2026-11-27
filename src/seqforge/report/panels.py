@@ -1656,9 +1656,12 @@ def study_pane(study: StudyReport, workspaces: dict[str, str] | None = None) -> 
         '<p class="m-0 mt-3 max-w-[70ch] text-sm text-dim">'
         f"<b>Why these are one study:</b> {esc(study.reason)}</p>"
     )
+    drawn = {r.id for r in study.records if r.drawn}
+    joined = any(r.drawn and r.superseries in drawn for r in study.records)
     legend = (
         '<p class="m-0 mb-3 text-xs text-dim">Solid: kept. Dashed and struck through: left out. '
-        "A thin line joins a SuperSeries to its sub-Series. Hover a record for why.</p>"
+        + ("A thin line joins a SuperSeries to its sub-Series. " if joined else "")
+        + "Hover a record for why.</p>"
     )
     pane = _panel(
         "Bounds",
@@ -1670,7 +1673,48 @@ def study_pane(study: StudyReport, workspaces: dict[str, str] | None = None) -> 
             '<p class="sf-notice mt-4">No reading yet: the study has bounds, and the reading job '
             "has not written what each sample is.</p>"
         )
-    return pane + _design_panel(study) + _samples_panel(study, workspaces or {})
+    return (
+        pane
+        + _design_panel(study)
+        + _coverage_panel(study, workspaces or {})
+        + _samples_panel(study, workspaces or {})
+    )
+
+
+def _coverage_panel(study: StudyReport, workspaces: dict[str, str]) -> str:
+    """One line per workspace read: how many of the reading's samples it compiled, them on hover.
+
+    A sample table marks each row with where it was compiled, but a study whose labels do not vary
+    has no rows to mark, so the count is said here, apart from the tables.
+    """
+    if not workspaces or not study.samples:
+        return ""
+    n = len(study.samples)
+    groups = [
+        (f"Compiled in {name}", [s.sample for s in study.samples if path in s.compiled_in])
+        for path, name in workspaces.items()
+    ]
+    groups.append(("In no workspace read", [s.sample for s in study.samples if not s.compiled_in]))
+    lines, tips = "", ""
+    for k, (said, members) in enumerate(groups):
+        if not members and k == len(groups) - 1:
+            continue
+        tip = f"coverage-tip-{k}"
+        lines += (
+            f'<p class="m-0 mt-1 text-sm" data-coverage>{esc(said)}: '
+            f'<b class="tabular-nums" data-hover-card="{tip}" tabindex="0">{len(members)}</b> '
+            f"of {n} samples</p>"
+        )
+        tips += (
+            f'<div class="prov-pop" id="{tip}" role="tooltip" hidden>'
+            f'<div class="pp-head">{esc(said)}</div>'
+            f'<p class="m-0 mt-2 font-mono text-xs">{esc(", ".join(members) or "none")}</p></div>'
+        )
+    return _panel(
+        "Compiled",
+        lines + tips,
+        sub="How many of the reading's samples each workspace compiled. Hover a count for them.",
+    )
 
 
 def _bounds_graph(study: StudyReport) -> str:
