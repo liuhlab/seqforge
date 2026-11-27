@@ -3,7 +3,9 @@
 A study's **sources** are the records of the Series its bounds file keeps, the sequenced samples of
 those Series, and the bounds' papers: each paper's abstract, and its full text where the paper
 store holds one. A sample that is not sequenced, such as a microarray sample, is left out, and no
-supplementary file of GEO or of a paper is read. :func:`read_sources` reads them as plain data,
+supplementary file of GEO or of a paper is read. A sample keeps the BioSample accession its record
+links, an id copied from the record and not text a model reads. :func:`read_sources` reads them as
+plain data,
 :func:`records_text` and :func:`papers_text` render what a model reads, and :func:`find_quote`
 says where a quote is: in its record's field character for character, or in its paper once each
 run of white space is one space. The text of a record or a paper is only ever passed on: the repo
@@ -17,6 +19,8 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 from xml.etree import ElementTree
+
+from .reading import BIOSAMPLE_ID
 
 if TYPE_CHECKING:
     from .bounds import Bounds
@@ -66,6 +70,8 @@ _VALUE_CAP = 1500
 FULL_TEXT_CAP = 150_000
 #: The one ``Sample_type`` that marks a sequenced sample.
 SEQUENCED = "SRA"
+#: The relation liulab-data's store names a sample record's link to its BioSample by.
+BIOSAMPLE = "BioSample"
 
 
 def _values(record: Any, name: str) -> list[str]:
@@ -107,7 +113,10 @@ def read_sources(store: Any, papers: Any | None, bounds: Bounds) -> dict[str, An
         if kind != SEQUENCED:
             left_out.append({"id": gsm, "why": f"Sample_type {kind}: not sequenced"})
             continue
-        samples.append({"id": gsm, "fields": fields})
+        sample: dict[str, Any] = {"id": gsm, "fields": fields}
+        if accession := _biosample_accession(record):
+            sample["biosample_accession"] = accession
+        samples.append(sample)
     pmids = [p.split(":")[-1] for p in bounds.papers]
     details = papers.papers(pmids) if papers is not None and pmids else {}
     return {
@@ -117,6 +126,20 @@ def read_sources(store: Any, papers: Any | None, bounds: Bounds) -> dict[str, An
         "left_out": left_out,
         "papers": [_paper(pmid, details.get(pmid)) for pmid in pmids],
     }
+
+
+def _biosample_accession(record: Any) -> str | None:
+    """The BioSample accession a sample record links, copied as the link writes it.
+
+    ``None`` when the record links none, or more than one: an accession is copied, never chosen.
+    A link whose far end is no BioSample accession is not one.
+    """
+    linked = {
+        link.other
+        for link in record.links
+        if link.relation == BIOSAMPLE and link.forward and re.match(BIOSAMPLE_ID, link.other)
+    }
+    return next(iter(linked)) if len(linked) == 1 else None
 
 
 def _paper(pmid: str, paper: Any | None) -> dict[str, Any]:
@@ -340,6 +363,11 @@ def taxonomy(sample: Mapping[str, Any]) -> tuple[str | None, str | None]:
     name = (fields["Sample_organism_ch1"] or [None])[0]
     taxid = (fields["Sample_taxid_ch1"] or [None])[0]
     return name, taxid
+
+
+def biosample_accessions(sources: Mapping[str, Any]) -> dict[str, str]:
+    """Each sequenced sample's BioSample accession, for the samples whose record links one."""
+    return {s["id"]: s["biosample_accession"] for s in sources["samples"] if "biosample_accession" in s}
 
 
 def sample_ids(sources: Mapping[str, Any]) -> list[str]:

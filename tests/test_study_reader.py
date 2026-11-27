@@ -124,6 +124,8 @@ ARTICLE = (
 ABSTRACT = "Livers of young and old mice. The old mice were 22 months of age."
 #: The papers each Series links: GSE10 links the one paper.
 PAPER_OF = {"GSE10": ["PMID:100"]}
+#: The BioSample each sample record links: GSM11 links one, and GSM12 none.
+BIOSAMPLE_OF = {"GSM11": "SAMN00000011"}
 
 
 class Store:
@@ -141,6 +143,8 @@ class Store:
         if accession in SERIES:
             paper = [Link("PubMed", p, "SOFT", True) for p in PAPER_OF.get(accession, [])]
             return [*(Link("sample", s, "SOFT", True) for s in SAMPLES[accession]), *paper]
+        if accession in BIOSAMPLE_OF:
+            return [Link("BioSample", BIOSAMPLE_OF[accession], "SOFT", True)]
         return [
             Link("PubMed of", s, "SOFT", False) for s, ps in PAPER_OF.items() if accession in ps
         ]
@@ -802,6 +806,21 @@ def test_a_term_is_looked_up_in_the_vocabulary_of_each_samples_species(
         "inferred": "the record's taxonomy id, named by NCBI Taxonomy",
         "p": None,
     }
+
+
+@pytest.mark.parametrize(("sample", "accession"), [("GSM11", "SAMN00000011"), ("GSM12", None)])
+def test_a_rows_biosample_accession_is_copied_from_its_record_and_absent_when_it_links_none(
+    read: tuple[Path, dict[str, Any], FakeGateway], sample: str, accession: str | None
+) -> None:
+    """The compile joins a reading to its samples by BioSample accession, so a row carries the one
+    its GEO Sample record links, copied id to id and apart from the ``biosample`` label's made-up
+    id. A record that links none leaves the field out: it is never guessed."""
+    set_dir, _, _ = read
+    reading = _reading(set_dir, "GSE10")
+    row = reading["samples"][sample]
+
+    assert row.get("biosample_accession") == accession
+    assert "biosample_accession" not in reading["shared"]
 
 
 def _start(kind: str, studies: Path, *more: str) -> Any:

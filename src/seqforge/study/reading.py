@@ -21,7 +21,7 @@ import datetime
 from collections.abc import Iterator, Mapping
 from typing import Any, Literal
 
-from pydantic import Field, PositiveInt, StrictBool, ValidationError
+from pydantic import BaseModel, ConfigDict, Field, PositiveInt, StrictBool, ValidationError
 
 from ..liulab_data import needed
 from .claims import (
@@ -72,6 +72,28 @@ class SampleClaim(ReadingClaim):
         return self.unknown is None and self.na is None
 
 
+#: The one field of a sample's row that is no label: the BioSample accession its record links.
+BIOSAMPLE_ACCESSION = "biosample_accession"
+#: What a BioSample accession looks like: NCBI's, EBI's or DDBJ's.
+BIOSAMPLE_ID = r"^SAM(N|EA|D)\d+$"
+
+
+class SampleRow(BaseModel):
+    """One sample's row: its claims, each under its label, and the BioSample accession its GEO
+    Sample record links, an id copied from that record and no claim. The accession is absent when
+    the record links none."""
+
+    model_config = ConfigDict(extra="allow", strict=True)
+    __pydantic_extra__: dict[str, SampleClaim] = Field(init=False)
+
+    biosample_accession: str | None = Field(default=None, pattern=BIOSAMPLE_ID)
+
+    @property
+    def claims(self) -> dict[str, SampleClaim]:
+        """The row's claims by label."""
+        return dict(self.__pydantic_extra__ or {})
+
+
 class Factor(ReadingClaim):
     """A label the study varied on purpose, and the levels it took. A factor is a claim too."""
 
@@ -108,11 +130,11 @@ class Reading(Strict):
     passages: dict[PositiveInt, Passage]
     factors: dict[str, Factor]
     shared: dict[str, SampleClaim]
-    samples: dict[str, dict[str, SampleClaim]] = Field(min_length=1)
+    samples: dict[str, SampleRow] = Field(min_length=1)
 
     def rows(self) -> dict[str, dict[str, SampleClaim]]:
         """Every sample's claims by label, once the shared claims are applied."""
-        return {sample: {**self.shared, **own} for sample, own in self.samples.items()}
+        return {sample: {**self.shared, **own.claims} for sample, own in self.samples.items()}
 
 
 def _number_or_range(value: object) -> bool:
@@ -212,7 +234,7 @@ def _vocabulary_problems(reading: Reading) -> Iterator[tuple[str, str]]:
             rules = label_row(label)
             if claim.term is None or rules.words:
                 continue
-            own = label in reading.samples[sample]
+            own = label in reading.samples[sample].claims
             where = f"samples.{sample}.{label}.term" if own else f"shared.{label}.term"
             if where in seen:
                 continue
@@ -262,7 +284,7 @@ def _between_fields(reading: Reading) -> Iterator[tuple[str, str]]:
     written += [
         (f"samples.{sample}.{label}", label, claim)
         for sample, own in reading.samples.items()
-        for label, claim in own.items()
+        for label, claim in own.claims.items()
     ]
     for where, label, claim in written:
         yield from claim_problems(
@@ -282,7 +304,7 @@ def _between_fields(reading: Reading) -> Iterator[tuple[str, str]]:
     # A row's claim replaces the shared one whole, its level too: a row that forgets the level
     # would leave its sample outside the factor without saying so.
     for sample, own in reading.samples.items():
-        for label, claim in own.items():
+        for label, claim in own.claims.items():
             default = reading.shared.get(label)
             names_level = label in reading.factors and default is not None and default.level
             if names_level and claim.says and claim.level is None:
