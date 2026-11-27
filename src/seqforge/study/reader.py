@@ -40,7 +40,7 @@ import datetime
 import hashlib
 import threading
 from collections import defaultdict
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Collection, Mapping
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field, replace
 from pathlib import Path
@@ -1311,14 +1311,16 @@ def reading_file(outcome: Outcome) -> dict[str, Any]:
     return reading
 
 
-def write_readings(task: TaskReader, kind: str, out: Path, name: str) -> dict[str, dict[str, Any]]:
+def write_readings(
+    task: TaskReader, kind: str, out: Path, name: str, keys: Collection[str] | None = None
+) -> dict[str, dict[str, Any]]:
     """Write ``<out>/<key>/<name>`` for each study with an answer, and say how each study ended.
 
     A refused study gets no file, and its reason instead; a file already on disk is never
     overwritten, and a file the format check rejects is not written. See
     :func:`.folder.write_files`.
     """
-    return write_files(task, kind, out, name, reading_file, check_reading)
+    return write_files(task, kind, out, name, reading_file, check_reading, keys=keys)
 
 
 KIND = Kind(

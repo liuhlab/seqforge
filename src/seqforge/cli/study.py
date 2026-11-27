@@ -12,7 +12,7 @@ checks read the one file and nothing else: no store, no network, no model, and t
 
 from __future__ import annotations
 
-from collections.abc import Iterator
+from collections.abc import Collection, Iterator
 from contextlib import contextmanager
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -64,7 +64,9 @@ def _verdict(file: Path, accepted: int, problems: list[dict[str, str]], **more: 
     _emit(_StageOut({**said, **more}, 3 if problems else 0))
 
 
-def _write(kind_name: str, out: Path, name: str, task: Path | None) -> _StageOut:
+def _write(
+    kind_name: str, out: Path, name: str, task: Path | None, keys: Collection[str] | None = None
+) -> _StageOut:
     """Write each study's file from a pass's answers, with the kind's own writer; say how each ended.
 
     A text the format check rejects is a refusal, as check-bounds and check-reading make it: the
@@ -83,7 +85,7 @@ def _write(kind_name: str, out: Path, name: str, task: Path | None) -> _StageOut
             with setup.read() as opened:
                 if (holder := opened.holder) is not None:
                     raise TaskInUse(_held(setup.folder, holder))
-                done = setup.kind.write(opened, kind_name, out, name)
+                done = setup.kind.write(opened, kind_name, out, name, keys)
         except (ValueError, LiulabDataMissing) as e:
             return _StageOut({"error": str(e)}, 2)
         said: dict[str, object] = {"kind": kind_name, "task": str(setup.folder), "out": str(out)}
@@ -236,7 +238,7 @@ def _study_run(
     from ..passes.kinds import kind_named
     from ..passes.model_text import parse_model, parse_models
     from ..study import bounding, reader
-    from .passes import _pass_start
+    from .passes import _pass_start, _read_keys
 
     chain = (
         (bounding.KIND_NAME, "write-bounds", BOUNDS),
@@ -280,7 +282,10 @@ def _study_run(
         spent += cost if isinstance(cost, int | float) else 0.0
         if code := ran.code:
             break
-        wrote = _write(kind.name, studies, file_name, None)
+        # The task is shared with every earlier chain run here, so the write takes this chain's
+        # studies only: those the pass just ran, which its start has already checked can be read.
+        chosen = _read_keys(keys_file) if keys_file is not None else kind.default_keys(studies)
+        wrote = _write(kind.name, studies, file_name, None, list(chosen))
         steps.append(_step(f"study {write_verb}", wrote))
         if code := wrote.code:
             break

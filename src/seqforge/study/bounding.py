@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import hashlib
 import threading
+from collections.abc import Collection
 from pathlib import Path
 from typing import Any
 
@@ -224,14 +225,16 @@ def bounds_file(outcome: Outcome) -> dict[str, Any]:
     return bounds
 
 
-def write_bounds(task: TaskReader, kind: str, out: Path, name: str) -> dict[str, dict[str, Any]]:
+def write_bounds(
+    task: TaskReader, kind: str, out: Path, name: str, keys: Collection[str] | None = None
+) -> dict[str, dict[str, Any]]:
     """Write ``<out>/<key>/<name>`` for each study with an answer, and say how each study ended.
 
     A refused study gets no file, and its reason instead; a file already on disk is never
     overwritten, and a file the format check rejects is not written. See
     :func:`.folder.write_files`.
     """
-    return write_files(task, kind, out, name, bounds_file, check_bounds)
+    return write_files(task, kind, out, name, bounds_file, check_bounds, keys=keys)
 
 
 KIND = Kind(

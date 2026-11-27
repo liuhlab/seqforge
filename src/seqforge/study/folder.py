@@ -19,7 +19,7 @@ check, or refuses the folder.
 from __future__ import annotations
 
 import os
-from collections.abc import Callable
+from collections.abc import Callable, Collection
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -215,10 +215,14 @@ def write_files(
     name: str,
     render: Callable[[Outcome], dict[str, Any]],
     check: Check,
+    *,
+    keys: Collection[str] | None = None,
 ) -> dict[str, dict[str, Any]]:
     """Write ``<out>/<key>/<name>`` for each unit with an answer, and say how each study ended.
 
-    The units are those of the kind named ``kind``. A refused study gets no file, and its reason
+    The units are those of the kind named ``kind``, only those ``keys`` names when it names any:
+    a task is shared, so a write for one set of studies leaves out the others the task answered.
+    A refused study gets no file, and its reason
     instead. ``render`` gives the file's content, each
     model already named as the pass's stamp records it, and ``check`` runs on the exact text that
     would be written: a text it rejects is not written, and its problems are said instead. A file
@@ -230,6 +234,8 @@ def write_files(
         raise ValueError(f"--name must be a file name, not a path: {name!r}")
     done: dict[str, dict[str, Any]] = {}
     for key in task.keys(kind, endings=["settled", "unsettled", "refused"]):
+        if keys is not None and key not in keys:
+            continue
         outcome = task.current(kind, key)
         if outcome is None:
             continue

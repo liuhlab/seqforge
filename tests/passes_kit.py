@@ -9,7 +9,7 @@ here and not in ``conftest.py`` so that no other test session imports liulab-llm
 from __future__ import annotations
 
 import json
-from collections.abc import Callable
+from collections.abc import Callable, Collection
 from pathlib import Path
 from typing import Any
 
@@ -78,9 +78,13 @@ def echo_unit_kind(texts: dict[str, str], *, name: str = "echo") -> UnitKind:
     )
 
 
-def write_answers(task: TaskReader, kind: str, out: Path, name: str) -> dict[str, dict[str, Any]]:
+def write_answers(
+    task: TaskReader, kind: str, out: Path, name: str, keys: Collection[str] | None = None
+) -> dict[str, dict[str, Any]]:
     """Each answer of the echo kind as a study's file, ``{word: ...}``, through the study writer."""
-    return write_files(task, kind, out, name, lambda outcome: outcome.answer, lambda data: [])
+    return write_files(
+        task, kind, out, name, lambda outcome: outcome.answer, lambda data: [], keys=keys
+    )
 
 
 def _echo_kind(name: str, build: Callable[[Path], Built]) -> Kind:

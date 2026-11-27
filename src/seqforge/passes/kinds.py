@@ -10,7 +10,7 @@ its own kind in the table.
 from __future__ import annotations
 
 import importlib
-from collections.abc import Callable, Iterable, Mapping
+from collections.abc import Callable, Collection, Iterable, Mapping
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -49,7 +49,8 @@ class Kind:
     raises :class:`SetupRefused`, naming the store, for one it cannot open. ``default_keys`` gives
     the units a pass over that folder covers when it names none, in the order they should start.
     ``default_models`` fills every role a pass does not name. ``write`` turns the answers in a task
-    into one file per study, ``write(task, name, out, file_name)``, and says how each study ended:
+    into one file per study, ``write(task, name, out, file_name, keys)``, for the studies ``keys``
+    names or, given ``None``, every study the task answered, and says how each study ended:
     what ``study write-bounds`` and ``study write-reading`` run, and ``study run`` between passes.
     """
 
@@ -57,7 +58,7 @@ class Kind:
     build: Callable[[Path], Built]
     default_models: Mapping[str, Model]
     default_keys: Callable[[Path], Iterable[str]]
-    write: Callable[[TaskReader, str, Path, str], dict[str, dict[str, Any]]]
+    write: Callable[[TaskReader, str, Path, str, Collection[str] | None], dict[str, dict[str, Any]]]
 
 
 #: Every seqforge kind, by the name a person types: the module that defines it as its ``KIND``.

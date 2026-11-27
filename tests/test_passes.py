@@ -498,6 +498,16 @@ def test_study_run_writes_the_bounds_before_the_reading_pass_reads_them(
     assert _words(studies, "reading.yaml") == {"u1": "AHPLA", "u2": "beta", "u4": "delta"}
     assert out["steps"][2]["counts"]["held"] == 1
 
+    # The task is shared, so a chain over other studies writes its own and none it did not select.
+    (keys := studies.parent / "keys.txt").write_text("u4\n")
+    other = studies.parent / "other"
+    code, out = seqforge("study", "run", "--studies", str(other), "--ceiling-usd", "1", "--keys", str(keys))
+    assert code == 0, out
+    assert (_words(other, "bounds.yaml"), _words(other, "reading.yaml")) == (
+        {"u4": "atled"},
+        {"u4": "delta"},
+    )
+
 
 #: A ceiling the bounding pass finishes under, with too little left for the reading pass to finish:
 #: bounding spends about six cents, and each call holds back five against what is left.
