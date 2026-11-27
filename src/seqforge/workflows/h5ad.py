@@ -45,7 +45,8 @@ and carry real counts in the other; 22,319 barcodes on that sample were exactly 
 
 from __future__ import annotations
 
-from collections.abc import Iterable, Sequence
+import shutil
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Literal
@@ -473,6 +474,35 @@ def write_h5ad(
     return written
 
 
+#: Where the packaging step leaves each object, under the sample's directory, for the labelling step
+#: to read. Kept, not ``temp()``: the labels change whenever a reading does, and relabelling from a
+#: kept object costs one copy of the matrices on disk where rebuilding it would cost the alignment.
+UNLABELLED_DIRNAME = "unlabelled"
+
+
+def label_h5ad(source: Path, out: Path, obs: Mapping[str, str], uns: Mapping[str, str]) -> Path:
+    """``source`` with each of ``obs`` as a categorical column over every cell, and ``uns`` added.
+
+    A label names the sample, so every cell carries the same value; categorical, so objects
+    concatenated across samples group by it. An empty value is missing, not a category. With
+    nothing to add, ``out`` is ``source``'s bytes, so a compile with no labels delivers exactly the
+    object the packaging step wrote.
+    """
+    out.parent.mkdir(parents=True, exist_ok=True)
+    if not obs and not uns:
+        shutil.copyfile(source, out)
+        return out
+    import anndata as ad
+
+    adata = ad.read_h5ad(source)
+    for name, value in obs.items():
+        adata.obs[name] = [value or None] * adata.n_obs
+        adata.obs[name] = adata.obs[name].astype("category")
+    adata.uns.update(uns)
+    adata.write_h5ad(out)
+    return out
+
+
 __all__ = [
     "SOLO_FEATURE_OUTPUT",
     "STAR_BAM",
@@ -480,10 +510,12 @@ __all__ = [
     "STAR_JUNCTIONS",
     "STAR_LOG_FILES",
     "STAR_PROGRESS_LOGS",
+    "UNLABELLED_DIRNAME",
     "H5adError",
     "SoloAxis",
     "SoloFeatureOutput",
     "h5ad_suffixes",
+    "label_h5ad",
     "raw_files",
     "solo_filtered_files",
     "solo_raw_files",

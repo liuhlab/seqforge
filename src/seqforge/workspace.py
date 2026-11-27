@@ -19,6 +19,7 @@ five modules, and five copies of a string is five chances for one of them to be 
 
 from __future__ import annotations
 
+import os
 import re
 from pathlib import Path
 
@@ -81,6 +82,11 @@ FINGERPRINT_DIRNAME = "fingerprint"
 #: of artifacts already on disk, rebuildable by re-running `seqforge report`, but it lands with the
 #: outputs a human reaches for, not under `cache/`.
 REPORT_HTML = "report.html"
+
+#: The flat one-row-per-sample table, top-level beside the manifest. `seqforge.project` writes it;
+#: a compiled droplet pipeline reads it back to label each `.h5ad`, so the composer has to name it
+#: too, and neither may spell it for itself.
+SAMPLE_METADATA_TSV = "sample_metadata.tsv"
 
 #: The run engine's tasks, one `passes/<kind>/` per seqforge unit kind: liulab-llms's state file
 #: of every pass over that kind's units. State, not cache -- deleting it does not lose the answers,
@@ -183,6 +189,20 @@ def report_html_path(workspace: str | Path = ".") -> Path:
     return state_dir(workspace, REPORT_HTML)
 
 
+def sample_metadata_path(workspace: str | Path = ".") -> Path:
+    """``seqforge/sample_metadata.tsv`` — one row per sample across every assay (a deliverable)."""
+    return state_dir(workspace, SAMPLE_METADATA_TSV)
+
+
+def sample_metadata_from_pipeline(subdir: str | None = None) -> str:
+    """The sample table as a path relative to a pipeline directory of ``subdir``'s assay.
+
+    A pipeline runs in its own directory, so this is how its rules reach the table at the project
+    top, and it holds wherever the workspace is moved.
+    """
+    return os.path.relpath(sample_metadata_path(), pipeline_dir(".", "run", subdir=subdir))
+
+
 def readable(name: str, digest: str) -> str:
     """``("default", "a3f8...")`` -> ``default-a3f8c19d2b04``. A name a human can find, plus identity.
 
@@ -222,6 +242,7 @@ __all__ = [
     "PIPELINE_DIRNAME",
     "RECORDS_DIRNAME",
     "REPORT_HTML",
+    "SAMPLE_METADATA_TSV",
     "SHORT_HASH",
     "STATE_DIRNAME",
     "cache_dir",
@@ -235,5 +256,7 @@ __all__ = [
     "records_dir",
     "report_html_path",
     "resolve_report_path",
+    "sample_metadata_from_pipeline",
+    "sample_metadata_path",
     "state_dir",
 ]

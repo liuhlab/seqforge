@@ -21,8 +21,11 @@ import json
 from pathlib import Path
 from typing import Any
 
+import anndata as ad
+import numpy as np
 import pytest
 import yaml
+from scipy.sparse import csr_matrix
 from typer.testing import CliRunner
 
 from conftest import SynthDataset, write_fastq_gz
@@ -299,3 +302,36 @@ def test_a_named_study_leaves_the_manifest_and_its_hash_as_they_were(tmp_path: P
 
     assert json.loads(joined.stdout)["stages"]["project"]["study"]["reading_hash"]
     assert manifest_hash() == before
+
+
+def test_each_h5ad_carries_its_samples_labels_as_categorical_obs_and_the_readings_hash(
+    tmp_path: Path, synth_10x_v3: SynthDataset
+) -> None:
+    """The last rule of a droplet pipeline labels each count object from the sample table, through
+    the verb its ``shell:`` calls: one categorical ``obs`` column per label in the table, and the
+    hash of the reading they came from in ``uns``. A compile that named no study has no labels to
+    write, so its object is the one the packaging step wrote, byte for byte."""
+    counts = tmp_path / "unlabelled.h5ad"
+    ad.AnnData(X=csr_matrix(np.eye(3, dtype=np.int32))).write_h5ad(counts)
+    table = tmp_path / "seqforge" / "sample_metadata.tsv"
+
+    def label(sample: str, out: Path) -> Path:
+        argv = ["io", "h5ad-labels", str(counts), "--sample", sample, "--table", str(table)]
+        result = runner.invoke(app, [*argv, "--out", str(out)])
+        assert result.exit_code == 0, result.output
+        return out
+
+    _compiled(tmp_path, synth_10x_v3.manifest, list(JOINED.values()))
+    plain = runner.invoke(app, ["project", "metadata", "-C", str(tmp_path)])
+    assert plain.exit_code == 0, plain.output
+    assert label("s_SAMN3", tmp_path / "plain.h5ad").read_bytes() == counts.read_bytes()
+
+    said, _ = _metadata(tmp_path, _study(tmp_path / "GSE1"))
+    labelled = ad.read_h5ad(label("s_SAMN3", tmp_path / "s_SAMN3.h5ad"))
+
+    obs: Any = labelled.obs
+    assert list(obs.columns) == ["age", "genotype", "biosample"]
+    assert all(str(obs[c].dtype) == "category" for c in obs.columns)
+    assert obs.iloc[0].to_dict() == {"age": "middle", "genotype": "wt", "biosample": "B3"}
+    assert labelled.uns["reading_hash"] == said["study"]["reading_hash"]
+    assert np.array_equal(csr_matrix(labelled.X).toarray(), np.eye(3, dtype=np.int32))
