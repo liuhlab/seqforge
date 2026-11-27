@@ -33,7 +33,7 @@ from seqforge import kb
 from seqforge.cli import app
 from seqforge.models.dataset import DatasetManifest, SampleGroup
 from seqforge.project import format_tsv, project_index, sample_metadata_table
-from test_study import READING, VALID
+from test_study import READING, VALID, _said
 
 runner = CliRunner()
 
@@ -174,19 +174,39 @@ def _metadata(workspace: Path, study: Path) -> tuple[dict[str, Any], list[dict[s
     return json.loads(result.stdout), rows
 
 
+def _batch_on_two(reading: dict[str, Any]) -> None:
+    """A label of the study's own that two samples give alike and the other two do not give."""
+    for gsm in ("GSM1", "GSM3"):
+        reading["samples"][gsm]["batch"] = _said("first")
+
+
+@pytest.mark.parametrize(
+    ("change", "batch"),
+    [
+        pytest.param(None, None, id="the reading as written"),
+        pytest.param(
+            _batch_on_two,
+            {"SAMN1": "first", "SAMN3": "first", "SAMN4": "", "SAMN6": ""},
+            id="a label some samples lack varies",
+        ),
+    ],
+)
 def test_a_named_study_joins_its_factors_and_varying_labels_into_the_sample_table(
-    tmp_path: Path, synth_10x_v3: SynthDataset
+    tmp_path: Path, synth_10x_v3: SynthDataset, change: Any, batch: dict[str, str] | None
 ) -> None:
     """The reading owns what each sample was, and the compile joins it by BioSample accession: one
     column per factor and per label that varies across the compiled samples, and the hash of the
     reading the labels came from. A label the same for every sample tells no sample apart, so it
-    gets no column; a different reading has a different hash, which is how a stale label shows."""
+    gets no column; one that some samples lack does tell them apart, so it gets one. A different
+    reading has a different hash, which is how a stale label shows."""
     _compiled(tmp_path, synth_10x_v3.manifest, list(JOINED.values()))
-    said, rows = _metadata(tmp_path, _study(tmp_path / "GSE1"))
+    said, rows = _metadata(tmp_path, _study(tmp_path / "GSE1", change))
+    views = [tmp_path / "seqforge" / name for name in ("sample_metadata.tsv", "project.yaml")]
+    written = [path.stat().st_mtime_ns for path in views]
 
     assert list(rows[0]) == [
         *["sample_id", "accession", "assay", "organism", "n_files", "files"],
-        *["age", "genotype", "biosample", "reading_hash"],
+        *["age", "genotype", "biosample", *(["batch"] if batch else []), "reading_hash"],
     ]
     by_accession = {r["accession"]: r for r in rows}
     assert {a: (r["age"], r["genotype"], r["biosample"]) for a, r in by_accession.items()} == {
@@ -195,8 +215,13 @@ def test_a_named_study_joins_its_factors_and_varying_labels_into_the_sample_tabl
         "SAMN4": ("old", "wt", "B4"),
         "SAMN6": ("young", "ko", "B5"),
     }
+    if batch:
+        assert {a: r["batch"] for a, r in by_accession.items()} == batch
     assert {r["reading_hash"] for r in rows} == {said["study"]["reading_hash"]}
     assert said["study"]["warnings"] == []
+    # The same inputs again write nothing: a pipeline's labelling rule reads the table's mtime.
+    _metadata(tmp_path, tmp_path / "GSE1")
+    assert [path.stat().st_mtime_ns for path in views] == written
 
     def another_age(reading: dict[str, Any]) -> None:
         reading["samples"]["GSM3"]["age"]["text"] = "13 months"
@@ -310,7 +335,8 @@ def test_each_h5ad_carries_its_samples_labels_as_categorical_obs_and_the_reading
     """The last rule of a droplet pipeline labels each count object from the sample table, through
     the verb its ``shell:`` calls: one categorical ``obs`` column per label in the table, and the
     hash of the reading they came from in ``uns``. A compile that named no study has no labels to
-    write, so its object is the one the packaging step wrote, byte for byte."""
+    write, so its object is the one the packaging step wrote, byte for byte, and a hard link to it,
+    so a compile with no study keeps one copy of the matrices on disk as it did before labels."""
     counts = tmp_path / "unlabelled.h5ad"
     ad.AnnData(X=csr_matrix(np.eye(3, dtype=np.int32))).write_h5ad(counts)
     table = tmp_path / "seqforge" / "sample_metadata.tsv"
@@ -324,7 +350,9 @@ def test_each_h5ad_carries_its_samples_labels_as_categorical_obs_and_the_reading
     _compiled(tmp_path, synth_10x_v3.manifest, list(JOINED.values()))
     plain = runner.invoke(app, ["project", "metadata", "-C", str(tmp_path)])
     assert plain.exit_code == 0, plain.output
-    assert label("s_SAMN3", tmp_path / "plain.h5ad").read_bytes() == counts.read_bytes()
+    plain_h5ad = label("s_SAMN3", tmp_path / "plain.h5ad")
+    assert plain_h5ad.read_bytes() == counts.read_bytes()
+    assert plain_h5ad.samefile(counts)
 
     said, _ = _metadata(tmp_path, _study(tmp_path / "GSE1"))
     labelled = ad.read_h5ad(label("s_SAMN3", tmp_path / "s_SAMN3.h5ad"))

@@ -626,17 +626,28 @@ def test_a_factor_with_no_baseline_contrasts_each_pair_of_its_levels_once(tmp_pa
     ]
 
 
+@pytest.mark.parametrize(
+    "verb",
+    [
+        pytest.param(["study", "check-reading", "GSE1/reading.yaml"], id="study check-reading"),
+        pytest.param(["standard-set", "list", "--dir", "."], id="standard-set list"),
+    ],
+)
 def test_a_reading_check_without_liulab_data_refuses_to_run_and_names_the_remedy(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, verb: list[str]
 ) -> None:
     """liulab-data holds each vocabulary's id prefixes, and an installed copy of seqforge can lack
     it. The check then cannot judge an id: it refuses the run as a setup it cannot use, and names
-    the remedy, rather than reject a file that is valid."""
+    the remedy, rather than reject a file that is valid. Listing a set whose study holds a reading
+    runs the same check, and refuses the same way."""
     monkeypatch.setitem(sys.modules, "labdata.ontology.vocabularies", None)
-    path = tmp_path / "reading.yaml"
-    path.write_text(yaml.safe_dump(READING, sort_keys=False))
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "GSE1").mkdir()
+    (tmp_path / "pick.yaml").write_text(yaml.safe_dump({"studies": [{"id": "GSE1"}]}))
+    for name, content in (("bounds.yaml", VALID), ("reading.yaml", READING)):
+        (tmp_path / "GSE1" / name).write_text(yaml.safe_dump(content, sort_keys=False))
 
-    result = runner.invoke(app, ["study", "check-reading", str(path)])
+    result = runner.invoke(app, verb)
 
     assert result.exit_code == 2
     assert "liulab-runtime" in result.output

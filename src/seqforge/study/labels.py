@@ -8,7 +8,7 @@ own, beyond the 18, takes :data:`OWN`.
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import Literal
 
@@ -200,3 +200,13 @@ def vocabulary(label: str, taxid: str | None) -> str | None:
     genotype or a sex, or a stage of a species with no stage list, such as the rat.
     """
     return label_row(label).vocabulary_for(taxid)
+
+
+def varies(claims: Sequence[object]) -> bool:
+    """Whether a label varies across samples, given each sample's claim on it: whether any two differ.
+
+    A sample with no claim on the label gives ``None``, which differs from every claim, so a label
+    some samples lack varies even where the others agree. The join and the report's sample tables
+    both ask this, so a label has a column in one exactly when it has one in the other.
+    """
+    return any(claim != claims[0] for claim in claims[1:])

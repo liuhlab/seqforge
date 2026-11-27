@@ -5,7 +5,7 @@ each sample was. :func:`join_reading` meets the two on the BioSample accession: 
 ``accession``, and the ``biosample_accession`` a reading row copied from its GEO record. It hands
 back one column per factor and per label that varies across the joined samples, each sample's
 value in it, and the reading's hash. Labels the same for every sample tell no sample apart, so
-they get no column.
+they get no column; a label some samples lack varies (:func:`~.labels.varies`).
 
 Where the two overlap, one checks the other, and a disagreement is a warning and never a
 ``Conflict``: neither side is an observation of the bytes, and a reading never blocks a compile.
@@ -20,7 +20,7 @@ from collections.abc import Collection, Iterator, Sequence
 from dataclasses import dataclass, field
 
 from ..models.blocker import BlockerSubject, ValidationWarning
-from .labels import LABELS, label_row
+from .labels import LABELS, label_row, varies
 from .reading import Reading, SampleClaim
 
 #: The column that names the reading a row's labels came from.
@@ -186,7 +186,7 @@ def join_reading(
     kept = [
         label
         for label, by_sample in values.items()
-        if label in reading.factors or len(set(by_sample.values())) > 1
+        if label in reading.factors or varies([by_sample.get(sid) for sid in joined])
     ]
     names = {label: f"{CLAIMED_PREFIX}{label}" if label in taken else label for label in kept}
     digest = reading.content_hash()

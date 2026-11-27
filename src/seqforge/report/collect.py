@@ -161,11 +161,7 @@ def collect_report(
         return ProjectReport(
             report_version=REPORT_VERSION, generated_at=generated_at, workspaces=read
         )
-    view = collect_study(study, where)
-    samples = [_coverage(sample, read) for sample in view.samples]
-    view = view.model_copy(
-        update={"samples": samples, "topics": [_split_folds(t, samples) for t in view.topics]}
-    )
+    view = collect_study(study, where, read)
     return ProjectReport(
         report_version=REPORT_VERSION,
         generated_at=generated_at,
@@ -201,7 +197,7 @@ def _collect_workspace(ws: Path, results_dir: Path | None, where: Path) -> Works
     )
 
 
-def _coverage(sample: StudySample, workspaces: list[WorkspaceReport]) -> StudySample:
+def _coverage(sample: StudySample, workspaces: Sequence[WorkspaceReport]) -> StudySample:
     """``sample`` marked with each workspace whose manifest holds its BioSample accession.
 
     The compile's join meets the two sides on the same id, so a sample is compiled where the join
@@ -217,30 +213,6 @@ def _coverage(sample: StudySample, workspaces: list[WorkspaceReport]) -> StudySa
                 for ws in workspaces
                 if any(s.accession == accession for a in ws.assays for s in a.samples)
             ]
-        }
-    )
-
-
-def _split_folds(table: TopicTable, samples: list[StudySample]) -> TopicTable:
-    """``table`` with each folded row split by the workspaces that compiled its samples.
-
-    Rows fold before coverage is known, and the table's "compiled in" column shows one answer per
-    row, so samples compiled in different workspaces cannot share one.
-    """
-    where = {s.sample: tuple(s.compiled_in) for s in samples}
-    rows: list[list[str]] = []
-    for members in table.rows:
-        groups: dict[tuple[str, ...], list[str]] = {}
-        for name in members:
-            groups.setdefault(where[name], []).append(name)
-        rows.extend(groups.values())
-    return table.model_copy(
-        update={
-            "rows": rows,
-            "folded": sum(len(row) - 1 for row in rows),
-            "cut": Cut(
-                shown=min(len(rows), SAMPLE_ROWS_CAP), hidden=max(len(rows) - SAMPLE_ROWS_CAP, 0)
-            ),
         }
     )
 
@@ -280,12 +252,15 @@ def _workspace_name(ws: Path) -> str:
 # ---- the study folder ---------------------------------------------------------------------------
 
 
-def collect_study(study: StudyFolder, report_dir: Path) -> StudyReport:
+def collect_study(
+    study: StudyFolder, report_dir: Path, workspaces: Sequence[WorkspaceReport] = ()
+) -> StudyReport:
     """The Study tab's data: every record the bounds placed, kept and left out, and why.
 
     Read from a folder the study package has already opened and checked, so no file name of a study
     folder is spelled here. Each record carries the reading's passages quoted from it: a passage
-    read from that record, or from that paper.
+    read from that record, or from that paper. Each sample names the ``workspaces`` that compiled
+    it, before the sample tables fold their rows.
     """
     bounds = study.bounds
     quotes = study.reading.passages if study.reading is not None else {}
@@ -324,7 +299,7 @@ def collect_study(study: StudyFolder, report_dir: Path) -> StudyReport:
     )
     if study.reading is None:
         return view
-    return view.model_copy(update=_reading_view(study.reading))
+    return view.model_copy(update=_reading_view(study.reading, workspaces))
 
 
 def _drawn(
@@ -352,7 +327,7 @@ def _drawn(
     return drawn, graph
 
 
-def _reading_view(reading: Reading) -> dict[str, Any]:
+def _reading_view(reading: Reading, workspaces: Sequence[WorkspaceReport]) -> dict[str, Any]:
     """The reading's part of the Study tab: its samples, factors, design table and topic tables."""
     factors = [
         StudyFactor(label=label, levels=f.levels, baseline=f.baseline, ordered=f.ordered, p=f.p)
@@ -371,6 +346,7 @@ def _reading_view(reading: Reading) -> dict[str, Any]:
         )
         for sample, row in reading.rows().items()
     ]
+    samples = [_coverage(sample, workspaces) for sample in samples]
 
     def rank(sample: StudySample) -> list[int]:
         # A sample at no level of a factor comes after every sample at one.
@@ -440,8 +416,8 @@ def _rows(labels: list[str], samples: list[StudySample]) -> list[list[str]]:
 
     Past the cap, the samples whose row shows the same on every one of ``labels`` share one row,
     placed where its first sample is. A row shows a cell's value, level, backing, p and whether it
-    is inherited, so those are what must be the same; the passages behind a cell are not shown in
-    the row, and the first sample's open on a click.
+    is inherited, and the workspaces that compiled its samples, so those are what must be the same;
+    the passages behind a cell are not shown in the row, and the first sample's open on a click.
     """
     if len(samples) <= SAMPLE_ROWS_CAP:
         return [[s.sample] for s in samples]
@@ -453,21 +429,21 @@ def _rows(labels: list[str], samples: list[StudySample]) -> list[list[str]]:
             else (c.value, c.level, c.backing, c.p, c.inherited)
             for label in labels
         )
-        rows.setdefault(shown, []).append(s.sample)
+        rows.setdefault((tuple(s.compiled_in), *shown), []).append(s.sample)
     return list(rows.values())
 
 
 def _same_for_all(label: str, samples: list[StudySample]) -> StudyCell | None:
-    """The one claim every sample has on ``label``, or ``None`` when two samples differ.
+    """The one claim every sample has on ``label``, or ``None`` when the label varies.
 
     Where a sample took the claim from makes no difference to what it says, so the folded claim
     is inherited only when every sample's is.
     """
+    from ..study.labels import varies
+
     cells = [s.cells.get(label) for s in samples]
-    if any(c is None for c in cells):
-        return None
-    said = [c.model_copy(update={"inherited": False}) for c in cells if c is not None]
-    if any(c != said[0] for c in said):
+    said = [None if c is None else c.model_copy(update={"inherited": False}) for c in cells]
+    if not said or said[0] is None or varies(said):
         return None
     return said[0].model_copy(update={"inherited": all(c.inherited for c in cells if c)})
 

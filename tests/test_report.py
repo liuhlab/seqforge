@@ -3526,7 +3526,8 @@ def test_several_workspaces_give_one_report_in_the_study_folder_marking_who_comp
 ) -> None:
     """Named with ``--study``, several workspaces are one report, written where it started: the
     study folder. Each keeps its own assays, and each reading sample names the workspaces whose
-    manifest holds its BioSample accession, or none."""
+    manifest holds its BioSample accession, or none. The Study tab says how many samples each
+    workspace compiled whether or not a sample table has rows to mark them in."""
     folder = _joined_study(tmp_path / "GSE1")
     first, second = tmp_path / "first", tmp_path / "second"
     _compiled(first, synth_10x_v3.manifest, [JOINED["GSM1"], JOINED["GSM3"]])
@@ -3544,6 +3545,13 @@ def test_several_workspaces_give_one_report_in_the_study_folder_marking_who_comp
     assert all(len(ws["assays"]) == 1 for ws in data["workspaces"])
     coverage = {s["sample"]: [named[p] for p in s["compiled_in"]] for s in data["study"]["samples"]}
     assert coverage == {"GSM1": ["first"], "GSM3": ["first"], "GSM4": ["second"], "GSM6": []}
+    page = (folder / "report.html").read_text()
+    lines = re.findall(r"<p [^>]*data-coverage[^>]*>(.*?)</p>", page)
+    assert [unescape(re.sub(r"<[^>]+>", "", line)) for line in lines] == [
+        "Compiled in first: 2 of 4 samples",
+        "Compiled in second: 1 of 4 samples",
+        "In no workspace read: 1 of 4 samples",
+    ]
 
 
 @pytest.mark.parametrize("stale", [True, False], ids=["reading changed since", "same reading"])
@@ -3640,6 +3648,13 @@ def _two_materials(study: dict[str, Any]) -> None:
     study.update(_large_study(len(study["reading"]["samples"]), materials=2))
 
 
+def _one_compiled(study: dict[str, Any]) -> None:
+    """Two materials, and one sample of the first compiled in a workspace the others are not in."""
+    _two_materials(study)
+    study["reading"]["samples"]["GSM1"]["biosample_accession"] = "SAMN1"
+    study["compiled"] = {"first": ["SAMN1"]}
+
+
 def _long_value(study: dict[str, Any]) -> None:
     study["reading"]["samples"]["GSM1"]["dose"] = _said("d" * 81)
 
@@ -3691,12 +3706,19 @@ def _unchanged(study: dict[str, Any]) -> None:
         pytest.param(
             51, _two_materials, {"Material folded": 49}, id="fifty-one samples of two materials"
         ),
+        pytest.param(
+            51,
+            _one_compiled,
+            {"Material folded": 48},
+            id="fifty-one samples of two materials, one compiled apart",
+        ),
         pytest.param(9, _long_value, {"values": 1}, id="a value of eighty-one characters"),
         pytest.param(9, _long_quote, {"quotes": 1}, id="a quote of eighty-one characters"),
     ],
 )
 def test_each_study_section_past_its_cap_counts_what_it_hides_in_report_json(
     tmp_path: Path,
+    request: pytest.FixtureRequest,
     size: int,
     edit: Callable[[dict[str, Any]], None],
     hidden: dict[str, int],
@@ -3705,15 +3727,21 @@ def test_each_study_section_past_its_cap_counts_what_it_hides_in_report_json(
     much it hides, and the count is in ``report.json``. A study just past one cap hides exactly
     what is past it there and nothing anywhere else. A cross-table too wide for the page falls back
     to the grouped list and says how many columns it would have had; rows the same across a topic
-    table's labels fold into one before any is paged away."""
+    table's labels fold into one before any is paged away, and samples compiled in different
+    workspaces never share a row, whose "compiled in" is one answer."""
     study = _large_study(size)
     edit(study)
     folder = tmp_path / "GSE1"
     folder.mkdir()
     for name in ("bounds", "reading"):
         (folder / f"{name}.yaml").write_text(yaml.safe_dump(study[name], sort_keys=False))
-    result = runner.invoke(app, ["report", "--study", str(folder), "--no-timestamp"])
+    args = ["report", "--study", str(folder), "--no-timestamp"]
+    for name, accessions in study.get("compiled", {}).items():
+        manifest = request.getfixturevalue("synth_10x_v3").manifest
+        _compiled(tmp_path / name, manifest, accessions)
+        args += ["-C", str(tmp_path / name)]
+    result = runner.invoke(app, args)
     assert result.exit_code == 0, result.output
 
-    said = json.loads((folder / "report.json").read_text())["study"]
+    said = json.loads(Path(json.loads(result.stdout)["json"]).read_text())["study"]
     assert _cut_counts(said) == hidden

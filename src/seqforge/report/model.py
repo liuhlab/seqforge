@@ -532,8 +532,9 @@ class TopicTable(_View):
 
     ``rows`` are the table's rows, in the order of :attr:`StudyReport.samples`, and empty when no
     label varies. Each row is one sample, until the study has more samples than the cap: then the
-    samples whose row is the same on every factor and every varying label share one row, shown as
-    its first sample "× n", and ``folded`` counts the samples a row holds beside its first. ``cut``
+    samples whose row is the same on every factor and every varying label, and that the same
+    workspaces compiled, share one row, shown as its first sample "× n", and ``folded`` counts the
+    samples a row holds beside its first. ``cut``
     is how many rows the first page shows, and how many are on the pages after it.
     """
 

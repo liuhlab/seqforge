@@ -183,7 +183,7 @@ def write_project_views(
     if study is not None:
         columns, rows, joined = join_study(columns, rows, manifests, study)
     tsv_path = root / SAMPLE_METADATA_TSV
-    tsv_path.write_text(format_tsv(columns, rows))
+    _write_if_changed(tsv_path, format_tsv(columns, rows))
 
     portable = [
         {
@@ -193,8 +193,20 @@ def write_project_views(
         for a in assays
     ]
     yaml_path = root / PROJECT_YAML
-    yaml_path.write_text(yaml.safe_dump(project_index(portable), sort_keys=True))
+    _write_if_changed(yaml_path, yaml.safe_dump(project_index(portable), sort_keys=True))
     return tsv_path, yaml_path, joined
+
+
+def _write_if_changed(path: Path, text: str) -> None:
+    """Write ``text`` to ``path`` unless the file already holds it.
+
+    A compiled pipeline's labelling rule takes the sample table as an input, and snakemake re-runs a
+    rule whose input is newer than its output: a table rewritten with the same text would relabel
+    every sample on every run.
+    """
+    if path.is_file() and path.read_text() == text:
+        return
+    path.write_text(text)
 
 
 def sample_labels(table: Path, sample_id: str) -> tuple[dict[str, str], str | None]:
