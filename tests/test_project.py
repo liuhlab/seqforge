@@ -31,7 +31,7 @@ from seqforge import kb
 from seqforge.cli import app
 from seqforge.models.dataset import DatasetManifest, SampleGroup
 from seqforge.project import format_tsv, project_index, sample_metadata_table
-from study_kit import JOINED, compiled, joined_study, quoted
+from study_kit import JOINED, compiled, joined_study, material, quoted
 
 runner = CliRunner()
 
@@ -192,6 +192,11 @@ def _general_assay(reading: dict[str, Any]) -> None:
     reading["shared"]["assay"]["term"] = "EFO:0008913"
 
 
+def _two_libraries_of_one_biosample(reading: dict[str, Any]) -> None:
+    """GSM2, the input made from GSM1's material, links the same BioSample as GSM1."""
+    reading["samples"]["GSM2"] = {"biosample_accession": "SAMN1", **material("B1")}
+
+
 @pytest.mark.parametrize(
     ("accessions", "change", "under", "code", "subject"),
     [
@@ -227,6 +232,14 @@ def _general_assay(reading: dict[str, Any]) -> None:
             "reading.samples.GSM1.assay",
             id="a kit term outside the reading's assay term",
         ),
+        pytest.param(
+            list(JOINED.values()),
+            _two_libraries_of_one_biosample,
+            None,
+            "BIOSAMPLE_IN_SEVERAL_ROWS",
+            "experiment.samples.s_SAMN1",
+            id="two reading rows of one BioSample",
+        ),
     ],
 )
 def test_a_reading_that_disagrees_with_the_compile_warns_and_never_refuses(
@@ -251,6 +264,9 @@ def test_a_reading_that_disagrees_with_the_compile_warns_and_never_refuses(
     assert {w["code"] for w in warned} == {code}
     assert subject in {w["subject"]["ref"] for w in warned}
     assert len(rows) == len(accessions)
+    # A manifest sample a warning names is one the reading cannot label, so it carries no labels.
+    unlabelled = {w["subject"]["ref"].removeprefix("experiment.samples.") for w in warned}
+    assert all(not r["reading_hash"] for r in rows if r["sample_id"] in unlabelled)
 
 
 def test_a_named_study_leaves_the_manifest_and_its_hash_as_they_were(tmp_path: Path) -> None:

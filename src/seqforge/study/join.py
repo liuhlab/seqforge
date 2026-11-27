@@ -9,8 +9,8 @@ they get no column; a label some samples lack varies (:func:`~.labels.varies`).
 
 Where the two overlap, one checks the other, and a disagreement is a warning and never a
 ``Conflict``: neither side is an observation of the bytes, and a reading never blocks a compile.
-The warnings are a manifest sample with no reading row, a reading row with no compiled sample, a
-species that is not the manifest's organism, and a manifest assay term that is not the reading's
+The warnings are a manifest sample with no reading row, a manifest sample whose BioSample several
+reading rows link, which takes none of them, a reading row with no compiled sample, a species that is not the manifest's organism, and a manifest assay term that is not the reading's
 assay term or under it in the ontology.
 """
 
@@ -143,18 +143,32 @@ def join_reading(
     takes :data:`CLAIMED_PREFIX` before it.
     """
     rows = reading.rows()
-    by_accession = {
-        own.biosample_accession: gsm
-        for gsm, own in reading.samples.items()
-        if own.biosample_accession is not None
-    }
+    # Several rows can link one BioSample, such as a pull-down and its input from one material.
+    # Nothing else the join checks tells them apart, so a sample of that BioSample takes no row.
+    by_accession: dict[str, list[str]] = {}
+    for gsm, own in reading.samples.items():
+        if own.biosample_accession is not None:
+            by_accession.setdefault(own.biosample_accession, []).append(gsm)
     warnings: list[ValidationWarning] = []
     unchecked: list[str] = []
     joined: dict[str, dict[str, SampleClaim]] = {}
     compiled: set[str] = set()
     for sample in samples:
-        gsm = by_accession.get(sample.accession) if sample.accession else None
-        if gsm is None:
+        linking = by_accession.get(sample.accession, []) if sample.accession else []
+        if len(linking) > 1:
+            compiled.update(linking)
+            warnings.append(
+                ValidationWarning(
+                    code="BIOSAMPLE_IN_SEVERAL_ROWS",
+                    message=f"the manifest's sample {sample.sample_id} ({sample.accession}) is "
+                    f"linked by {len(linking)} rows of the reading of {reading.study}, "
+                    f"{', '.join(linking)}, and nothing tells which one it is, so it carries no "
+                    "labels",
+                    subject=_subject(f"experiment.samples.{sample.sample_id}"),
+                )
+            )
+            continue
+        if not linking:
             warnings.append(
                 ValidationWarning(
                     code="SAMPLE_NOT_IN_READING",
@@ -165,6 +179,7 @@ def join_reading(
                 )
             )
             continue
+        (gsm,) = linking
         compiled.add(gsm)
         joined[sample.sample_id] = rows[gsm]
         warnings.extend(_checks(gsm, rows[gsm], sample, unchecked))
