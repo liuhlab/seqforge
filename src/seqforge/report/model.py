@@ -360,6 +360,55 @@ class WorkspaceReport(_View):
     assays: list[AssayReport] = Field(default_factory=list)
 
 
+class PassageView(_View):
+    """One quote of a study file under its number, and where it was read.
+
+    ``source`` is the record and its field, or the paper and its section, joined for a reader.
+    """
+
+    number: int
+    source: str
+    quote: str
+
+
+class BoundsRecord(_View):
+    """One record the bounds placed: a GEO Series or a paper, kept or left out, and why.
+
+    ``backing`` is the claim's backing mark. It is ``None`` only for a kept paper, which a bounds
+    file lists with no claim of its own. ``reason`` is what an inferred claim says or an unknown
+    claim's note, and ``reason_passages`` are the bounds file's passages the claim is quoted from or
+    rests on. ``superseries`` is the SuperSeries a sub-Series belongs to. Only the standard set's
+    study file says which Series that is, so it is ``None`` for any other folder. ``passages`` are
+    the reading's passages quoted from this record, empty when the study has no reading.
+    """
+
+    id: str
+    kind: Literal["series", "paper"]
+    kept: bool
+    backing: Literal["quoted", "inferred", "unknown"] | None = None
+    reason: str | None = None
+    reason_passages: list[PassageView] = Field(default_factory=list)
+    p: float | None = None
+    superseries: str | None = None
+    passages: list[PassageView] = Field(default_factory=list)
+
+
+class StudyReport(_View):
+    """The study folder the report read: its bounds, as the records of the Study tab's graph.
+
+    ``path`` is the folder relative to the report's own directory, as every path here is: ``.``
+    when the report was written into the study folder. ``reason`` is the bounds file's one line on
+    why these records are one study. ``records`` holds every record the bounds placed, kept and
+    left out, in the order the bounds file writes them.
+    """
+
+    study: str
+    path: str
+    reason: str
+    records: list[BoundsRecord] = Field(default_factory=list)
+    has_reading: bool = False
+
+
 class ProjectReport(_View):
     """Everything the report renders, and exactly what ``report.json`` holds.
 
@@ -367,7 +416,7 @@ class ProjectReport(_View):
     so the file a program reads and the page a person reads carry one set of data. The top level is
     a list of workspaces rather than one workspace's fields because a report is not bound to one
     compile: a study read before anything was compiled, and one compiled across several workspaces,
-    are the same document with zero or several entries here and a part of their own beside it.
+    are the same document with zero or several entries here and ``study`` beside them.
 
     ``generated_at`` is injectable (default ``None``) so a test can pin it and assert two renders are
     byte-identical; when ``None`` the page simply omits a timestamp.
@@ -376,6 +425,8 @@ class ProjectReport(_View):
     report_version: str
     generated_at: str | None = None
     workspaces: list[WorkspaceReport] = Field(default_factory=list)
+    #: The study folder ``--study`` named, or ``None`` when the report read none.
+    study: StudyReport | None = None
 
     @property
     def assays(self) -> list[AssayReport]:
@@ -422,5 +473,8 @@ __all__ = [  # noqa: RUF022 - grouped by concept under comments, not alphabetica
     "ConclusionView",
     "AssayReport",
     "WorkspaceReport",
+    "PassageView",
+    "BoundsRecord",
+    "StudyReport",
     "ProjectReport",
 ]

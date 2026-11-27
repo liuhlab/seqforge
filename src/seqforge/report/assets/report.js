@@ -51,12 +51,20 @@
         p.classList.toggle("active", p.getAttribute("data-tab") === state.tab);
       });
     });
+    // The Study tab belongs to no assay, so the assay switcher leaves it alone.
+    document.querySelectorAll("[data-study] .pane").forEach(function (p) {
+      p.classList.toggle("active", p.getAttribute("data-tab") === state.tab);
+    });
     document.querySelectorAll(".tab").forEach(function (t) {
       t.classList.toggle("active", t.getAttribute("data-tab") === state.tab);
     });
   }
 
   function initTabs() {
+    // The page opens on the tab the markup marks active: Overview when there is a compile, Study
+    // when the page is a study's alone.
+    var opening = document.querySelector(".tab.active");
+    if (opening) state.tab = opening.getAttribute("data-tab");
     document.querySelectorAll(".tab").forEach(function (t) {
       t.addEventListener("click", function () {
         state.tab = t.getAttribute("data-tab");
@@ -464,6 +472,33 @@
     window.addEventListener("resize", close);
   }
 
+  // ---- the bounds graph's hover cards -----------------------------------------------------------
+  // Each record's box names its card by id. The card is rendered in the page, every value escaped,
+  // and hidden; it shows while the pointer or the keyboard focus is on the box, below it, or above
+  // it when there is no room below.
+  function initBoundsGraph() {
+    document.querySelectorAll("[data-bounds-node]").forEach(function (node) {
+      var tip = document.getElementById(node.getAttribute("data-bounds-node"));
+      if (!tip) return;
+      function show() {
+        tip.hidden = false;
+        var r = node.getBoundingClientRect();
+        var left = Math.max(8, Math.min(r.left, window.innerWidth - tip.offsetWidth - 12));
+        var top = r.bottom + 6;
+        if (top + tip.offsetHeight > window.innerHeight - 8) {
+          top = Math.max(8, r.top - tip.offsetHeight - 6);
+        }
+        tip.style.left = left + "px";
+        tip.style.top = top + "px";
+      }
+      function hide() { tip.hidden = true; }
+      node.addEventListener("mouseenter", show);
+      node.addEventListener("mouseleave", hide);
+      node.addEventListener("focusin", show);
+      node.addEventListener("focusout", hide);
+    });
+  }
+
   // ---- boot --------------------------------------------------------------------------------------
   // The Flow tab is plain HTML cards (CSS handles the responsive layout), so there is no diagram
   // engine to drive here — the shell is a few DOM handlers and nothing loads off the network.
@@ -473,6 +508,7 @@
     initRowToggles();
     initProvPopover(); // before the grids: it is what gives them a popover to close
     initSampleGrids();
+    initBoundsGraph();
   }
 
   if (document.readyState === "loading") {

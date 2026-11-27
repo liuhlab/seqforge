@@ -1,4 +1,4 @@
-"""``seqforge report`` — render a workspace's compile as one self-contained HTML page and its data.
+"""``seqforge report`` — render a compile, a study or both as one HTML page and its data.
 
 A deterministic reader: it opens the ``seqforge/`` artifacts already on disk (manifest, samples,
 evidence matrix, composed pipeline) and writes a single offline HTML file that makes the whole decision
@@ -22,21 +22,33 @@ from pathlib import Path
 import typer
 
 from ..report import collect_report, write_report
-from ..workspace import report_html_path
+from ..workspace import REPORT_HTML, report_html_path
+from ._common import _open_study
 from .root import app
 
 
 @app.command("report")
 def report_cmd(
-    workspace: Path = typer.Option(
-        Path(), "-C", "--workspace", help="Root holding the seqforge/ state to report on."
+    workspace: Path | None = typer.Option(
+        None,
+        "-C",
+        "--workspace",
+        help="Root holding the seqforge/ state to report on. Default: the current directory, "
+        "unless --study is given alone.",
+    ),
+    study: Path | None = typer.Option(
+        None,
+        "--study",
+        help="A study folder to show on the Study tab: its bounds as a graph of the records kept "
+        "and left out. Given alone, the report needs no compile and is written into the folder.",
     ),
     output: Path | None = typer.Option(
         None,
         "-o",
         "--output",
-        help="Where to write the HTML (default: seqforge/report.html under the workspace). The "
-        "data file goes beside it, under the same name with .json.",
+        help="Where to write the HTML (default: seqforge/report.html under the workspace, or "
+        "report.html in the study folder when no workspace is given). The data file goes beside "
+        "it, under the same name with .json.",
     ),
     timestamp: bool = typer.Option(
         True,
@@ -52,7 +64,11 @@ def report_cmd(
         "joined onto the pipeline dir, so pass an absolute path if it lives elsewhere.",
     ),
 ) -> None:
-    """Write one self-contained HTML report of the workspace's compile and its data; print a summary.
+    """Write one self-contained HTML report of a compile, a study or both, and its data; print a summary.
+
+    ``--study`` adds the Study tab, read from the study folder through its format checks: a folder
+    the checks refuse exits 2 before anything is written. Given without ``-C``, the report is the
+    study's alone, needs no compile, and is written into the study folder.
 
     ``report.json`` is written beside the page and is what the page is built from: the same data, for
     a program, with each path in it relative to where the report was written — each ``.h5ad`` the
@@ -69,11 +85,26 @@ def report_cmd(
     ``--results`` is a machine fact, like ``--fastq-dir`` and ``--sif-dir``: it says where this
     machine put the outputs, and it cannot change anything the page says the compiler decided.
     """
-    out = output if output is not None else report_html_path(workspace)
+    opened = _open_study(study)
+    if workspace is None and opened is None:
+        workspace = Path()
+    # The folder the report starts from is where it writes: the workspace's seqforge/, or the study
+    # folder when it is read alone. A study read beside a workspace is read where it is.
+    if output is not None:
+        out = output
+    elif workspace is not None:
+        out = report_html_path(workspace)
+    else:
+        assert opened is not None
+        out = opened.path / REPORT_HTML
     generated_at = datetime.now().strftime("%Y-%m-%d %H:%M") if timestamp else None
     try:
         report = collect_report(
-            workspace, generated_at=generated_at, results_dir=results, report_dir=out.parent
+            workspace,
+            study=opened,
+            generated_at=generated_at,
+            results_dir=results,
+            report_dir=out.parent,
         )
     except FileNotFoundError as exc:
         typer.echo(
@@ -88,6 +119,7 @@ def report_cmd(
         "json": str(written.json),
         "bytes": written.html_bytes,
         "assays": len(report.assays),
+        "study": None if report.study is None else report.study.study,
         "conclusion": [
             {
                 "assay": a.label,

@@ -58,8 +58,10 @@ compose(manifest, processing)   -> Snakefile + config + units.tsv   deterministi
      first refusal, adds no authority, and has no `--resume` — each stage resumes from its cache.
      It never starts the study chain: `--study` names a folder that chain already wrote.
 ══════╪══════════════════════════════════════════════════════════════════════════════════════
-      │ seqforge/, and the study folder once the Study tab is built
-REPORT -> seqforge/report.html    `seqforge report`; one page, and nothing written back into either
+      │ seqforge/, and the study folder `--study` names: its bounds, on the Study tab
+REPORT -> report.html + report.json   `seqforge report`; one page and its data, written into the
+          folder it starts from: seqforge/, or the study folder when `--study` is given alone.
+          Nothing else is written into either folder
 ```
 
 ## Non-negotiable rules: R1–R12

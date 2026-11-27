@@ -27,7 +27,7 @@ import os
 import re
 from collections.abc import Callable
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, NamedTuple
+from typing import TYPE_CHECKING, Any, Literal, NamedTuple
 
 import yaml
 
@@ -45,6 +45,7 @@ from .model import (
     ArtifactEmbed,
     AssayLabelView,
     AssayReport,
+    BoundsRecord,
     ChemistryDecision,
     ConclusionView,
     DecisionField,
@@ -56,17 +57,21 @@ from .model import (
     MatrixRoleRow,
     MatrixView,
     OnlistView,
+    PassageView,
     PipelineStage,
     PlanView,
     ProjectReport,
     ReadView,
     RuledOut,
     SampleView,
+    StudyReport,
     WorkspaceReport,
 )
 
 if TYPE_CHECKING:
     from ..harvest.artifacts import HarvestLog
+    from ..study.claims import Claim, Passage
+    from ..study.folder import StudyFolder
 
 #: A handful of common lab organisms, so the Overview can say "C. elegans" not just "taxid 6239".
 #: Deliberately tiny and unauthoritative — an unknown taxid degrades to "taxid N", never a wrong name.
@@ -93,24 +98,38 @@ _MAX_MATRIX_TECHS = 6
 
 
 def collect_report(
-    workspace: str | Path,
+    workspace: str | Path | None,
     *,
+    study: StudyFolder | None = None,
     generated_at: str | None = None,
     results_dir: Path | None = None,
     report_dir: Path | None = None,
 ) -> ProjectReport:
-    """Project a workspace into a :class:`ProjectReport` (one :class:`AssayReport` per assay).
+    """Project a workspace, a study folder or both into a :class:`ProjectReport`.
 
+    The workspace gives one :class:`AssayReport` per assay, and ``study``, a folder already opened
+    through its checks, gives the Study tab. With no workspace the report is the study's alone.
     ``generated_at`` is threaded through verbatim (a caller may pin it for byte-deterministic output).
     ``results_dir`` says where a finished pipeline's per-sample outputs are; ``None`` derives it from
     the composed config's ``outdir``, which is what a pipeline started in its own directory used.
     ``report_dir`` is the directory the report will be written into, which every path in the report
-    is relative to; ``None`` is the default report's, ``seqforge/``. All three are caller-supplied
-    *machine* facts, and none can change what the page says the compiler decided.
+    is relative to; ``None`` is the default report's: ``seqforge/`` with a workspace, the study
+    folder without one. All three are caller-supplied *machine* facts, and none can change what the
+    page says the compiler decided.
     Raises :class:`FileNotFoundError` only when there is genuinely nothing to report — no manifest and
     no draft anywhere under ``seqforge/``.
     """
     from . import REPORT_VERSION
+
+    if workspace is None:
+        if study is None:
+            raise ValueError("a report reads a workspace, a study folder or both")
+        where = study.path if report_dir is None else Path(report_dir)
+        return ProjectReport(
+            report_version=REPORT_VERSION,
+            generated_at=generated_at,
+            study=collect_study(study, where),
+        )
 
     ws = Path(workspace)
     where = report_html_path(ws).parent if report_dir is None else Path(report_dir)
@@ -135,6 +154,7 @@ def collect_report(
         workspaces=[
             WorkspaceReport(name=_workspace_name(ws), path=_relative(ws, where), assays=assays)
         ],
+        study=None if study is None else collect_study(study, where),
     )
 
 
@@ -152,6 +172,91 @@ def _workspace_name(ws: Path) -> str:
     # The dataset dir is usually the parent of `seqforge/`; when the workspace IS `seqforge/`, use it.
     name = resolved.name
     return name or "workspace"
+
+
+# ---- the study folder ---------------------------------------------------------------------------
+
+
+def collect_study(study: StudyFolder, report_dir: Path) -> StudyReport:
+    """The Study tab's data: every record the bounds placed, kept and left out, and why.
+
+    Read from a folder the study package has already opened and checked, so no file name of a study
+    folder is spelled here. Each record carries the reading's passages quoted from it: a passage
+    read from that record, or from that paper.
+    """
+    bounds = study.bounds
+    quotes = study.reading.passages if study.reading is not None else {}
+    parent, subseries = _superseries(study.study)
+
+    def record(id_: str, claim: Claim | None, *, kept: bool) -> BoundsRecord:
+        backing = None if claim is None else _backing(claim)
+        cites = [] if claim is None else (claim.quoted or claim.see or [])
+        return BoundsRecord(
+            id=id_,
+            kind="paper" if id_.startswith("pmid:") else "series",
+            kept=kept,
+            backing=backing,
+            reason=None if claim is None else (claim.inferred or claim.unknown),
+            reason_passages=[_passage_view(n, bounds.passages[n]) for n in cites],
+            p=None if claim is None else claim.p,
+            superseries=parent if id_ in subseries else None,
+            passages=[
+                _passage_view(n, q) for n, q in sorted(quotes.items()) if _quotes_from(q, id_)
+            ],
+        )
+
+    records = [record(c.id, c, kept=True) for c in bounds.series]
+    records += [record(paper, None, kept=True) for paper in bounds.papers]
+    records += [record(c.id, c, kept=False) for c in bounds.left_out]
+    return StudyReport(
+        study=bounds.study,
+        path=_relative(study.path, report_dir),
+        reason=bounds.reason,
+        records=records,
+        has_reading=study.reading is not None,
+    )
+
+
+def _backing(claim: Claim) -> Literal["quoted", "inferred", "unknown"]:
+    """The one backing mark a checked claim holds."""
+    if claim.quoted is not None:
+        return "quoted"
+    return "inferred" if claim.inferred is not None else "unknown"
+
+
+def _superseries(study_file: dict[str, Any] | None) -> tuple[str | None, set[str]]:
+    """The SuperSeries the standard set's study file names, and the Series under it.
+
+    Only that file says which Series is the SuperSeries; a bounds file does not, so any other folder
+    has none. The file has no format check, so each field is taken only in the shape it is written.
+    """
+    records = (study_file or {}).get("records")
+    if not isinstance(records, dict):
+        return None, set()
+    parent, series = records.get("superseries"), records.get("series")
+    if not isinstance(parent, str) or not isinstance(series, list):
+        return None, set()
+    return parent, {s for s in series if isinstance(s, str) and s != parent}
+
+
+def _quotes_from(passage: Passage, record: str) -> bool:
+    """Whether ``passage`` was read from ``record``: that paper, or that record or one of a list."""
+    if passage.paper is not None:
+        return passage.paper == record
+    return record == passage.record or (
+        isinstance(passage.record, list) and record in passage.record
+    )
+
+
+def _passage_view(number: int, passage: Passage) -> PassageView:
+    """One passage under its number, with where it was read joined for a reader."""
+    if passage.paper is not None:
+        source = f"{passage.paper} · {passage.section}"
+    else:
+        record = passage.record
+        named = ", ".join(record) if isinstance(record, list) else record
+        source = f"{named} · {passage.field}"
+    return PassageView(number=number, source=source, quote=passage.quote)
 
 
 # ---- one assay ----------------------------------------------------------------------------------

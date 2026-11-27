@@ -1,4 +1,4 @@
-"""``report`` — a deterministic reader that renders one workspace as one self-contained HTML page.
+"""``report`` — a deterministic reader that renders a workspace, a study folder or both as one HTML page.
 
 ``seqforge report`` answers "what did the compiler decide, and how?" at a glance: the dataset, the
 chemistry call and the bytes behind it, the per-sample metadata with its provenance, and the composed
@@ -16,7 +16,7 @@ from __future__ import annotations
 
 #: CalVer YYYY.M.PATCH; bump when the report's layout or projection changes (stamped in the
 #: footer, folded into no cache key). History: `docs/research/report-version-history-2026-11-25.md`.
-REPORT_VERSION = "2026.11.2"
+REPORT_VERSION = "2026.11.3"
 
 from .collect import collect_report  # noqa: E402
 from .render import ReportFiles, render_html, write_report  # noqa: E402
