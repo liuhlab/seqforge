@@ -1696,12 +1696,10 @@ def _bounds_graph(study: StudyReport) -> str:
 
     edges, boxes, joins = "", "", ""
     half = _NODE_W / 2
-    for kind, x, y_more in (
-        ("series", _GRAPH_SIDE_X, series_ys[-1] if series_ys else 0.0),
-        ("paper", _GRAPH_W - _GRAPH_SIDE_X, papers_ys[-1] if papers_ys else 0.0),
-    ):
-        if kind in more:
-            boxes += _more_node(kind, more[kind], x, y_more)
+    if "series" in more:
+        boxes += _more_node("series", more["series"], _GRAPH_SIDE_X, series_ys[-1])
+    if "paper" in more:
+        boxes += _more_node("paper", more["paper"], _GRAPH_W - _GRAPH_SIDE_X, papers_ys[-1])
     for i, record in drawn:
         x, y = at[i]
         side = -1 if record.kind == "series" else 1  # which side of the study the record is on
