@@ -360,15 +360,41 @@ class WorkspaceReport(_View):
     assays: list[AssayReport] = Field(default_factory=list)
 
 
+#: The caps of the Study tab. One rule for every section: past its cap, a section shows its first
+#: part, says how much it hides, and keeps the rest one click away, and each count it hides is a
+#: field of ``report.json``. The bounds graph draws this many kept records on each side, and as many
+#: left out, and lists the rest of the side under one "+k more" node.
+GRAPH_KEPT_CAP = 8
+GRAPH_LEFT_OUT_CAP = 8
+#: A two-factor cross-table with more columns than this falls back to the grouped list.
+CROSS_COLUMNS_CAP = 12
+#: The grouped list shows this many rows, then "show all".
+GROUPED_ROWS_CAP = 20
+#: A sample table past this many samples first folds the rows the same on every one of its labels
+#: into one row, then pages the rows by this many.
+SAMPLE_ROWS_CAP = 50
+#: A value or a quote longer than this is cut, with the full text on click.
+TEXT_CAP = 80
+
+
+class Cut(_View):
+    """How much of one capped section shows: ``shown`` items first, and ``hidden`` behind a click."""
+
+    shown: int
+    hidden: int = 0
+
+
 class PassageView(_View):
     """One quote of a study file under its number, and where it was read.
 
     ``source`` is the record and its field, or the paper and its section, joined for a reader.
+    ``hidden_chars`` is how much of the quote is past the cap, cut on the page until a click.
     """
 
     number: int
     source: str
     quote: str
+    hidden_chars: int = 0
 
 
 class BoundsRecord(_View):
@@ -381,12 +407,14 @@ class BoundsRecord(_View):
     study file says which Series that is, so it is ``None`` for any other folder. ``passages`` are
     the reading's passages quoted from this record, empty when the study has no reading. ``title``
     is the record's title as the bounds file copied it, ``None`` for a file drawn before titles were
-    copied, whose records go by their ids alone.
+    copied, whose records go by their ids alone. ``drawn`` is false for a record past its side's
+    cap, which the graph lists under the side's "+k more" node instead of drawing.
     """
 
     id: str
     kind: Literal["series", "paper"]
     kept: bool
+    drawn: bool = True
     title: str | None = None
     backing: Literal["quoted", "inferred", "unknown"] | None = None
     reason: str | None = None
@@ -406,10 +434,11 @@ class StudyCell(_View):
     ``passages`` are the reading's passages the claim is quoted from, or rests on when it is not
     quoted, and ``against`` those that speak against it, each by its number in
     :attr:`StudyReport.passages`. ``inherited`` is true for a claim the sample takes from
-    ``shared``.
+    ``shared``. ``hidden_chars`` is how much of the value is past the cap, cut on the page.
     """
 
     value: str | None = None
+    hidden_chars: int = 0
     term: list[str] = Field(default_factory=list)
     level: str | None = None
     backing: Literal["quoted", "inferred", "unknown", "na"]
@@ -466,6 +495,10 @@ class DesignTable(_View):
     row by row. ``grouped`` otherwise: ``rows`` and ``columns`` are empty, and ``groups`` holds one
     entry per combination the samples take, in the factors' level order. ``assays`` are the assays
     the counts are split by, empty when the study has one.
+
+    Two factors whose cross-table would be wider than its cap fall back to the grouped list, and
+    ``cross_columns`` says how many columns it would have had; it is ``None`` otherwise. ``cut`` is
+    how many of a grouped list's rows show before "show all", ``None`` for a cross-table.
     """
 
     kind: Literal["cross", "grouped"]
@@ -473,6 +506,8 @@ class DesignTable(_View):
     columns: list[str | None] = Field(default_factory=list)
     groups: list[DesignGroup] = Field(default_factory=list)
     assays: list[str] = Field(default_factory=list)
+    cross_columns: int | None = None
+    cut: Cut | None = None
 
 
 class SameForAll(_View):
@@ -487,14 +522,22 @@ class TopicTable(_View):
 
     ``labels`` is every label of the topic the reading has, factors aside: a factor is a column of
     every topic table, at the left. ``varying`` are the labels whose claims differ between samples,
-    the table's columns in order, and ``same`` the labels folded into one "same for all" line. The
-    rows are :attr:`StudyReport.samples`, in their order.
+    the table's columns in order, and ``same`` the labels folded into one "same for all" line.
+
+    ``rows`` are the table's rows, in the order of :attr:`StudyReport.samples`, and empty when no
+    label varies. Each row is one sample, until the study has more samples than the cap: then the
+    samples whose row is the same on every factor and every varying label share one row, shown as
+    its first sample "× n", and ``folded`` counts the samples a row holds beside its first. ``cut``
+    is how many rows the first page shows, and how many are on the pages after it.
     """
 
     topic: str
     labels: list[str] = Field(default_factory=list)
     varying: list[str] = Field(default_factory=list)
     same: list[SameForAll] = Field(default_factory=list)
+    rows: list[list[str]] = Field(default_factory=list)
+    folded: int = 0
+    cut: Cut = Field(default_factory=lambda: Cut(shown=0))
 
 
 class StudyReport(_View):
@@ -503,16 +546,18 @@ class StudyReport(_View):
     ``path`` is the folder relative to the report's own directory, as every path here is: ``.``
     when the report was written into the study folder. ``reason`` is the bounds file's one line on
     why these records are one study. ``records`` holds every record the bounds placed, kept and
-    left out, in the order the bounds file writes them. The rest is the reading's, and empty, with
-    ``design`` ``None``, when the study has none: ``samples`` in the design's order, ``factors`` in
-    the reading's, ``topics`` in the label table's, and ``passages`` the reading's, which a cell
-    names by number.
+    left out, in the order the bounds file writes them, and ``graph`` how many of each side's the
+    graph draws and how many it lists under the side's "+k more" node, by the records' kind. The
+    rest is the reading's, and empty, with ``design`` ``None``, when the study has none: ``samples``
+    in the design's order, ``factors`` in the reading's, ``topics`` in the label table's, and
+    ``passages`` the reading's, which a cell names by number.
     """
 
     study: str
     path: str
     reason: str
     records: list[BoundsRecord] = Field(default_factory=list)
+    graph: dict[Literal["series", "paper"], Cut] = Field(default_factory=dict)
     has_reading: bool = False
     passages: list[PassageView] = Field(default_factory=list)
     factors: list[StudyFactor] = Field(default_factory=list)
@@ -585,6 +630,13 @@ __all__ = [  # noqa: RUF022 - grouped by concept under comments, not alphabetica
     "ConclusionView",
     "AssayReport",
     "WorkspaceReport",
+    "GRAPH_KEPT_CAP",
+    "GRAPH_LEFT_OUT_CAP",
+    "CROSS_COLUMNS_CAP",
+    "GROUPED_ROWS_CAP",
+    "SAMPLE_ROWS_CAP",
+    "TEXT_CAP",
+    "Cut",
     "PassageView",
     "BoundsRecord",
     "StudyCell",

@@ -184,8 +184,10 @@
         // `.smp-off` and not the `hidden` attribute: `hidden` is the drawer's own state on the second
         // row of every pair, and one attribute meaning two things would close a reader's open drawer
         // every time they paged past it and back.
+        // A Study-tab sample table counts rows, since a row there can hold several samples.
         status.textContent =
-          "Showing " + (first + 1) + "–" + last + " of " + order.length + " samples";
+          "Showing " + (first + 1) + "–" + last + " of " + order.length + " " +
+          (bar.getAttribute("data-pager-unit") || "samples");
         at.textContent = "Page " + (page + 1) + " of " + pages;
         nav.hidden = pages < 2; // "Page 1 of 1" beside two dead arrows says nothing
         steps.forEach(function (btn) {
@@ -516,11 +518,23 @@
   // ---- the bounds graph's hover cards -----------------------------------------------------------
   // Each record's box names its card by id. The card is rendered in the page, every value escaped,
   // and hidden; it shows while the pointer or the keyboard focus is on the box, below it, or above
-  // it when there is no room below.
+  // it when there is no room below. A click, or Enter, pins it open, and a pinned card shows each
+  // quote cut at the cap in full; a second click unpins it.
   function initBoundsGraph() {
     document.querySelectorAll("[data-bounds-node]").forEach(function (node) {
       var tip = document.getElementById(node.getAttribute("data-bounds-node"));
       if (!tip) return;
+      var pinned = false;
+      function full(on) {
+        tip.querySelectorAll("[data-cut]").forEach(function (s) { s.hidden = on; });
+        tip.querySelectorAll("[data-full]").forEach(function (s) { s.hidden = !on; });
+      }
+      function pin() {
+        pinned = !pinned;
+        full(pinned);
+        if (pinned) show();
+        else hide();
+      }
       function show() {
         tip.hidden = false;
         var r = node.getBoundingClientRect();
@@ -532,11 +546,36 @@
         tip.style.left = left + "px";
         tip.style.top = top + "px";
       }
-      function hide() { tip.hidden = true; }
+      function hide() { if (!pinned) tip.hidden = true; }
       node.addEventListener("mouseenter", show);
       node.addEventListener("mouseleave", hide);
       node.addEventListener("focusin", show);
       node.addEventListener("focusout", hide);
+      node.addEventListener("click", pin);
+      node.addEventListener("keydown", function (e) {
+        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); pin(); }
+      });
+    });
+  }
+
+  // ---- "show all" past a cap --------------------------------------------------------------------
+  // A section past its cap marks the rows after it, and its line names the section by id. The
+  // line is rendered hidden: without this script every row shows. With it, the marked rows hide
+  // until the line's button shows them all.
+  function initShowAll() {
+    document.querySelectorAll("[data-show-all]").forEach(function (line) {
+      var scope = document.getElementById(line.getAttribute("data-show-all"));
+      if (!scope) return;
+      var rest = scope.querySelectorAll("[data-over-cap]");
+      rest.forEach(function (row) { row.hidden = true; });
+      line.hidden = false;
+      var btn = line.querySelector("button");
+      if (btn) {
+        btn.addEventListener("click", function () {
+          rest.forEach(function (row) { row.hidden = false; });
+          line.hidden = true;
+        });
+      }
     });
   }
 
@@ -596,6 +635,7 @@
     initSampleGrids();
     initBoundsGraph();
     initStudyTables();
+    initShowAll();
   }
 
   if (document.readyState === "loading") {
