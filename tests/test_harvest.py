@@ -323,6 +323,37 @@ def test_verify_accepts_a_truthful_span_and_computes_offsets(tmp_path: Path) -> 
     assert nd.text[a.span.char_start : a.span.char_end] == "Chromium Single Cell 3' v3"
 
 
+def test_what_harvest_writes_to_a_workspace_reads_back_through_harvest(tmp_path: Path) -> None:
+    """Harvest writes the assertions file and the rendered documents, and harvest reads them back,
+    so a reader in another package (the report) never spells either path: the module that writes
+    an artifact owns reading it. A rename then breaks this test, not a report panel."""
+    from seqforge.harvest.artifacts import (
+        document_labels,
+        read_assertions,
+        write_assertions,
+        write_documents,
+    )
+
+    nd = _doc(tmp_path, "Libraries were prepared with the Chromium Single Cell 3' v3 kit.")
+    draft = AssertionDraft(
+        field="library.chemistry",
+        value="10x-3p-gex-v3",
+        span=SourceSpan(doc_sha256=nd.doc_sha256, quote="Chromium Single Cell 3' v3"),
+        llm_confidence=0.9,
+    )
+    claim = verify_drafts([draft], [nd], extractor=EXTRACTOR).assertions[0]
+    ws = tmp_path / "ws"
+    write_documents(ws, [nd])
+    write_assertions(ws, assertions=[claim], documents=[nd], instruction_docs=[])
+
+    log = read_assertions(ws)
+    assert [a["id"] for a in log.assertions] == [claim.id]
+    assert log.document_subjects == [
+        {"doc_sha256": nd.doc_sha256, "scope": "dataset", "subject": None}
+    ]
+    assert document_labels(ws) == {nd.doc_sha256[:12]: "methods"}
+
+
 def test_verify_rejects_fabricated_provenance(tmp_path: Path) -> None:
     nd = _doc(tmp_path, "Libraries were prepared with the Chromium Single Cell 3' v3 kit.")
     draft = AssertionDraft(

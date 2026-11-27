@@ -15,7 +15,6 @@ import typer
 from ..io import DEFAULT_REGISTRY, HF_BENCHMARK_REPO, Orientation, default_registry
 from ..io.remote import NotYetImplemented, peek, resolve_accession
 from ..probe import DEFAULT_MAX_BYTES, DEFAULT_MAX_READS
-from ..workspace import records_dir
 from .root import io_app, onlist_app
 
 
@@ -405,6 +404,7 @@ def io_records(
     """
     from ..io.archive import fetch_records
     from ..io.remote import RemoteError
+    from ..recordset import save_record_set
 
     try:
         records = fetch_records(accession)
@@ -412,10 +412,7 @@ def io_records(
         typer.echo(json.dumps({"error": str(exc)}, indent=2), err=True)
         raise typer.Exit(1) from exc
 
-    state = records_dir(workspace)
-    state.mkdir(parents=True, exist_ok=True)
-    target = state / f"{accession}.json"
-    target.write_text(json.dumps(records.model_dump(mode="json"), indent=2))
+    target = save_record_set(workspace, accession, records)
     # The submitted files are listed in full rather than counted, because this verb is where the
     # concrete `s3://sra-pub-src-*` URI reaches a person at all: five refusals now say "go run
     # `seqforge io records`" instead of naming a bucket and an API to go hunting in, and every one of

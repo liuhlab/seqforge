@@ -44,6 +44,7 @@ are the two shapes a filename provably cannot resolve, and each one is named bes
 
 from __future__ import annotations
 
+import json
 import re
 from collections.abc import Mapping, Sequence
 from pathlib import Path
@@ -59,6 +60,7 @@ from .models.records import (
     RecordLevel,
     SubmittedFile,
 )
+from .workspace import records_dir
 
 if TYPE_CHECKING:
     from .models.resolve import ValidationReport
@@ -228,6 +230,48 @@ def load_record_set(path: Path) -> ArchiveRecordSet:
     if payload.get("source") == USER_SOURCE:
         return _load_user(payload, path)
     return _load_archive(payload, path)
+
+
+def save_record_set(workspace: str | Path, name: str, record_set: ArchiveRecordSet) -> Path:
+    """Write ``record_set`` to ``seqforge/records/<name>.json`` in a workspace; return the path.
+
+    ``name`` is the accession the set was fetched for, or a readable name for a combined set. The
+    file is the archive dialect :func:`load_record_set` reads, so a saved set is a ``--records``
+    input as it stands.
+    """
+    outdir = records_dir(workspace)
+    outdir.mkdir(parents=True, exist_ok=True)
+    target = outdir / f"{name}.json"
+    target.write_text(json.dumps(record_set.model_dump(mode="json"), indent=2))
+    return target
+
+
+def saved_record_set(workspace: str | Path, accession: str | None) -> ArchiveRecordSet | None:
+    """The record set a workspace saved for a project, or ``None`` when it holds none that loads.
+
+    The file named for ``accession`` comes first. That accession may be a different *form* of the
+    same project than the file is named for: the manifest often resolves a GEO id (``GSE234962``) to
+    its BioProject (``PRJNA983807``), while the set was saved under the id the user passed. So when
+    the exact name misses, any saved set with records answers, in name order. A workspace holds one
+    dataset, so for the common single-dataset case this is the one set it has.
+
+    A file that does not load is skipped, never raised: the reader is the report, which degrades.
+    """
+    rdir = records_dir(workspace)
+    if not rdir.is_dir():
+        return None
+    candidates: list[Path] = []
+    if accession and (rdir / f"{accession}.json").is_file():
+        candidates.append(rdir / f"{accession}.json")
+    candidates += [p for p in sorted(rdir.glob("*.json")) if p not in candidates]
+    for path in candidates:
+        try:
+            record_set = load_record_set(path)
+        except RecordSetError:
+            continue
+        if record_set.records:
+            return record_set
+    return None
 
 
 def _load_archive(payload: Mapping[str, Any], path: Path) -> ArchiveRecordSet:
