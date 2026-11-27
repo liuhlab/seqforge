@@ -59,6 +59,9 @@ class Bounds(Strict):
     left_out: list[Placed]
     reason: str
     passages: dict[PositiveInt, Passage]
+    #: Each placed record's title, copied from its archive record or paper, so a reader of the file
+    #: needs no store. The one optional field: a file drawn before titles were copied has none.
+    titles: dict[str, str] = Field(default_factory=dict)
 
 
 def _between_fields(bounds: Bounds) -> Iterator[tuple[str, str]]:
@@ -85,6 +88,11 @@ def _between_fields(bounds: Bounds) -> Iterator[tuple[str, str]]:
         if record in placed:
             yield where, f"{record} is already placed at {placed[record]}"
         placed.setdefault(record, where)
+    for record, title in bounds.titles.items():
+        if record not in placed:
+            yield f"titles.{record}", "not a record these bounds place"
+        elif not title.strip():
+            yield f"titles.{record}", "blank: a record with no title has no entry"
     yield from passage_problems(bounds.passages)
     for where, claim in claims:
         yield from claim_problems(

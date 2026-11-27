@@ -187,6 +187,12 @@ def test_a_bounds_file_in_the_current_format_is_accepted(tmp_path: Path) -> None
             id="a record both kept and left out",
         ),
         pytest.param(
+            _with({"GSE9": "A Series"}, "titles"),
+            "titles.GSE9",
+            "not a record these bounds place",
+            id="a title for a record the bounds do not place",
+        ),
+        pytest.param(
             _without("passages", 1, "field"),
             "passages[1]",
             "a record and its field",
