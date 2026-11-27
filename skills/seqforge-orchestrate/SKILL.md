@@ -78,7 +78,11 @@ rebuilds those two project views from the manifests without recompiling.
 
 **`--study <folder>`** on `run` or `project metadata` joins a study reading into
 `sample_metadata.tsv` by BioSample accession. Mismatches warn and exit 0; the manifest is unchanged.
-`run` never starts the study chain.
+`run` never starts the study chain; **seqforge-study** runs it.
+
+**`seqforge report`** writes `seqforge/report.html` and, beside it, `report.json`: the same data for
+a program. `--study <folder>` adds the study's tab, and with no workspace needs no compile. It exits
+0 whatever the verdict.
 
 `compile` is an alias for `run`.
 

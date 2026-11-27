@@ -18,6 +18,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+import yaml
 from labllm import Reviews, Task
 from labllm.testing import FakeGateway
 from typer.testing import CliRunner
@@ -454,3 +455,83 @@ def test_a_command_that_reads_a_task_refuses_a_folder_with_none_and_makes_none(
     assert result.stdout == ""
     assert f"no task in {TASK}" in result.stderr
     assert not TASK.exists()
+
+
+# `seqforge study run`: the bounding pass, its bounds, the reading pass, its readings, in order.
+
+#: Each step of the study chain, as the existing verb it runs.
+STUDY_STEPS = [
+    "pass start study-bounds",
+    "study write-bounds",
+    "pass start study-reading",
+    "study write-reading",
+]
+
+
+@pytest.fixture
+def studies(monkeypatch: pytest.MonkeyPatch, here: Path) -> Path:
+    """The two study jobs played by the echo kind, over an empty folder of study folders."""
+    from seqforge.study import bounding, reader
+
+    bounds_kind, reading_kind = passes_kit.study_chain(bounding.KIND_NAME, reader.KIND_NAME)
+    monkeypatch.setattr(bounding, "KIND", bounds_kind)
+    monkeypatch.setattr(reader, "KIND", reading_kind)
+    (here / "studies").mkdir()
+    return here / "studies"
+
+
+def _words(folder: Path, name: str) -> dict[str, str]:
+    """The word in each study's file called ``name`` in ``folder``, by study."""
+    return {p.parent.name: yaml.safe_load(p.read_text())["word"] for p in folder.glob(f"*/{name}")}
+
+
+def test_study_run_writes_the_bounds_before_the_reading_pass_reads_them(
+    studies: Path, echo_gateway: FakeGateway
+) -> None:
+    """The reading pass reads each study's bounds file as it starts, so a study is read only when
+    its bounds were written first. The weak model refuses gamma, which gets no bounds and is held."""
+    code, out = seqforge("study", "run", "--studies", str(studies), "--ceiling-usd", "1")
+
+    assert code == 0, out
+    assert [step["verb"] for step in out["steps"]] == STUDY_STEPS
+    assert _words(studies, "bounds.yaml") == {"u1": "ALPHA", "u2": "ateb", "u4": "atled"}
+    assert _words(studies, "reading.yaml") == {"u1": "AHPLA", "u2": "beta", "u4": "delta"}
+    assert out["steps"][2]["counts"]["held"] == 1
+
+
+#: A ceiling the bounding pass finishes under, with too little left for the reading pass to finish:
+#: bounding spends about six cents, and each call holds back five against what is left.
+SHARED_CEILING = ("--ceiling-usd", "0.125", "--units-at-once", "1")
+
+
+def test_study_run_caps_both_passes_with_one_ceiling_and_exits_3_at_it(
+    studies: Path, echo_gateway: FakeGateway
+) -> None:
+    code, out = seqforge("study", "run", "--studies", str(studies), *SHARED_CEILING)
+
+    assert code == 3, out
+    bounding, _, reading = out["steps"]
+    assert [step["verb"] for step in out["steps"]] == STUDY_STEPS[:3]
+    assert (bounding["stopped"], reading["stopped"]) == (None, "ceiling_reached")
+    assert reading["ceiling_usd"] == pytest.approx(0.125 - bounding["spent_usd"])
+    assert out["spent_usd"] == pytest.approx(bounding["spent_usd"] + reading["spent_usd"])
+    assert out["spent_usd"] <= 0.125
+    assert not list(studies.glob("*/reading.yaml"))
+
+
+def test_study_run_resumes_after_a_stop_replaying_every_answered_unit_at_no_cost(
+    studies: Path, echo_gateway: FakeGateway
+) -> None:
+    assert seqforge("study", "run", "--studies", str(studies), *SHARED_CEILING)[0] == 3
+    sent = len(echo_gateway.record)
+
+    code, out = seqforge("study", "run", "--studies", str(studies), "--ceiling-usd", "1")
+
+    assert code == 0, out
+    bounding, _, reading, _ = out["steps"]
+    assert (bounding["cache_hits"], bounding["spent_usd"]) == (4, 0)
+    assert reading["cache_hits"] == 1
+    rerun = echo_gateway.record[sent:]
+    assert all(x.cost_usd == 0 for x in rerun if x.cached)
+    assert out["spent_usd"] == pytest.approx(sum(x.cost_usd for x in rerun))
+    assert _words(studies, "reading.yaml") == {"u1": "AHPLA", "u2": "beta", "u4": "delta"}
