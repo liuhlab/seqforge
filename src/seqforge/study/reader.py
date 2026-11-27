@@ -79,7 +79,7 @@ from .lists import (
     parse_lists,
     snake,
 )
-from .reading import FORMAT, check_reading
+from .reading import BIOSAMPLE_ACCESSION, FORMAT, check_reading
 
 if TYPE_CHECKING:
     from labdata.ontology import Candidate, OntologyStore, Term
@@ -87,7 +87,7 @@ if TYPE_CHECKING:
 KIND_NAME = name_of(__name__)
 #: Raise it when an instruction, a question, a guide, the answer's shape or a rule of writing the
 #: reading changes.
-KIND_VERSION = "2026.11.9"
+KIND_VERSION = "2026.11.10"
 #: The roles, and the models that fill them unless a pass names others: the writer, and
 #: :data:`.closed.JEV`.
 WRITER_ROLE, JEV_ROLE = "writer", "jev"
@@ -900,6 +900,12 @@ def _read(u: Unit, context: _Context) -> dict[str, Any]:
     }
     if snapshot := _snapshot(rows, shared, terms, context.ontology.date):
         reading["ontology_snapshot"] = snapshot
+    # An id copied from the sample's record, which the compile joins on: never shared, never a claim.
+    accessions = src.biosample_accessions(sources)
+    rows = {
+        g: {BIOSAMPLE_ACCESSION: accessions[g], **row} if g in accessions else row
+        for g, row in rows.items()
+    }
     reading |= {
         "passages": passages.by_number,
         "factors": factors,
@@ -1251,7 +1257,9 @@ def reading_kind(
         text = src.records_text(sources) + "\n\n" + src.papers_text(sources, full=True)
         # A store update can change a reading's terms with no record changed, so the tag names
         # every snapshot pinned: which ones a study will search is not known until it is read.
-        identity = "\n".join([text, *guides, *sorted(ontology.snapshots.values())])
+        # The BioSample accessions are copied into the reading, so a new link is a new reading.
+        accessions = [f"{g} {a}" for g, a in src.biosample_accessions(sources).items()]
+        identity = "\n".join([text, *guides, *sorted(ontology.snapshots.values()), *accessions])
         tag = hashlib.sha256(identity.encode()).hexdigest()[:16]
         return Inputs({"sources": sources, "guides": guides, "writer_text": text}, tag=tag)
 

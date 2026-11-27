@@ -43,6 +43,13 @@ What each sequenced sample of one study is, and which labels the study varied, e
 claim. One per study.
 _Avoid_: annotation, curation, sample metadata
 
+**BioSample accession**:
+The `SAMN…` id that a GEO Sample's own archive record links, copied into that sample's reading row
+as `biosample_accession`: an id, not a claim, and what a compile joins the reading on. The
+`biosample` label is a different thing: an id such as `B1` that the reader makes up for the
+libraries made from one piece of material.
+_Avoid_: biosample (the label), sample alias
+
 **Factor**:
 A label the study varied on purpose between its samples, such as a treatment or an age, with the
 levels it took and the level the others are compared with.
