@@ -13,7 +13,8 @@ human/DB metadata)` into a validated, machine-independent **`manifest.yaml`** (w
 content-addressed, immutable), then compiles that under a **`processing.yaml`** (the recipe: what to
 DO with it) into a runnable Snakemake config — headless, across ~10⁴ public datasets, into a
 genomic-AI corpus. Same manifest + a different recipe = a different pipeline, hash unchanged; the last
-artifact is the point, **a Snakefile the user submits**, and `seqforge` does not submit jobs.
+artifact is the point, **a Snakefile the user submits**, and `seqforge` does not submit jobs. It is
+green; the demo dataset PRJNA1027859 compiles end to end.
 
 **A model writes an answer only where code can check it, and code decides whether it stands.** In
 the compiler a model parses prose into span-verified `Assertion`s and arbitrates ambiguity code has
@@ -75,7 +76,7 @@ moves between directories and its number does not; `—` means no record cites t
 | R1 | **Emit data, never code.** No LLM writes Snakefile or rule source; LLM output validates against an exported JSON Schema. | ADR-0008 |
 | R2 | **Agents propose, code decides — and refusal is an exit code.** Nothing enters a manifest unvalidated; every `Assertion` quote must grep back *and* entail its value. | ADR-0008, ADR-0009, ADR-0013, ADR-0020 |
 | R3 | **Never read a whole FASTQ.** Every FASTQ touch goes through `probe.streaming.BoundedReader`, bounded by `--max-reads` **and** `--max-bytes`. Never write a second budget loop. | ADR-0001 |
-| R4 | **Three truths, never merged.** Interpretive fields are `Evidenced`; observed↔asserted disagreement is a surfaced `Conflict`; one judgement = one envelope. | ADR-0006 |
+| R4 | **Three truths, never merged.** Interpretive fields are `Evidenced`; observed↔asserted disagreement is a surfaced `Conflict`; one judgement = one envelope. | ADR-0006, ADR-0010 |
 | R5 | **Disk is state, context is cache.** Every stage writes a resumable, content-addressed artifact under `seqforge/` — **no leading dot**, because it holds the manifest and the Snakefile: output, not scratch, and only `seqforge/cache/` is safe to delete. Resume is implicit and there is no `--resume`. | ADR-0013, ADR-0015 |
 | R6 | **The CLI is the API; the skill is a thin client.** Every skill action maps to a deterministic `seqforge <verb>` emitting JSON on stdout by default. | ADR-0013 |
 | R7 | **Machine-independent manifest — no absolute paths, ever.** Genome = UCSC id + registered GTF name; software = a `liulab-runtime` env name; data = a URI. | — |
@@ -115,8 +116,8 @@ test was considered and declined, and is the fallback if the bar drifts.
   formatting, types and conformance. **It is not everything CI runs, on purpose.** Markdownlint,
   vale, the strict docs build and the wheel build are CI steps, and they stay out of the gate because
   they answer questions a code change does not ask — do not "fix" this by adding them. Touched
-  documentation? Run `pixi run docs-build`, `pixi run vale` and `pixi run markdownlint` yourself,
-  then. **After pushing** — read CI (pull requests only, on the merge commit); do not re-run it
+  documentation? Run `pixi run docs-build`, `pixi run vale` and `pixi run markdownlint`
+  yourself. **After pushing** — read CI (pull requests only, on the merge commit); do not re-run it
   locally. **Never** run the whole
   suite to check a change that is not finished, re-run the gate to confirm a failure CI has already
   named, or run the gate twice in one session. Nothing enforces the ladder, and what it guards is
@@ -129,7 +130,7 @@ test was considered and declined, and is the fallback if the bar drifts.
 - **Test time has two limits** in `[tool.pytest.ini_options]`: `timeout` per test, setup
   included, and `suite_budget` per lane without a slow test. `slow` tests are exempt;
   `pixi run test-slow` runs them.
-- **A test clears three clauses or it goes**, the same bar a record clears. **(1) It can go red for
+- **A test clears three clauses or it goes.** **(1) It can go red for
   something the code can actually do.** An assertion whose subject is the *text* of source or of a
   docstring is banned — a rename breaks it falsely and an indirection passes it falsely. A
   *structural* check (AST) stays admissible when its docstring names why the path it guards cannot
@@ -144,8 +145,8 @@ test was considered and declined, and is the fallback if the bar drifts.
   `src/`, `tests/`, `skills/`, `evals/` or `pyproject.toml`; a guard in
   `tests/test_repo_invariants.py` fails on one. A number is a mutable label; write the term instead.
 - **Versioning: CalVer (`YYYY.M.PATCH`), never SemVer** — including every component stamp
-  (`PROBE_VERSION`, `kb_version`, `resolve_version`, `workflow_version`), precisely *because* they
+  (`PROBE_VERSION`, `kb_version`, `resolve_version`, `workflow_version`), *because* they
   fold into the content-addressed caches — and, but for `kb_version`, into `run_id`, which folds a
   hash of the deciding spec instead: a date-stamped identity, not a promise.
-- **Issues live on GitHub**, and the five triage labels are
+- **Issues live on GitHub**; the triage labels are
   [`.github/ISSUE-CONVENTIONS.md`](.github/ISSUE-CONVENTIONS.md).
