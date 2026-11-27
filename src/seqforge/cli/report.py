@@ -1,8 +1,8 @@
-"""``seqforge report`` — render a workspace's compile as one self-contained HTML page.
+"""``seqforge report`` — render a workspace's compile as one self-contained HTML page and its data.
 
 A deterministic reader: it opens the ``seqforge/`` artifacts already on disk (manifest, samples,
 evidence matrix, composed pipeline) and writes a single offline HTML file that makes the whole decision
-legible at a glance. It touches no FASTQ, no network, and no LLM, and it decides nothing — the verdict
+legible at a glance, with ``report.json`` beside it holding the same data for a program. It touches no FASTQ, no network, and no LLM, and it decides nothing — the verdict
 it shows was decided upstream by ``resolve``/``validate``/``compose``.
 
 Exit is ``0`` on a successful render regardless of what the dataset's verdict was: the reader's job is
@@ -21,7 +21,7 @@ from pathlib import Path
 
 import typer
 
-from ..report import collect_report, render_html
+from ..report import collect_report, write_report
 from ..workspace import report_html_path
 from .root import app
 
@@ -35,7 +35,8 @@ def report_cmd(
         None,
         "-o",
         "--output",
-        help="Where to write the HTML (default: seqforge/report.html under the workspace).",
+        help="Where to write the HTML (default: seqforge/report.html under the workspace). The "
+        "data file goes beside it, under the same name with .json.",
     ),
     timestamp: bool = typer.Option(
         True,
@@ -51,7 +52,11 @@ def report_cmd(
         "joined onto the pipeline dir, so pass an absolute path if it lives elsewhere.",
     ),
 ) -> None:
-    """Write one self-contained HTML report of the workspace's compile; print a JSON summary.
+    """Write one self-contained HTML report of the workspace's compile and its data; print a summary.
+
+    ``report.json`` is written beside the page and is what the page is built from: the same data, for
+    a program, with each path in it relative to where the report was written — each ``.h5ad`` the
+    pipeline left included, so a caller opens the matrices without knowing the workspace's layout.
 
     The page inlines every asset it has — one stylesheet and one script — so it opens on a
     double-click with no network. There is no diagram or charting engine to inline: the flow is plain
@@ -67,20 +72,21 @@ def report_cmd(
     out = output if output is not None else report_html_path(workspace)
     generated_at = datetime.now().strftime("%Y-%m-%d %H:%M") if timestamp else None
     try:
-        report = collect_report(workspace, generated_at=generated_at, results_dir=results)
+        report = collect_report(
+            workspace, generated_at=generated_at, results_dir=results, report_dir=out.parent
+        )
     except FileNotFoundError as exc:
         typer.echo(
             json.dumps({"error": "nothing_to_report", "detail": str(exc)}, indent=2), err=True
         )
         raise typer.Exit(1) from exc
 
-    html = render_html(report)
-    out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text(html, encoding="utf-8")
+    written = write_report(report, out)
 
     payload = {
-        "report": str(out),
-        "bytes": len(html.encode("utf-8")),
+        "report": str(written.html),
+        "json": str(written.json),
+        "bytes": written.html_bytes,
         "assays": len(report.assays),
         "conclusion": [
             {

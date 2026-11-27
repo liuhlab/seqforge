@@ -23,6 +23,7 @@ across a multi-run dataset.
 from __future__ import annotations
 
 import json
+import os
 import re
 from collections.abc import Callable
 from pathlib import Path
@@ -38,7 +39,7 @@ from ..pipeline import CONFIG_NAME, SNAKEFILE_NAME, UNITS_TSV_NAME, CompiledPipe
 from ..project import discover_assays
 from ..recordset import saved_record_set
 from ..workflows.metrics import Alert, Decision, DecisionRef, PipelineStats, gather_alerts
-from ..workspace import state_dir
+from ..workspace import report_html_path, state_dir
 from .model import (
     ArchiveProjectView,
     ArtifactEmbed,
@@ -50,6 +51,7 @@ from .model import (
     ElementView,
     EvidenceRef,
     FileView,
+    H5adPointer,
     MatrixCellView,
     MatrixRoleRow,
     MatrixView,
@@ -60,6 +62,7 @@ from .model import (
     ReadView,
     RuledOut,
     SampleView,
+    WorkspaceReport,
 )
 
 if TYPE_CHECKING:
@@ -94,20 +97,23 @@ def collect_report(
     *,
     generated_at: str | None = None,
     results_dir: Path | None = None,
+    report_dir: Path | None = None,
 ) -> ProjectReport:
     """Project a workspace into a :class:`ProjectReport` (one :class:`AssayReport` per assay).
 
     ``generated_at`` is threaded through verbatim (a caller may pin it for byte-deterministic output).
     ``results_dir`` says where a finished pipeline's per-sample outputs are; ``None`` derives it from
-    the composed config's ``outdir``, which is what a pipeline started in its own directory used. Both
-    are caller-supplied *machine* facts, and neither can change what the page says the compiler
-    decided.
+    the composed config's ``outdir``, which is what a pipeline started in its own directory used.
+    ``report_dir`` is the directory the report will be written into, which every path in the report
+    is relative to; ``None`` is the default report's, ``seqforge/``. All three are caller-supplied
+    *machine* facts, and none can change what the page says the compiler decided.
     Raises :class:`FileNotFoundError` only when there is genuinely nothing to report — no manifest and
     no draft anywhere under ``seqforge/``.
     """
     from . import REPORT_VERSION
 
     ws = Path(workspace)
+    where = report_html_path(ws).parent if report_dir is None else Path(report_dir)
     assays_on_disk = discover_assays(ws)
     if not assays_on_disk:
         assay = _collect_draft(ws)
@@ -119,15 +125,26 @@ def collect_report(
             )
     else:
         assays = [
-            _collect_assay(ws, subdir, mpath, results_dir) for subdir, mpath in assays_on_disk
+            _collect_assay(ws, subdir, mpath, results_dir, where)
+            for subdir, mpath in assays_on_disk
         ]
 
     return ProjectReport(
-        workspace_name=_workspace_name(ws),
         report_version=REPORT_VERSION,
         generated_at=generated_at,
-        assays=assays,
+        workspaces=[
+            WorkspaceReport(name=_workspace_name(ws), path=_relative(ws, where), assays=assays)
+        ],
     )
+
+
+def _relative(path: Path, report_dir: Path) -> str:
+    """``path`` as the report's directory reaches it — the one form every path in the report takes.
+
+    Resolved on both sides, so a symlinked temp directory cannot make two spellings of one folder
+    look like a climb out of it; POSIX separators, so the JSON reads the same on every machine.
+    """
+    return Path(os.path.relpath(path.resolve(), report_dir.resolve())).as_posix()
 
 
 def _workspace_name(ws: Path) -> str:
@@ -141,7 +158,11 @@ def _workspace_name(ws: Path) -> str:
 
 
 def _collect_assay(
-    ws: Path, subdir: str | None, manifest_path: Path, results_dir: Path | None = None
+    ws: Path,
+    subdir: str | None,
+    manifest_path: Path,
+    results_dir: Path | None,
+    report_dir: Path,
 ) -> AssayReport:
     # Here, not at the top: `harvest/` loads the extraction stack, and the CLI imports this module.
     from ..harvest.artifacts import document_labels, read_assertions
@@ -162,11 +183,12 @@ def _collect_assay(
         else None
     )
     pipeline = CompiledPipeline.discover(ws, subdir=subdir)
-    plan = _plan(ws, proc, pipeline, assertions, doc_index) if proc is not None else None
+    plan = _plan(report_dir, proc, pipeline, assertions, doc_index) if proc is not None else None
     conclusion = _conclusion(has_manifest=True, snakefile=pipeline is not None)
 
     samples = _samples(manifest)
     stats = _pipeline_stats(pipeline, manifest, results_dir)
+    h5ad = _h5ad(pipeline, manifest, results_dir, report_dir)
     matrices, ruled_out = _matrices(ws, manifest)
     has_prose = _quotes_prose(assertions, _staged_documents(harvest_log))
 
@@ -191,6 +213,7 @@ def _collect_assay(
         conclusion=conclusion,
         pipeline_stats=stats,
         alerts=_alerts(stats, manifest, proc, plan),
+        h5ad=h5ad,
         provenance=[
             ("dataset_hash", manifest.provenance.dataset_hash),
             ("kb_version", manifest.provenance.kb_version),
@@ -524,7 +547,7 @@ def _pipeline_stages(plan: PlanView | None) -> list[PipelineStage]:
 
 
 def _plan(
-    ws: Path,
+    report_dir: Path,
     proc: ProcessingManifest,
     pipeline: CompiledPipeline | None,
     assertions: dict[str, dict[str, Any]],
@@ -591,9 +614,9 @@ def _plan(
         config = pipeline.config
         primary_feature = _as_str_or_none(config.get("primary_feature"))
         config_kv = _flatten(config)
-        snakefile_rel = _rel(ws, pipeline.snakefile)
-        config_rel = _rel(ws, pipeline.config_path)
-        units_rel = _rel(ws, pipeline.units_path)
+        snakefile_rel = _rel(report_dir, pipeline.snakefile)
+        config_rel = _rel(report_dir, pipeline.config_path)
+        units_rel = _rel(report_dir, pipeline.units_path)
 
     return PlanView(
         fields=fields,
@@ -612,14 +635,9 @@ def _as_str_or_none(value: Any) -> str | None:
     return None if value is None else str(value)
 
 
-def _rel(ws: Path, path: Path) -> str | None:
-    """``path`` relative to ``seqforge/`` (where report.html lives), or ``None`` if it is not there."""
-    if not path.exists():
-        return None
-    try:
-        return str(path.resolve().relative_to(state_dir(ws).resolve()))
-    except ValueError:
-        return None
+def _rel(report_dir: Path, path: Path) -> str | None:
+    """``path`` relative to the report's directory, or ``None`` if it is not there."""
+    return _relative(path, report_dir) if path.exists() else None
 
 
 def _flatten(obj: Any, prefix: str = "") -> list[tuple[str, str]]:
@@ -690,6 +708,34 @@ def _pipeline_stats(
         return read_pipeline_stats(module, where, samples, pipeline.components)
     except OSError:
         return None
+
+
+def _h5ad(
+    pipeline: CompiledPipeline | None,
+    manifest: DatasetManifest,
+    results_dir: Path | None,
+    report_dir: Path,
+) -> list[H5adPointer]:
+    """Every ``.h5ad`` the finished pipeline wrote, each pointed at from the report's directory.
+
+    Read from the same two places :func:`_pipeline_stats` reads, and found through the same owner:
+    each contracted sample's own directory, then the results directory itself, which is where a
+    **Fan-in artifact** lands. What is listed is what is on disk, because a pointer is for opening —
+    what the pipeline still owes is the run state's question, and it is answered beside this.
+    """
+    if pipeline is None:
+        return []
+    where = pipeline.directory / results_dir if results_dir is not None else pipeline.results_dir
+    samples = pipeline.samples or [s.sample_id for s in manifest.experiment.samples]
+    found: list[tuple[str | None, Path]] = [
+        (sample, path) for sample in samples for path in sorted((where / sample).glob("*.h5ad"))
+    ]
+    found += [(None, path) for path in sorted(where.glob("*.h5ad"))]
+    return [
+        H5adPointer(path=_relative(path, report_dir), sample=sample)
+        for sample, path in found
+        if path.is_file()
+    ]
 
 
 # ---- attribution: which decision does a bad number implicate? ------------------------------------

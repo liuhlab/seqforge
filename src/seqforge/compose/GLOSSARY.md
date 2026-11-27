@@ -154,6 +154,13 @@ _Avoid_: unfinished, partial, in progress (a run that did not produce what was d
 not a limbo to interpret); skipped (nothing here skips a deliverable); and the compile's verdict,
 which says how the COMPILER ended and is a different judgement on the same page
 
+**`report.json`**:
+The report's one data file, written beside `report.html`: the page is built from it and embeds it,
+and every path in it, each `.h5ad` the pipeline left included, is relative to the folder it was
+written into.
+_Avoid_: export, dump, summary (it is the report's data, not a copy of the page); and the eval run's
+own `report.json` under `seqforge/eval/`, which is a different file
+
 **Absent**:
 Why a benchmark case produced no grade: the corpus does not hold its package. A standing fact about
 the corpus, published rather than hidden, and the `skip_kind` that never poisons a rate.

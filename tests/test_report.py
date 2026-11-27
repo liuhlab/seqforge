@@ -26,7 +26,7 @@ from seqforge import kb
 from seqforge.cli import app
 from seqforge.report import collect_report, render_html
 from seqforge.report.flow import flow_steps
-from seqforge.report.model import AssayReport
+from seqforge.report.model import AssayReport, ProjectReport, WorkspaceReport
 from seqforge.workflows.metrics import Alert, DecisionRef, PipelineStats
 
 if TYPE_CHECKING:  # the resolver seam is private, and only its type is wanted at module scope
@@ -47,6 +47,12 @@ runner = CliRunner()
 #: no number because it is still trusted. Re-measure before changing the grouping, not before
 #: reading this.
 pytestmark = pytest.mark.xdist_group("report-workspace")
+
+
+def _with_assays(report: ProjectReport, assays: list[AssayReport]) -> ProjectReport:
+    """``report`` with its one workspace's assays swapped — how a test renders a model it built."""
+    (ws,) = report.workspaces
+    return report.model_copy(update={"workspaces": [ws.model_copy(update={"assays": assays})]})
 
 
 def _build_bulk_workspace(tmp_path: Path) -> Path:
@@ -125,6 +131,80 @@ def test_report_verb_writes_a_self_contained_html_page(own_workspace: Path) -> N
     assert "</html>" in html
     for tab in ("Overview", "Flow", "Samples", "Evidence", "Pipeline"):
         assert f">{tab}</button>" in html
+
+
+def _embedded_report_data(html: str) -> object:
+    """The data block the page carries, parsed — the one ``application/json`` script it embeds."""
+    found = re.findall(
+        r'<script type="application/json" id="seqforge-report-data">(.*?)</script>', html, re.S
+    )
+    assert len(found) == 1, "the page should embed its data exactly once"
+    return json.loads(found[0])
+
+
+def test_the_page_embeds_the_same_data_the_report_writes_to_report_json(
+    own_workspace: Path,
+) -> None:
+    """One file for a person and one for a program, and they are one set of data.
+
+    ``report.json`` lands beside ``report.html``, the stdout summary names it, and the page carries
+    the same data parsed back out of it — so a program that reads the page and one that reads the
+    JSON cannot be told two different things. The project's title in the data is checked against a
+    value the workspace itself fixes, so an empty or truncated data block cannot pass.
+    """
+    result = runner.invoke(app, ["report", "-C", str(own_workspace), "--no-timestamp"])
+    assert result.exit_code == 0, result.stdout
+    payload = json.loads(result.stdout)
+    html_path, json_path = Path(payload["report"]), Path(payload["json"])
+    assert json_path == own_workspace / "seqforge" / "report.json"
+
+    data = json.loads(json_path.read_text())
+    assert _embedded_report_data(html_path.read_text()) == data
+    (ws,) = data["workspaces"]
+    assert ws["name"] == own_workspace.name
+    assert (json_path.parent / ws["path"]).resolve() == own_workspace.resolve()
+    assert [a["chemistry"]["value"] for a in ws["assays"]] == [["bulk-rnaseq"]]
+
+
+@pytest.mark.parametrize("layout", ["per-sample", "fan-in"])
+def test_report_json_points_at_each_h5ad_from_wherever_o_wrote_the_report(
+    own_workspace: Path, tmp_path: Path, layout: str
+) -> None:
+    """A program opens the matrices from ``report.json`` alone, wherever the report was written.
+
+    ``-o`` moves the page and its data together, and each ``.h5ad`` is pointed at relative to that
+    directory — so the pointers resolve from the report's new home rather than from ``seqforge/``,
+    where the workspace layout would have to be known. Both layouts a pipeline writes: a single-cell
+    run's per-sample objects, which carry their sample, and a chimeric plate's one object per
+    Component, which carries none because it holds every cell.
+    """
+    from seqforge.pipeline import CompiledPipeline
+
+    pipeline = CompiledPipeline.discover(own_workspace)
+    assert pipeline is not None
+    if layout == "per-sample":
+        samples = _finish_a_starsolo_pipeline(own_workspace)
+        expected: dict[Path, str | None] = {}
+        for sample in samples:
+            for suffix in (".h5ad", ".velocyto.h5ad"):
+                path = pipeline.results_dir / sample / f"{sample}{suffix}"
+                path.write_bytes(b"")
+                expected[path.resolve()] = sample
+    else:
+        results, _ = _finish_a_chimeric_plate(own_workspace)
+        expected = {p.resolve(): None for p in results.glob("combined.*.h5ad")}
+        assert len(expected) == 2
+
+    out = tmp_path / "shared" / "report.html"
+    result = runner.invoke(
+        app, ["report", "-C", str(own_workspace), "-o", str(out), "--no-timestamp"]
+    )
+    assert result.exit_code == 0, result.stdout
+    assert Path(json.loads(result.stdout)["json"]) == out.with_name("report.json")
+
+    (assay,) = json.loads(out.with_name("report.json").read_text())["workspaces"][0]["assays"]
+    assert {(out.parent / h["path"]).resolve(): h["sample"] for h in assay["h5ad"]} == expected
+    assert not any(Path(h["path"]).is_absolute() for h in assay["h5ad"])
 
 
 @pytest.mark.parametrize("store", ["none", "tiny"])
@@ -352,7 +432,7 @@ def test_the_three_roles_every_pane_needed_are_drawn_by_one_component_each(
             "pipeline_stats": None,
         }
     )
-    page = render_html(report.model_copy(update={"assays": [bare]}))
+    page = render_html(_with_assays(report, [bare]))
 
     for tab in ("samples", "pipeline"):
         assert "sf-empty" in _body_classes(_pane(page, tab)), (
@@ -397,7 +477,7 @@ def test_a_refused_compile_paints_the_two_places_a_reader_looks_and_nothing_else
             )
         }
     )
-    page = render_html(report.model_copy(update={"assays": [refused]}))
+    page = render_html(_with_assays(report, [refused]))
 
     # the verdict is one badge in two places, and on this branch it is the tinted member
     assert (
@@ -873,8 +953,6 @@ def _rich_page(n_samples: int = 0) -> str:
     ``n_samples`` exists for the paging test and changes nothing else: the samples are copies of the
     first one, so a long table is the same table with more rows in it.
     """
-    from seqforge.report.model import ProjectReport
-
     assay = _rich_assay()
     if n_samples:
         first = assay.samples[0]
@@ -887,9 +965,8 @@ def _rich_page(n_samples: int = 0) -> str:
         )
     return render_html(
         ProjectReport(
-            workspace_name="PRJNA1027859",
             report_version="0.0.0",
-            assays=[assay],
+            workspaces=[WorkspaceReport(name="PRJNA1027859", path="..", assays=[assay])],
         )
     )
 
@@ -1696,7 +1773,7 @@ def _render_with_stats(workspace: Path, stats: PipelineStats) -> str:
     """
     report = collect_report(workspace)
     assay = report.assays[0].model_copy(update={"pipeline_stats": stats})
-    return render_html(report.model_copy(update={"assays": [assay]}))
+    return render_html(_with_assays(report, [assay]))
 
 
 def _land_bundles(results: Path, bundles: dict[str, dict[str, object]]) -> PipelineStats:
@@ -2510,7 +2587,7 @@ def test_an_alerts_alternative_reaches_the_page_and_a_nameless_decision_draws_no
     nameless = swapped.model_copy(update={"id": "demo.nameless", "implicates": []})
     assay = report.assays[0].model_copy(update={"alerts": [swapped, nameless]})
 
-    block = _alert_block(render_html(report.model_copy(update={"assays": [assay]})))
+    block = _alert_block(render_html(_with_assays(report, [assay])))
 
     assert block.count("demo.") == 2, "both cards render, or one branch is asserted twice"
     assert "the alternative is <b>R1 = b.fastq.gz, R2 = a.fastq.gz</b>" in block
