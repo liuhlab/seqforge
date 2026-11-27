@@ -55,5 +55,5 @@ def project_metadata(
         "n_assays": len(infos),
     }
     if joined is not None:
-        said["study"] = joined
+        said["study"] = joined.payload()
     typer.echo(json.dumps(said, indent=2))

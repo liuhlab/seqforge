@@ -16,7 +16,6 @@ A study named with ``--study`` is joined into the table through the compile verb
 
 from __future__ import annotations
 
-import copy
 import json
 from pathlib import Path
 from typing import Any
@@ -24,7 +23,6 @@ from typing import Any
 import anndata as ad
 import numpy as np
 import pytest
-import yaml
 from scipy.sparse import csr_matrix
 from typer.testing import CliRunner
 
@@ -33,7 +31,7 @@ from seqforge import kb
 from seqforge.cli import app
 from seqforge.models.dataset import DatasetManifest, SampleGroup
 from seqforge.project import format_tsv, project_index, sample_metadata_table
-from test_study import READING, VALID, _said
+from study_kit import JOINED, compiled, joined_study, quoted
 
 runner = CliRunner()
 
@@ -117,51 +115,6 @@ def test_the_index_sorts_assays_by_chemistry_and_totals_their_samples() -> None:
     assert index["n_samples"] == 6
 
 
-#: The four GEO Samples of the joined study, each with the BioSample accession its record links: a
-#: young, a middle and an old wild-type library, and a young knockout.
-JOINED = {"GSM1": "SAMN1", "GSM3": "SAMN3", "GSM4": "SAMN4", "GSM6": "SAMN6"}
-
-
-def _study(folder: Path, change: Any = None) -> Path:
-    """A study folder holding bounds and a reading of :data:`JOINED`: yeast, by 10x 3' v3."""
-    reading = copy.deepcopy(READING)
-    reading["samples"] = {
-        gsm: {"biosample_accession": samn, **reading["samples"][gsm]}
-        for gsm, samn in JOINED.items()
-    }
-    reading["shared"]["species"] = {
-        "text": "Saccharomyces cerevisiae S288C",
-        "term": "NCBITaxon:559292",
-        "quoted": [2],
-        "p": 0.99,
-    }
-    reading["shared"]["assay"] = {
-        "text": "10x 3' v3",
-        "term": "EFO:0009922",
-        "quoted": [1],
-        "p": 0.9,
-    }
-    if change is not None:
-        change(reading)
-    folder.mkdir(parents=True, exist_ok=True)
-    (folder / "bounds.yaml").write_text(yaml.safe_dump(VALID, sort_keys=False))
-    (folder / "reading.yaml").write_text(yaml.safe_dump(reading, sort_keys=False))
-    return folder
-
-
-def _compiled(workspace: Path, base: DatasetManifest, accessions: list[str]) -> None:
-    """A compiled workspace whose one manifest holds one sample per BioSample accession."""
-    manifest = base.model_copy(deep=True)
-    manifest.experiment.samples = [
-        SampleGroup(sample_id=f"s_{a}", accession=a, file_uris=[f"reads/{a}_R1.fastq.gz"])
-        for a in accessions
-    ]
-    (workspace / "seqforge").mkdir(parents=True)
-    (workspace / "seqforge" / "manifest.yaml").write_text(
-        yaml.safe_dump(manifest.model_dump(mode="json"), sort_keys=True)
-    )
-
-
 def _metadata(workspace: Path, study: Path) -> tuple[dict[str, Any], list[dict[str, str]]]:
     """What ``project metadata --study`` says, and the sample table it writes, row by row."""
     result = runner.invoke(
@@ -177,7 +130,7 @@ def _metadata(workspace: Path, study: Path) -> tuple[dict[str, Any], list[dict[s
 def _batch_on_two(reading: dict[str, Any]) -> None:
     """A label of the study's own that two samples give alike and the other two do not give."""
     for gsm in ("GSM1", "GSM3"):
-        reading["samples"][gsm]["batch"] = _said("first")
+        reading["samples"][gsm]["batch"] = quoted("first")
 
 
 @pytest.mark.parametrize(
@@ -199,8 +152,8 @@ def test_a_named_study_joins_its_factors_and_varying_labels_into_the_sample_tabl
     reading the labels came from. A label the same for every sample tells no sample apart, so it
     gets no column; one that some samples lack does tell them apart, so it gets one. A different
     reading has a different hash, which is how a stale label shows."""
-    _compiled(tmp_path, synth_10x_v3.manifest, list(JOINED.values()))
-    said, rows = _metadata(tmp_path, _study(tmp_path / "GSE1", change))
+    compiled(tmp_path, synth_10x_v3.manifest, list(JOINED.values()))
+    said, rows = _metadata(tmp_path, joined_study(tmp_path / "GSE1", change))
     views = [tmp_path / "seqforge" / name for name in ("sample_metadata.tsv", "project.yaml")]
     written = [path.stat().st_mtime_ns for path in views]
 
@@ -226,7 +179,7 @@ def test_a_named_study_joins_its_factors_and_varying_labels_into_the_sample_tabl
     def another_age(reading: dict[str, Any]) -> None:
         reading["samples"]["GSM3"]["age"]["text"] = "13 months"
 
-    again, _ = _metadata(tmp_path, _study(tmp_path / "GSE1-again", another_age))
+    again, _ = _metadata(tmp_path, joined_study(tmp_path / "GSE1-again", another_age))
     assert again["study"]["reading_hash"] != said["study"]["reading_hash"]
 
 
@@ -291,8 +244,8 @@ def test_a_reading_that_disagrees_with_the_compile_warns_and_never_refuses(
     assay term is under the reading's is the ontology's to say, so the test gives that answer."""
     if under is not None:
         monkeypatch.setattr("seqforge.study.join.term_under", lambda term, ancestor: under)
-    _compiled(tmp_path, synth_10x_v3.manifest, accessions)
-    said, rows = _metadata(tmp_path, _study(tmp_path / "GSE1", change))
+    compiled(tmp_path, synth_10x_v3.manifest, accessions)
+    said, rows = _metadata(tmp_path, joined_study(tmp_path / "GSE1", change))
 
     warned = said["study"]["warnings"]
     assert {w["code"] for w in warned} == {code}
@@ -322,7 +275,7 @@ def test_a_named_study_leaves_the_manifest_and_its_hash_as_they_were(tmp_path: P
     without = runner.invoke(app, compile_)
     assert without.exit_code == 0, without.stdout
     before = manifest_hash()
-    joined = runner.invoke(app, [*compile_, "--study", str(_study(tmp_path / "GSE1"))])
+    joined = runner.invoke(app, [*compile_, "--study", str(joined_study(tmp_path / "GSE1"))])
     assert joined.exit_code == 0, joined.stdout
 
     assert json.loads(joined.stdout)["stages"]["project"]["study"]["reading_hash"]
@@ -347,14 +300,14 @@ def test_each_h5ad_carries_its_samples_labels_as_categorical_obs_and_the_reading
         assert result.exit_code == 0, result.output
         return out
 
-    _compiled(tmp_path, synth_10x_v3.manifest, list(JOINED.values()))
+    compiled(tmp_path, synth_10x_v3.manifest, list(JOINED.values()))
     plain = runner.invoke(app, ["project", "metadata", "-C", str(tmp_path)])
     assert plain.exit_code == 0, plain.output
     plain_h5ad = label("s_SAMN3", tmp_path / "plain.h5ad")
     assert plain_h5ad.read_bytes() == counts.read_bytes()
     assert plain_h5ad.samefile(counts)
 
-    said, _ = _metadata(tmp_path, _study(tmp_path / "GSE1"))
+    said, _ = _metadata(tmp_path, joined_study(tmp_path / "GSE1"))
     labelled = ad.read_h5ad(label("s_SAMN3", tmp_path / "s_SAMN3.h5ad"))
 
     obs: Any = labelled.obs

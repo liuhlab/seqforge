@@ -577,7 +577,7 @@ def run_cmd(
         "n_assays": len(assay_infos),
     }
     if joined is not None:
-        project_stage["study"] = joined
+        project_stage["study"] = joined.payload()
     stages["project"] = project_stage
 
     # Best-effort: drop a single-file HTML glance report beside the artifacts, so a headless run leaves

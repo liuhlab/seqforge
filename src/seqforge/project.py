@@ -9,6 +9,7 @@ drift from them) and **deterministic** (sorted rows and columns), so regeneratin
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -119,25 +120,50 @@ def _relative_to(path: Any, workspace: str | Path) -> Any:
         return path
 
 
+@dataclass(frozen=True)
+class StudyJoin:
+    """What joining a study folder's reading into the sample table said.
+
+    ``reading_hash`` is ``None`` for a folder with no reading yet, which joins nothing.
+    ``columns`` are the label columns the join added, and ``unchecked`` each check it could not
+    make, and why.
+    """
+
+    folder: str
+    reading_hash: str | None
+    columns: tuple[str, ...] = ()
+    warnings: tuple[ValidationWarning, ...] = ()
+    unchecked: tuple[str, ...] = ()
+
+    def payload(self) -> dict[str, Any]:
+        """The join as a verb's JSON says it."""
+        return {
+            "folder": self.folder,
+            "reading_hash": self.reading_hash,
+            "columns": list(self.columns),
+            "warnings": [w.model_dump() for w in self.warnings],
+            "unchecked": list(self.unchecked),
+        }
+
+
 def join_study(
     columns: list[str],
     rows: list[dict[str, str]],
     manifests: list[DatasetManifest],
     study: StudyFolder,
-) -> tuple[list[str], list[dict[str, str]], dict[str, Any]]:
+) -> tuple[list[str], list[dict[str, str]], StudyJoin]:
     """The table with the study's reading joined in by BioSample accession, and what the join said.
 
     The manifests are untouched: the labels are a view of the reading and land in the table alone.
     A folder with no reading yet joins nothing, and says so.
     """
-    said: dict[str, Any] = {"folder": str(study.path)}
     if study.reading is None:
         warning = ValidationWarning(
             code="STUDY_HAS_NO_READING",
             message=f"{study.path} holds no reading yet, so no labels were joined",
             subject=BlockerSubject(kind="file", ref=study.path.name),
         )
-        return columns, rows, {**said, "reading_hash": None, "warnings": [warning.model_dump()]}
+        return columns, rows, StudyJoin(str(study.path), None, warnings=(warning,))
     samples = [
         CompiledSample(
             sample_id=sample.sample_id,
@@ -150,18 +176,19 @@ def join_study(
     ]
     joined = join_reading(study.reading, samples, taken=columns)
     rows = [{**row, **joined.cells.get(row["sample_id"], {})} for row in rows]
-    said |= {
-        "reading_hash": joined.reading_hash,
-        "columns": joined.columns,
-        "warnings": [w.model_dump() for w in joined.warnings],
-        "unchecked": joined.unchecked,
-    }
+    said = StudyJoin(
+        folder=str(study.path),
+        reading_hash=joined.reading_hash,
+        columns=tuple(joined.columns),
+        warnings=tuple(joined.warnings),
+        unchecked=tuple(joined.unchecked),
+    )
     return [*columns, *joined.columns], rows, said
 
 
 def write_project_views(
     workspace: str | Path, assays: list[dict[str, Any]], study: StudyFolder | None = None
-) -> tuple[Path, Path, dict[str, Any] | None]:
+) -> tuple[Path, Path, StudyJoin | None]:
     """Write ``sample_metadata.tsv`` + ``project.yaml`` at the project top and return their paths.
 
     ``assays`` is one dict per assay carrying at least ``chemistry``, ``subdir``, ``n_samples`` and a
@@ -248,6 +275,7 @@ def joined_reading_hash(workspace: str | Path) -> str | None:
 __all__ = [
     "PROJECT_YAML",
     "SAMPLE_METADATA_TSV",
+    "StudyJoin",
     "discover_assays",
     "format_tsv",
     "join_study",

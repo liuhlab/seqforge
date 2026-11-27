@@ -15,7 +15,7 @@ from seqforge.study.bounds import check_bounds
 from seqforge.study.claims import load
 from seqforge.study.folder import StudyFolderRefused, open_study_folder
 from seqforge.study.reading import check_reading
-from test_study import READING, VALID
+from study_kit import READING, VALID
 
 runner = CliRunner()
 

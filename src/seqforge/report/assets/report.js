@@ -515,6 +515,21 @@
     window.addEventListener("resize", close);
   }
 
+  // ---- hover cards ------------------------------------------------------------------------------
+  // A card shows below the box that names it, or above it when there is no room below, and never
+  // past the window's edge. The bounds graph and the Study tab's counts both place theirs here.
+  function showCard(node, tip) {
+    tip.hidden = false;
+    var r = node.getBoundingClientRect();
+    var left = Math.max(8, Math.min(r.left, window.innerWidth - tip.offsetWidth - 12));
+    var top = r.bottom + 6;
+    if (top + tip.offsetHeight > window.innerHeight - 8) {
+      top = Math.max(8, r.top - tip.offsetHeight - 6);
+    }
+    tip.style.left = left + "px";
+    tip.style.top = top + "px";
+  }
+
   // ---- the bounds graph's hover cards -----------------------------------------------------------
   // Each record's box names its card by id. The card is rendered in the page, every value escaped,
   // and hidden; it shows while the pointer or the keyboard focus is on the box, below it, or above
@@ -535,17 +550,7 @@
         if (pinned) show();
         else hide();
       }
-      function show() {
-        tip.hidden = false;
-        var r = node.getBoundingClientRect();
-        var left = Math.max(8, Math.min(r.left, window.innerWidth - tip.offsetWidth - 12));
-        var top = r.bottom + 6;
-        if (top + tip.offsetHeight > window.innerHeight - 8) {
-          top = Math.max(8, r.top - tip.offsetHeight - 6);
-        }
-        tip.style.left = left + "px";
-        tip.style.top = top + "px";
-      }
+      function show() { showCard(node, tip); }
       function hide() { if (!pinned) tip.hidden = true; }
       node.addEventListener("mouseenter", show);
       node.addEventListener("mouseleave", hide);
@@ -587,17 +592,7 @@
     document.querySelectorAll("[data-hover-card]").forEach(function (node) {
       var tip = document.getElementById(node.getAttribute("data-hover-card"));
       if (!tip) return;
-      function show() {
-        tip.hidden = false;
-        var r = node.getBoundingClientRect();
-        var left = Math.max(8, Math.min(r.left, window.innerWidth - tip.offsetWidth - 12));
-        var top = r.bottom + 6;
-        if (top + tip.offsetHeight > window.innerHeight - 8) {
-          top = Math.max(8, r.top - tip.offsetHeight - 6);
-        }
-        tip.style.left = left + "px";
-        tip.style.top = top + "px";
-      }
+      function show() { showCard(node, tip); }
       function hide() { tip.hidden = true; }
       node.addEventListener("mouseenter", show);
       node.addEventListener("mouseleave", hide);

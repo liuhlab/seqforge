@@ -16,12 +16,23 @@ metrics and neither tool's vocabulary is typed here either.
 
 from __future__ import annotations
 
+import os
+from pathlib import Path
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
 from ..models.blocker import ValidationWarning
 from ..workflows.metrics import Alert, PipelineStats
+
+
+def relative_path(path: Path, report_dir: Path) -> str:
+    """``path`` as the report's directory reaches it — the one form every path in the report takes.
+
+    Resolved on both sides, so a symlinked temp directory cannot make two spellings of one folder
+    look like a climb out of it; POSIX separators, so the JSON reads the same on every machine.
+    """
+    return Path(os.path.relpath(path.resolve(), report_dir.resolve())).as_posix()
 
 
 class _View(BaseModel):
@@ -385,6 +396,11 @@ class Cut(_View):
 
     shown: int
     hidden: int = 0
+
+    @classmethod
+    def capped(cls, n: int, cap: int) -> Cut:
+        """``n`` items under ``cap``: the first ``cap`` shown, and the rest hidden."""
+        return cls(shown=min(n, cap), hidden=max(n - cap, 0))
 
 
 class PassageView(_View):
