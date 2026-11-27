@@ -1431,8 +1431,8 @@ was picked by, such as <code>GSE100021</code>, and <code>&lt;folder&gt;</code> i
 the folder that <code>pass start --studies &lt;folder&gt;</code> names. The chain is built and checked on the
 <strong>standard set</strong>, a fixed list of 50 small GEO studies in <code>evals/standard-set/</code>, which is the
 folder when <code>--studies</code> names none.</p>
-<p>The work is planned in stages, and one step is not built yet: stage 6 runs the whole chain once
-with no person involved. That step already has its name, its input and its output below.</p>
+<p>The work is planned in stages, and one step is not done yet: stage 6 runs the whole chain once
+with no person involved. Its command is built, and its input and its output are below.</p>
 <h2 id="the-steps-in-order">The steps in order<a class="headerlink" href="#the-steps-in-order" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
@@ -1489,10 +1489,10 @@ with no person involved. That step already has its name, its input and its outpu
 <tr>
 <td>6</td>
 <td>Run the chain unattended</td>
-<td>Command not named yet</td>
+<td><code>seqforge study run --studies &lt;folder&gt; --ceiling-usd &lt;USD&gt;</code></td>
 <td>About 2,000 GEO Series</td>
 <td>For each study, a <code>bounds.yaml</code> and a <code>reading.yaml</code>, or the reason the study stopped</td>
-<td>Not built yet. Stage 6 builds it</td>
+<td>The command is built. The run over 2,000 Series is not done yet</td>
 </tr>
 </tbody>
 </table>
@@ -1732,7 +1732,15 @@ them, so a relation is never out of date with its reading.</p>
 </tbody>
 </table>
 <h2 id="6-run-the-chain-unattended">6. Run the chain unattended<a class="headerlink" href="#6-run-the-chain-unattended" title="Permanent link">&para;</a></h2>
-<p><strong>Not built yet.</strong> Stage 6 builds this step, and its command is not named yet.</p>
+<p><code>seqforge study run</code> runs steps 1 and 3 in order over the studies of one folder: the bounding
+pass, <code>study write-bounds</code>, the reading pass, then <code>study write-reading</code>. So the reading pass reads
+the bounds that were just written. Without <code>--keys</code>, it runs the studies that the folder's
+<code>pick.yaml</code> lists. One <code>--ceiling-usd</code> covers both passes: bounding spends first, and reading gets
+what is left. The first step that stops ends the command, with the exit code of that step. Run the
+same command again to resume. Every unit that was already answered replays from the gateway's
+cache at no cost.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>seqforge<span class="w"> </span>study<span class="w"> </span>run<span class="w"> </span>--studies<span class="w"> </span>&lt;folder&gt;<span class="w"> </span>--ceiling-usd<span class="w"> </span><span class="m">5</span>
+</code></pre></div>
 <p>This step runs the chain once over about 2,000 GEO Series, which is about 1% of the sequencing
 Series in GEO. The Series are drawn from liulab-data's store, and the 50 studies of the standard
 set are kept out. The chain bounds and reads every study with no person involved.</p>

@@ -1376,10 +1376,13 @@ writes that down, one file per study, as YAML. This page is all you need to read
 <a id="__codelineno-1-27" name="__codelineno-1-27" href="#__codelineno-1-27"></a><span class="w">    </span><span class="nt">record</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">GSE101112</span>
 <a id="__codelineno-1-28" name="__codelineno-1-28" href="#__codelineno-1-28"></a><span class="w">    </span><span class="nt">field</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Series_citation</span>
 <a id="__codelineno-1-29" name="__codelineno-1-29" href="#__codelineno-1-29"></a><span class="w">    </span><span class="nt">quote</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;A</span><span class="nv"> </span><span class="s">tool</span><span class="nv"> </span><span class="s">paper</span><span class="nv"> </span><span class="s">that</span><span class="nv"> </span><span class="s">lists</span><span class="nv"> </span><span class="s">this</span><span class="nv"> </span><span class="s">Series</span><span class="nv"> </span><span class="s">among</span><span class="nv"> </span><span class="s">its</span><span class="nv"> </span><span class="s">examples&quot;</span>
+<a id="__codelineno-1-30" name="__codelineno-1-30" href="#__codelineno-1-30"></a><span class="nt">titles</span><span class="p">:</span>
+<a id="__codelineno-1-31" name="__codelineno-1-31" href="#__codelineno-1-31"></a><span class="w">  </span><span class="nt">GSE101112</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">An example Series title</span>
+<a id="__codelineno-1-32" name="__codelineno-1-32" href="#__codelineno-1-32"></a><span class="w">  </span><span class="nt">pmid:31742554</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">An example paper title</span>
 </code></pre></div>
 <p>This example is made up to show every part. Its quotes, numbers and model names are not real.</p>
 <h2 id="the-fields">The fields<a class="headerlink" href="#the-fields" title="Permanent link">&para;</a></h2>
-<p>Every field below is required. A file with any other field is rejected.</p>
+<p>Every field below is required, except <code>titles</code>. A file with any other field is rejected.</p>
 <table>
 <thead>
 <tr>
@@ -1420,8 +1423,15 @@ writes that down, one file per study, as YAML. This page is all you need to read
 <td><code>passages</code></td>
 <td>The quotes that back the claims, each under its number. May be empty: <code>{}</code>.</td>
 </tr>
+<tr>
+<td><code>titles</code></td>
+<td>Optional. Each record's title, under the record's id, copied from its GEO record or its paper. A record with no title has no entry. Each id must be a record the file places, and a title cannot be blank.</td>
+</tr>
 </tbody>
 </table>
+<p><strong>Titles are copied, not claimed.</strong> The bounding job copies them from the records it read, so that
+a reader of the file needs no record store. The 50 files of the standard set were drawn before
+titles were copied, and have none.</p>
 <p><strong>A study is whole Series.</strong> A Series is in the study or it is left out. No field names some of
 a Series' samples. Telling apart the experiments inside one Series is a later step's job, not the
 bounds'.</p>
@@ -1543,6 +1553,8 @@ whether the bounds are right.</p>
 one. A file with another number is rejected, and the message names the number the check expected.</p>
 <p>A change to the format raises the number and rewrites every existing file in the same change. No
 file stays behind in an older format, and git history is the only record of the old form.</p>
+<p><code>titles</code> came in without a new number. Every file without it stays valid, so no file had to be
+rewritten.</p>
 
 
 
