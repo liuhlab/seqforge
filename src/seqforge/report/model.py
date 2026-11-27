@@ -20,6 +20,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from ..models.blocker import ValidationWarning
 from ..workflows.metrics import Alert, PipelineStats
 
 
@@ -358,6 +359,8 @@ class WorkspaceReport(_View):
     name: str
     path: str
     assays: list[AssayReport] = Field(default_factory=list)
+    #: The hash of the reading this workspace's sample table joined, ``None`` when it joined none.
+    reading_hash: str | None = None
 
 
 class PassageView(_View):
@@ -425,6 +428,9 @@ class StudySample(_View):
 
     sample: str
     biosample_accession: str | None = None
+    #: The path of each workspace whose manifest holds this sample's BioSample accession, as
+    #: :attr:`WorkspaceReport.path` gives it; empty when no workspace the report read compiled it.
+    compiled_in: list[str] = Field(default_factory=list)
     #: Every label the sample has once the shared claims are applied, by label.
     cells: dict[str, StudyCell] = Field(default_factory=dict)
 
@@ -514,6 +520,8 @@ class StudyReport(_View):
     reason: str
     records: list[BoundsRecord] = Field(default_factory=list)
     has_reading: bool = False
+    #: The hash of the folder's reading as it is now, ``None`` when the study has no reading.
+    reading_hash: str | None = None
     passages: list[PassageView] = Field(default_factory=list)
     factors: list[StudyFactor] = Field(default_factory=list)
     samples: list[StudySample] = Field(default_factory=list)
@@ -539,6 +547,11 @@ class ProjectReport(_View):
     workspaces: list[WorkspaceReport] = Field(default_factory=list)
     #: The study folder ``--study`` named, or ``None`` when the report read none.
     study: StudyReport | None = None
+    #: What the report found out of step between the parts it read. ``READING_STALE``: a
+    #: workspace joined a reading other than the study folder's current one, so the labels in its
+    #: sample table and ``.h5ad`` files are older than the Study tab. Advisory, as the join's own
+    #: warnings are: the report renders either way.
+    warnings: list[ValidationWarning] = Field(default_factory=list)
 
     @property
     def assays(self) -> list[AssayReport]:

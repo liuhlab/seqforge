@@ -18,7 +18,7 @@ from .models.blocker import BlockerSubject, ValidationWarning
 from .models.dataset import DatasetManifest
 from .study.folder import StudyFolder
 from .study.join import READING_HASH, CompiledSample, join_reading
-from .workspace import SAMPLE_METADATA_TSV, state_dir
+from .workspace import SAMPLE_METADATA_TSV, sample_metadata_path, state_dir
 
 #: The table's columns, in order. What a sample WAS (its tissue, strain or treatment) is not among
 #: them: a study reading holds it, and a compile that names its study joins those labels in after.
@@ -221,11 +221,31 @@ def sample_labels(table: Path, sample_id: str) -> tuple[dict[str, str], str | No
     return {}, None
 
 
+def joined_reading_hash(workspace: str | Path) -> str | None:
+    """The hash of the reading a workspace's sample table joined, or ``None`` when it joined none.
+
+    :func:`write_project_views` writes the table in one go from one reading, so every row it
+    labelled carries the same hash; a workspace with no table, or one written with no study, has
+    none to give.
+    """
+    table = sample_metadata_path(workspace)
+    if not table.is_file():
+        return None
+    lines = table.read_text().splitlines()
+    header = lines[0].split("\t") if lines else []
+    if READING_HASH not in header:
+        return None
+    column = header.index(READING_HASH)
+    hashes = (line.split("\t")[column] for line in lines[1:])
+    return next((digest for digest in hashes if digest), None)
+
+
 __all__ = [
     "PROJECT_YAML",
     "SAMPLE_METADATA_TSV",
     "discover_assays",
     "format_tsv",
+    "joined_reading_hash",
     "join_study",
     "project_index",
     "sample_labels",

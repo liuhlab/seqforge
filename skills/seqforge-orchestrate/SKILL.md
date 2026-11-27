@@ -82,7 +82,9 @@ writes those labels into each `<sample>.h5ad` as categorical `obs` columns, with
 only that rule.
 
 **`seqforge report`** writes `report.html` and `report.json`, the same data for a program.
-`--study <folder>` adds the study's tab, and given alone needs no compile.
+`--study <folder>` adds the study's tab, and given alone needs no compile. With `--study`, `-C` can
+be given once per workspace: one report, written into the study folder, marks which workspace
+compiled each sample and warns when a workspace joined an older reading.
 
 `compile` is an alias for `run`.
 

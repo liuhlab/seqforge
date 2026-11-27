@@ -22,13 +22,15 @@ import pytest
 import yaml
 from typer.testing import CliRunner
 
-from conftest import no_wiring_gate, write_fastq_gz
+from conftest import SynthDataset, no_wiring_gate, write_fastq_gz
 from seqforge import kb
 from seqforge.cli import app
 from seqforge.report import collect_report, render_html
 from seqforge.report.flow import flow_steps
 from seqforge.report.model import AssayReport, ProjectReport, WorkspaceReport
 from seqforge.workflows.metrics import Alert, DecisionRef, PipelineStats
+from test_project import JOINED, _compiled
+from test_project import _study as _joined_study
 from test_study import READING, VALID, _gap, _said
 
 if TYPE_CHECKING:  # the resolver seam is private, and only its type is wanted at module scope
@@ -3511,3 +3513,68 @@ def test_a_record_carries_its_title_only_when_the_bounds_file_has_one(
     assert {r["id"]: r["title"] for r in records} == {
         r: titles.get(r) for r in ("GSE1", "GSE2", "pmid:11", "GSE3", "pmid:22")
     }
+
+
+# -- one study, several workspaces -----------------------------------------------------------------
+#
+# Each workspace is a manifest written by hand, one sample per BioSample accession, as the join's
+# own tests build them: the report reads a workspace's samples from its manifest and needs no run.
+
+
+def test_several_workspaces_give_one_report_in_the_study_folder_marking_who_compiled_each_sample(
+    tmp_path: Path, synth_10x_v3: SynthDataset
+) -> None:
+    """Named with ``--study``, several workspaces are one report, written where it started: the
+    study folder. Each keeps its own assays, and each reading sample names the workspaces whose
+    manifest holds its BioSample accession, or none."""
+    folder = _joined_study(tmp_path / "GSE1")
+    first, second = tmp_path / "first", tmp_path / "second"
+    _compiled(first, synth_10x_v3.manifest, [JOINED["GSM1"], JOINED["GSM3"]])
+    _compiled(second, synth_10x_v3.manifest, [JOINED["GSM4"]])
+    result = runner.invoke(
+        app,
+        ["report", "--study", str(folder), "-C", str(first), "-C", str(second), "--no-timestamp"],
+    )
+    assert result.exit_code == 0, result.output
+
+    assert Path(json.loads(result.stdout)["report"]) == folder / "report.html"
+    data = json.loads((folder / "report.json").read_text())
+    named = {ws["path"]: ws["name"] for ws in data["workspaces"]}
+    assert sorted(named.values()) == ["first", "second"]
+    assert all(len(ws["assays"]) == 1 for ws in data["workspaces"])
+    coverage = {
+        s["sample"]: [named[p] for p in s["compiled_in"]] for s in data["study"]["samples"]
+    }
+    assert coverage == {"GSM1": ["first"], "GSM3": ["first"], "GSM4": ["second"], "GSM6": []}
+
+
+@pytest.mark.parametrize("stale", [True, False], ids=["reading changed since", "same reading"])
+def test_a_workspace_that_joined_an_older_reading_is_warned_stale(
+    tmp_path: Path, synth_10x_v3: SynthDataset, stale: bool
+) -> None:
+    """A workspace's sample table names the reading it joined by hash. When the study folder's
+    reading has changed since, the labels in that compile are older than the Study tab, and the
+    report says so; a workspace that joined the current reading draws no warning."""
+    folder = _joined_study(tmp_path / "GSE1")
+    workspace = tmp_path / "ws"
+    _compiled(workspace, synth_10x_v3.manifest, list(JOINED.values()))
+    joined = runner.invoke(
+        app, ["project", "metadata", "-C", str(workspace), "--study", str(folder)]
+    )
+    assert joined.exit_code == 0, joined.output
+    if stale:
+
+        def another_age(reading: dict[str, Any]) -> None:
+            reading["samples"]["GSM3"]["age"]["text"] = "13 months"
+
+        _joined_study(folder, another_age)
+    result = runner.invoke(
+        app, ["report", "--study", str(folder), "-C", str(workspace), "--no-timestamp"]
+    )
+    assert result.exit_code == 0, result.output
+
+    data = json.loads((workspace / "seqforge" / "report.json").read_text())
+    joined_hash = json.loads(joined.stdout)["study"]["reading_hash"]
+    assert data["workspaces"][0]["reading_hash"] == joined_hash
+    assert (data["study"]["reading_hash"] != joined_hash) is stale
+    assert [w["code"] for w in data["warnings"]] == (["READING_STALE"] if stale else [])

@@ -29,12 +29,13 @@ from .root import app
 
 @app.command("report")
 def report_cmd(
-    workspace: Path | None = typer.Option(
+    workspaces: list[Path] | None = typer.Option(
         None,
         "-C",
         "--workspace",
         help="Root holding the seqforge/ state to report on. Default: the current directory, "
-        "unless --study is given alone.",
+        "unless --study is given alone. Give it more than once, with --study, for a study whose "
+        "samples were compiled in several workspaces.",
     ),
     study: Path | None = typer.Option(
         None,
@@ -46,9 +47,9 @@ def report_cmd(
         None,
         "-o",
         "--output",
-        help="Where to write the HTML (default: seqforge/report.html under the workspace, or "
-        "report.html in the study folder when no workspace is given). The data file goes beside "
-        "it, under the same name with .json.",
+        help="Where to write the HTML (default: seqforge/report.html under one workspace, or "
+        "report.html in the study folder when no workspace or several are given). The data file "
+        "goes beside it, under the same name with .json.",
     ),
     timestamp: bool = typer.Option(
         True,
@@ -68,7 +69,11 @@ def report_cmd(
 
     ``--study`` adds the Study tab, read from the study folder through its format checks: a folder
     the checks refuse exits 2 before anything is written. Given without ``-C``, the report is the
-    study's alone, needs no compile, and is written into the study folder.
+    study's alone, needs no compile, and is written into the study folder. Given with several
+    ``-C``, the report starts from the study folder and is written there: each workspace keeps its
+    own compile tabs, the Study tab marks which workspace compiled each sample, and a workspace
+    that joined an older reading is warned stale. Several ``-C`` without ``--study`` exit 2, as
+    the report finds no study by itself.
 
     ``report.json`` is written beside the page and is what the page is built from: the same data, for
     a program, with each path in it relative to where the report was written — each ``.h5ad`` the
@@ -85,22 +90,37 @@ def report_cmd(
     ``--results`` is a machine fact, like ``--fastq-dir`` and ``--sif-dir``: it says where this
     machine put the outputs, and it cannot change anything the page says the compiler decided.
     """
+    roots = list(workspaces or [])
+    if len(roots) > 1 and study is None:
+        typer.echo(
+            json.dumps(
+                {
+                    "error": "several_workspaces_need_a_study",
+                    "detail": "several workspaces are one report only of a study: name it with "
+                    "--study",
+                },
+                indent=2,
+            ),
+            err=True,
+        )
+        raise typer.Exit(2)
     opened = _open_study(study)
-    if workspace is None and opened is None:
-        workspace = Path()
-    # The folder the report starts from is where it writes: the workspace's seqforge/, or the study
-    # folder when it is read alone. A study read beside a workspace is read where it is.
+    if not roots and opened is None:
+        roots = [Path()]
+    # The folder the report starts from is where it writes: one workspace's seqforge/, or the study
+    # folder when it is read alone or with several workspaces. A study read beside one workspace is
+    # read where it is.
     if output is not None:
         out = output
-    elif workspace is not None:
-        out = report_html_path(workspace)
+    elif len(roots) == 1:
+        out = report_html_path(roots[0])
     else:
         assert opened is not None
         out = opened.path / REPORT_HTML
     generated_at = datetime.now().strftime("%Y-%m-%d %H:%M") if timestamp else None
     try:
         report = collect_report(
-            workspace,
+            roots,
             study=opened,
             generated_at=generated_at,
             results_dir=results,
@@ -120,6 +140,7 @@ def report_cmd(
         "bytes": written.html_bytes,
         "assays": len(report.assays),
         "study": None if report.study is None else report.study.study,
+        "warnings": [w.model_dump(mode="json") for w in report.warnings],
         "conclusion": [
             {
                 "assay": a.label,
