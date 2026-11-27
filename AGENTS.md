@@ -58,7 +58,7 @@ moves between directories and its number does not; `—` means no record cites t
 | R1 | **Emit data, never code.** No LLM writes Snakefile or rule source; LLM output validates against an exported JSON Schema. | ADR-0008 |
 | R2 | **Agents propose, code decides — and refusal is an exit code.** Nothing enters a manifest unvalidated; every `Assertion` quote must grep back *and* entail its value. | ADR-0008, ADR-0009, ADR-0013, ADR-0020 |
 | R3 | **Never read a whole FASTQ.** Every FASTQ touch goes through `probe.streaming.BoundedReader`, bounded by `--max-reads` **and** `--max-bytes`. Never write a second budget loop. | ADR-0001 |
-| R4 | **Three truths, never merged.** Interpretive fields are `Evidenced`; observed↔asserted disagreement is a surfaced `Conflict`; one judgement = one envelope. | ADR-0006, ADR-0007 |
+| R4 | **Three truths, never merged.** Interpretive fields are `Evidenced`; observed↔asserted disagreement is a surfaced `Conflict`; one judgement = one envelope. | ADR-0006 |
 | R5 | **Disk is state, context is cache.** Every stage writes a resumable, content-addressed artifact under `seqforge/` — **no leading dot**, because it holds the manifest and the Snakefile: output, not scratch, and only `seqforge/cache/` is safe to delete. Resume is implicit and there is no `--resume`. | ADR-0013, ADR-0015 |
 | R6 | **The CLI is the API; the skill is a thin client.** Every skill action maps to a deterministic `seqforge <verb>` emitting JSON on stdout by default. | ADR-0013 |
 | R7 | **Machine-independent manifest — no absolute paths, ever.** Genome = UCSC id + registered GTF name; software = a `liulab-runtime` env name; data = a URI. | — |

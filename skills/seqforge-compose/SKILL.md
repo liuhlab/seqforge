@@ -20,15 +20,14 @@ processing manifest is data, not a side channel.
 `--processing` is optional. A processing manifest exists because someone wanted something
 non-default; requiring one per dataset would mean 10⁴ boilerplate files nobody reads. Either way
 compose writes the fully-resolved, dataset-**bound** manifest it used to
-`seqforge/pipeline/<run_id>/processing.lock.yaml` — disk is *state*, not *input*, so the run's
-decisions are recoverable regardless.
+`seqforge/pipeline/<recipe>-<run_id[:12]>/processing.lock.yaml` — disk is *state*, not *input*, so
+the run's decisions are recoverable regardless.
 
 Output is keyed by `run_id = H(dataset ⊕ processing ⊕ kb ⊕ workflow)`, **not** by the workspace: one
 dataset compiled two ways is two runs, and a fixed path would silently overwrite the first.
 
-`threads` is not a flag — it lives in `processing.resources.threads`. It used to be both, which is
-the two-sources-of-truth disease this design cures. `outdir` stays a flag because it is a path, i.e.
-a machine fact, and a manifest may not carry one.
+`threads` is not a flag — it lives in `processing.resources.threads`, its one source. `outdir`
+stays a flag because it is a path, i.e. a machine fact, and a manifest may not carry one.
 
 ## Emit data, never code
 
@@ -76,11 +75,10 @@ It proves the value **survived compose**. It cannot prove the value is **right**
 sees nothing, a linter sees nothing. Only `kb e2e` (count matrix vs injected truth) catches that
 class, which is exactly why it exists.
 
-Measured: `kb e2e-introns` on ce11 showed `--soloFeatures Gene` discards **40.7%** of a nuclear
-library, silently. That defect is fixed — `soloFeatures` defaults to all five, so GeneFull is counted
-whether or not anyone tells us the prep is nuclear — and the number now survives as a
-counterfactual the fixture re-measures on every run. Do not "optimise" the default back down to Gene;
-`--quantify` narrowing warns for this reason.
+`--soloFeatures Gene` alone silently discards the intronic reads of a nuclear library, and
+`kb e2e-introns` re-measures that loss each time it runs. So `soloFeatures` defaults to all five, and
+GeneFull is counted whether or not anyone tells us the prep is nuclear. Do not "optimise" the default
+back down to Gene; `--quantify` narrowing warns for this reason.
 
 ## The sample list is the POST-DROP list
 

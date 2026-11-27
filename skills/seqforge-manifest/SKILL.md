@@ -78,7 +78,7 @@ document, asked for the chemistry.
 `library` holds exactly one `Evidenced` field: `chemistry`. Everything else there follows from it —
 `assay` is the same answer in EFO's vocabulary (one ontology id per chemistry; the report names it),
 `read_layout` is the KB's structure filled in with measured lengths, `files[].read_id` is the other
-half of the same joint optimization. They used to each carry a copy of the same number.
+half of the same joint optimization.
 
 `confidence: null` is legal and informative: it means nothing was judged. An organism taxid copied out
 of a BioSample record is a transcription, not a judgement — `basis: asserted` plus the record
@@ -94,8 +94,10 @@ accessions in `evidence` already says everything true about how we know it.
 
 In the dataset manifest, `basis` records **how we know**. In the processing manifest it records **who
 decided** — a corpus row reading "GeneFull because the user's instruction file said so" is
-categorically different from "GeneFull because policy defaults to all five". Every field is
-`Evidenced{value, basis, evidence, confidence, rung}`.
+categorically different from "GeneFull because policy defaults to all five". A field that carries a
+basis is `Evidenced{value, basis, evidence, confidence, rung}`: every processing field but
+`resources`, and in the dataset manifest `library.chemistry`, `experiment.organism` and
+`experiment.accessions`.
 
 **Never merge the three truths.** If observed and asserted disagree, that is a first-class `Conflict`
 — surface it; do not average it, pick between them, or quietly prefer the "better" one. Note the

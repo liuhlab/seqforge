@@ -61,8 +61,8 @@ its answers as files. There are two, bounding and reading.
 _Avoid_: pass (one run of a job's unit kind over some studies), stage, step
 
 **Closed question**:
-A question with a fixed set of answers, yes or no or one of a list, which the model Jev answers
-with a probability.
+A question with a fixed set of answers, yes or no or one of a list, which a model answers with a
+probability.
 _Avoid_: Question (the shared word for an ambiguity put to a person), prompt, query
 
 **Assay guide**:

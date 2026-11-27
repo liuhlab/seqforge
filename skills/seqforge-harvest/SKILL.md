@@ -4,13 +4,14 @@ description: >-
   Turn prose (methods sections, GEO/SRA records, READMEs, manuscripts) into
   span-verified Assertions via `seqforge harvest normalize|extract|verify`. Use
   when a dataset comes with any human-written description and you need machine
-  claims out of it. This is the ONE LLM touchpoint in the whole compiler. Run as
-  a subagent — documents are long and only the compact result should return.
+  claims out of it. A model proposes each claim and code verifies it. Run as a
+  subagent — documents are long and only the compact result should return.
 ---
 
 # seqforge harvest
 
-The only stage where a model proposes anything. Everything else in seqforge is a verifier.
+A model proposes claims from prose here, and code checks each one: its quote must grep back into the
+document and entail its value.
 
 ```bash
 seqforge harvest normalize DOCS               # -> canonical span space (deterministic)
@@ -20,10 +21,9 @@ seqforge harvest verify DRAFTS                # -> the span-verification tripwir
 ```
 
 **Run `--dry-run` first on anything with `--records`.** It renders every document and prints the plan
-— `n_documents`, `n_requests`, and the estimated input tokens — while reaching no gateway. A
-dataset's cost used to be a property nobody computed until it had been paid: one benchmark series
-billed 983 calls, 92% of them one-line run aliases. Only an experiment record is sent now: its
-protocol paragraph is asked for the chemistry, and project, sample and run records are asked nothing.
+— `n_documents`, `n_requests`, and the estimated input tokens — while reaching no gateway. Only an
+experiment record is sent: its protocol paragraph is asked for the chemistry, and project, sample and
+run records are asked nothing.
 
 **`n_requests` is the number to read as the cost, not `n_documents`.** Documents that receive the
 same ask travel in one request, so the stable prefix is paid once for the group rather than once
@@ -42,8 +42,7 @@ spent, in dollars, the transcript says what it spent it on. Stdout carries the p
 exchanges.
 
 The model: `--provider` (default `deepseek`) and `--model`, the provider's exact model name
-(default `deepseek-v4-pro`; any other provider needs `--model`). Pro is the default because the
-benchmark measured it there — faster, and fewer output tokens (#188). The choice moves cost, never
+(default `deepseek-v4-pro`; any other provider needs `--model`). The choice moves cost, never
 correctness: code re-greps every quote after.
 
 ## Document ROLE: only a file you hand us may steer the pipeline

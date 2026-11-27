@@ -19,7 +19,8 @@ seqforge io peek URI               # remote; HTTP Range, ~64 KB, never the file
 
 ## The budget is not negotiable
 
-`probe` stops at **200 000 reads AND 256 MB decompressed**, whichever comes first. Wall-clock is
+`probe` stops at `--max-reads` reads **or** `--max-bytes` decompressed bytes, whichever comes first;
+`seqforge probe --help` gives both defaults. Wall-clock is
 never a budget. A 40 GB FASTQ costs the same as a 40 MB one, and a code path that *can* stream a
 whole file is a bug, not a risk to manage. Do not work around this with `zcat`/`head` — a hook will
 block it, and it should.
