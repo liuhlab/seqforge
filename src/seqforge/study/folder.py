@@ -132,7 +132,9 @@ def open_study_folder(folder: Path) -> StudyFolder:
     if (folder / BOUNDS).is_file():
         bounds, problems[BOUNDS] = _checked(folder / BOUNDS, read_bounds)
     else:
-        problems[BOUNDS] = [{"field": "(file)", "reason": "missing: a study folder holds its bounds"}]
+        problems[BOUNDS] = [
+            {"field": "(file)", "reason": "missing: a study folder holds its bounds"}
+        ]
     if (folder / READING).is_file():
         reading, problems[READING] = _checked(folder / READING, read_reading)
     problems = {name: found for name, found in problems.items() if found}
