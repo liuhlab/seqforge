@@ -515,7 +515,7 @@ def label_h5ad(source: Path, out: Path, obs: Mapping[str, str], uns: Mapping[str
     partial = out.with_name(f".{out.name}.partial")
     try:
         adata.write_h5ad(partial)
-        os.replace(partial, out)
+        partial.replace(out)
     finally:
         partial.unlink(missing_ok=True)
     return out
