@@ -8,11 +8,16 @@ joined in if present and simply omitted if not. Nothing here decides anything: i
 deterministic verbs already wrote (and, for the results, what the user's own snakemake wrote) and
 flattens it for a human.
 
+It spells no other package's path. The resolve cache, harvest's assertions and documents, and the
+saved record sets are each opened by a reader beside its writer (``resolve.cache``,
+``harvest.artifacts``, ``recordset``), so a renamed file breaks a test in the package that owns it
+rather than quietly emptying a panel here.
+
 The one non-obvious join is the evidence matrix. It is persisted per **run** under a cache key that
-folds in tool versions the manifest never stores, so the report never recomputes that key — it scans
-``cache/candidates`` for a run whose winning chemistry matches the manifest and whose assigned files
-are a subset of the manifest's, then reads the sibling ``cache/matrices`` sidecar. Version-drift-proof
-and correct across a multi-run dataset.
+folds in tool versions the manifest never stores, so the report never recomputes that key — it walks
+every cached resolve result for a run whose winning chemistry matches the manifest and whose assigned
+files are a subset of the manifest's, and takes that run's matrix. Version-drift-proof and correct
+across a multi-run dataset.
 """
 
 from __future__ import annotations
@@ -21,17 +26,19 @@ import json
 import re
 from collections.abc import Callable
 from pathlib import Path
-from typing import Any, NamedTuple
+from typing import TYPE_CHECKING, Any, NamedTuple
 
 import yaml
 
 from ..liulab_data import LiulabDataMissing, needed
 from ..models.dataset import DatasetManifest, LibrarySection
 from ..models.processing import ProcessingManifest
+from ..models.records import ArchiveRecordSet
 from ..pipeline import CONFIG_NAME, SNAKEFILE_NAME, UNITS_TSV_NAME, CompiledPipeline
 from ..project import discover_assays
+from ..recordset import saved_record_set
 from ..workflows.metrics import Alert, Decision, DecisionRef, PipelineStats, gather_alerts
-from ..workspace import cache_dir, documents_dir, logs_dir, records_dir, state_dir
+from ..workspace import state_dir
 from .model import (
     ArchiveProjectView,
     ArtifactEmbed,
@@ -55,6 +62,9 @@ from .model import (
     SampleView,
 )
 
+if TYPE_CHECKING:
+    from ..harvest.artifacts import HarvestLog
+
 #: A handful of common lab organisms, so the Overview can say "C. elegans" not just "taxid 6239".
 #: Deliberately tiny and unauthoritative — an unknown taxid degrades to "taxid N", never a wrong name.
 _ORGANISM_NAMES: dict[int, str] = {
@@ -71,7 +81,6 @@ _ORGANISM_NAMES: dict[int, str] = {
     83333: "E. coli K-12",
 }
 
-_HEX12 = re.compile(r"-([0-9a-f]{12})$")
 _ACCESSION = re.compile(r"^([SED]R[RXPS]\d+|GS[EM]\d+|PRJ[A-Z]{2}\d+|SAM[NED][A-Z]?\d+)$")
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
 
@@ -134,12 +143,17 @@ def _workspace_name(ws: Path) -> str:
 def _collect_assay(
     ws: Path, subdir: str | None, manifest_path: Path, results_dir: Path | None = None
 ) -> AssayReport:
+    # Here, not at the top: `harvest/` loads the extraction stack, and the CLI imports this module.
+    from ..harvest.artifacts import document_labels, read_assertions
+
     manifest = DatasetManifest.model_validate(yaml.safe_load(manifest_path.read_text()))
     base = manifest_path.parent
 
-    assertions = _load_assertions(ws)
-    doc_index = _index_documents(ws)
-    records = _load_records(ws, manifest.experiment.project)
+    harvest_log = read_assertions(ws)
+    assertions = _load_assertions(harvest_log)
+    doc_index = document_labels(ws)
+    project = manifest.experiment.project
+    records = saved_record_set(ws, project.accession if project is not None else None)
 
     proc_path = base / "processing.yaml"
     proc = (
@@ -154,7 +168,7 @@ def _collect_assay(
     samples = _samples(manifest)
     stats = _pipeline_stats(pipeline, manifest, results_dir)
     matrices, ruled_out = _matrices(ws, manifest)
-    has_prose = _quotes_prose(assertions, _staged_documents(ws))
+    has_prose = _quotes_prose(assertions, _staged_documents(harvest_log))
 
     taxid = int(manifest.experiment.organism.value)
     return AssayReport(
@@ -182,7 +196,7 @@ def _collect_assay(
             ("kb_version", manifest.provenance.kb_version),
             ("seqforge_version", manifest.provenance.seqforge_version),
         ],
-        has_records=bool(records.get("records")) if isinstance(records, dict) else False,
+        has_records=records is not None,
         has_prose=has_prose,
     )
 
@@ -338,86 +352,27 @@ def _resolve_evidence(
     return EvidenceRef(raw=token, kind="other")
 
 
-def _harvest_log(ws: Path) -> dict[str, Any]:
-    """``logs/assertions.json`` as harvest wrote it (top-level name as fallback); empty if neither."""
-    for path in (logs_dir(ws) / "assertions.json", state_dir(ws) / "assertions.json"):
-        if not path.is_file():
-            continue
-        try:
-            data = json.loads(path.read_text())
-        except (ValueError, OSError):
-            continue
-        if isinstance(data, list):
-            data = {"assertions": data}
-        if isinstance(data, dict) and isinstance(data.get("assertions"), list):
-            return data
-    return {}
-
-
-def _load_assertions(ws: Path) -> dict[str, dict[str, Any]]:
+def _load_assertions(log: HarvestLog) -> dict[str, dict[str, Any]]:
     """``{assert-id -> assertion dict}`` from the harvest log."""
-    items = _harvest_log(ws).get("assertions", [])
-    return {a["id"]: a for a in items if isinstance(a, dict) and "id" in a}
+    return {a["id"]: a for a in log.assertions if "id" in a}
 
 
-def _staged_documents(ws: Path) -> frozenset[str]:
+def _staged_documents(log: HarvestLog) -> frozenset[str]:
     """The documents a human staged for the whole dataset, as against those rendered from a record.
 
     Read from the scope harvest saved for each document, not guessed from a file's name: a person
     may call their own notes ``sample-notes.md``.
     """
-    subjects = _harvest_log(ws).get("document_subjects", [])
     return frozenset(
         d["doc_sha256"]
-        for d in subjects
-        if isinstance(d, dict) and d.get("scope") == "dataset" and "doc_sha256" in d
+        for d in log.document_subjects
+        if d.get("scope") == "dataset" and "doc_sha256" in d
     )
 
 
-def _index_documents(ws: Path) -> dict[str, str]:
-    """``{doc_sha256[:12] -> readable stem}`` over the rendered documents (both layouts)."""
-    index: dict[str, str] = {}
-    for d in (documents_dir(ws), state_dir(ws) / "documents"):
-        if not d.is_dir():
-            continue
-        for f in sorted(d.glob("*.txt")):  # sorted: a stable label under any filesystem order
-            m = _HEX12.search(f.stem)
-            if m:
-                # Strip the trailing -<hash12> for a readable label ("experiment-SRX24283130").
-                index.setdefault(m.group(1), f.stem[: m.start()])
-    return index
-
-
-def _load_records(ws: Path, project: Any) -> dict[str, Any]:
-    """The archive record set for the project, if one was fetched (for its abstract + samples).
-
-    The file is preferentially the one named for the manifest's project accession, but that accession may
-    be a different *form* of the same project than the file is keyed by — the manifest often resolves a
-    GEO id (``GSE234962``) to its BioProject (``PRJNA983807``) while the record set was saved under the
-    id the user passed. So when the exact name misses, fall back to any ``records/*.json`` that carries
-    a record set; there is one per dataset, so this is unambiguous for the common single-dataset case.
-    """
-    rdir = records_dir(ws)
-    if not rdir.is_dir():
-        return {}
-    accession = getattr(project, "accession", None) if project is not None else None
-    candidates: list[Path] = []
-    if accession:
-        preferred = rdir / f"{accession}.json"
-        if preferred.is_file():
-            candidates.append(preferred)
-    candidates += [p for p in sorted(rdir.glob("*.json")) if p not in candidates]
-    for path in candidates:
-        try:
-            data = json.loads(path.read_text())
-        except (ValueError, OSError):
-            continue
-        if isinstance(data, dict) and data.get("records"):
-            return data
-    return {}
-
-
-def _project(manifest: DatasetManifest, records: dict[str, Any]) -> ArchiveProjectView | None:
+def _project(
+    manifest: DatasetManifest, records: ArchiveRecordSet | None
+) -> ArchiveProjectView | None:
     project = manifest.experiment.project
     if project is None:
         return None
@@ -431,13 +386,11 @@ def _project(manifest: DatasetManifest, records: dict[str, Any]) -> ArchiveProje
     )
 
 
-def _abstract(records: dict[str, Any]) -> str | None:
-    for rec in records.get("records", []) if isinstance(records, dict) else []:
-        if not isinstance(rec, dict) or rec.get("level") != "project":
-            continue
-        for ft in rec.get("free_text", []):
-            if isinstance(ft, dict) and ft.get("label") == "study_abstract" and ft.get("text"):
-                return str(ft["text"])
+def _abstract(records: ArchiveRecordSet | None) -> str | None:
+    for rec in records.at("project") if records is not None else []:
+        for ft in rec.free_text:
+            if ft.label == "study_abstract" and ft.text:
+                return ft.text
     return None
 
 
@@ -1033,38 +986,22 @@ def _matrices(ws: Path, manifest: DatasetManifest) -> tuple[list[MatrixView], li
     Returns ``(winner-family grids, ruled-out families)``. ``([], [])`` when no sidecar is found — an
     old cache or a resumed run — and the Evidence tab degrades to the chemistry decision alone.
     """
-    cdir = cache_dir(ws)
-    candidates_dir, matrices_dir = cdir / "candidates", cdir / "matrices"
-    if not (candidates_dir.is_dir() and matrices_dir.is_dir()):
-        return [], []
+    from ..resolve.cache import Cache  # here, not at the top: `resolve/` loads the scoring engine
+
     manifest_shas = {f.sha256 for f in manifest.library.files}
     chem_values = set(manifest.library.chemistry.value)
     winner = manifest.library.chemistry.value[0] if manifest.library.chemistry.value else None
     sha_to_name = {f.sha256: f.basename for f in manifest.library.files}
 
-    for cand_file in sorted(candidates_dir.glob("*.json")):
-        try:
-            result = json.loads(cand_file.read_text())
-        except (ValueError, OSError):
+    for result, matrices in Cache(ws).resolve_results():
+        if not result.candidates or matrices is None:
             continue
-        candidates = result.get("candidates") if isinstance(result, dict) else None
-        if not isinstance(candidates, list) or not candidates:
+        top = result.candidates[0]
+        if top.technology not in chem_values:
             continue
-        top = candidates[0]
-        assignment = top.get("role_assignment", {}).get("assignment", {})
-        if top.get("technology") not in chem_values:
+        if not set(top.role_assignment.assignment.values()) <= manifest_shas:
             continue
-        if not set(assignment.values()) <= manifest_shas:
-            continue
-        mfile = matrices_dir / f"{cand_file.stem}.json"
-        if not mfile.is_file():
-            continue
-        try:
-            matrices = json.loads(mfile.read_text())
-        except (ValueError, OSError):
-            continue
-        if not isinstance(matrices, dict):
-            continue
+        candidates = [c.model_dump(mode="json") for c in result.candidates]
         return _project_matrices(matrices, candidates, winner, chem_values, sha_to_name)
     return [], []
 
@@ -1204,24 +1141,13 @@ def _collect_draft(ws: Path) -> AssayReport | None:
     renders a minimal assay that says so — honestly, without inventing a chemistry. Returns ``None``
     when there is nothing decided to show.
     """
-    candidates_dir = cache_dir(ws) / "candidates"
-    if not candidates_dir.is_dir():
-        return None
+    from ..resolve.cache import Cache
+
     blockers: list[str] = []
     questions: list[str] = []
-    for f in sorted(candidates_dir.glob("*.json")):
-        try:
-            result = json.loads(f.read_text())
-        except (ValueError, OSError):
-            continue
-        if not isinstance(result, dict):
-            continue
-        for b in result.get("blockers", []):
-            if isinstance(b, dict) and b.get("message"):
-                blockers.append(str(b["message"]))
-        for q in result.get("questions", []):
-            if isinstance(q, dict) and q.get("prompt"):
-                questions.append(str(q["prompt"]))
+    for result, _ in Cache(ws).resolve_results():
+        blockers += [b.message for b in result.blockers if b.message]
+        questions += [q.prompt for q in result.questions if q.prompt]
     if not blockers and not questions:
         return None
     if blockers:

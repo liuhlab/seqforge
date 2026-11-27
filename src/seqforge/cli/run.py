@@ -31,7 +31,7 @@ from ..manifest import (
 )
 from ..pipeline import CompiledPipeline
 from ..probe import DEFAULT_MAX_BYTES, DEFAULT_MAX_READS
-from ..workspace import logs_dir, readable, records_dir, state_dir
+from ..workspace import readable, state_dir
 from ._common import _auto_cpus, _load_manifest, _open_study
 from .harvest import PdfBackendChoice, _harvest_extract_pipeline
 from .manifest import _fill_manifest_pipeline
@@ -76,7 +76,7 @@ def _run_records_stage(
     from ..io import IO_VERSION
     from ..io.archive import SOURCE, fetch_records, stored_records
     from ..models.records import ArchiveRecordSet
-    from ..recordset import load_record_set
+    from ..recordset import load_record_set, save_record_set
 
     if records_path is not None:
         # The one loader: a cache `io records` wrote and a set a human typed are the same input here,
@@ -85,17 +85,13 @@ def _run_records_stage(
         return load_record_set(records_path), records_path
     if not accession:
         return None, None
-    outdir = records_dir(workspace)
-    outdir.mkdir(parents=True, exist_ok=True)
     merged: list[Any] = []
     per_accession: list[Path] = []
     # Offline, the lab's store is the only source: a deposit it lacks is refused, never fetched.
     fetch = stored_records if offline else fetch_records
     for acc in accession:
         record_set = fetch(acc)
-        target = outdir / f"{acc}.json"
-        target.write_text(json.dumps(record_set.model_dump(mode="json"), indent=2))
-        per_accession.append(target)
+        per_accession.append(save_record_set(workspace, acc, record_set))
         merged.extend(record_set.records)
     # Every record below came back from `fetch_records` a moment ago, so the set re-assembled around
     # them was written by this transcriber and says so — an unstamped set means a cache older than
@@ -116,9 +112,7 @@ def _run_records_stage(
         io_version=IO_VERSION,
     )
     tag = hashlib.sha256(", ".join(sorted(accession)).encode()).hexdigest()
-    combined_path = outdir / (readable("combined", tag) + ".json")
-    combined_path.write_text(json.dumps(combined.model_dump(mode="json"), indent=2))
-    return combined, combined_path
+    return combined, save_record_set(workspace, readable("combined", tag), combined)
 
 
 def _nested_field(block: Mapping[str, object], key: str, field: str) -> object:
@@ -499,7 +493,9 @@ def run_cmd(
                 "prose claims failed span-verification and were dropped (see 'rejected'); the manifest "
                 "was built from the accepted claims and the bytes"
             )
-        assertions_path = logs_dir(workspace) / "assertions.json"
+        from ..harvest.artifacts import assertions_path as harvest_assertions
+
+        assertions_path = harvest_assertions(workspace)
 
     # 3) The IR: what the data IS. Probe + resolve + metadata, both resolvers, both able to refuse.
     fill = _fill_manifest_pipeline(
