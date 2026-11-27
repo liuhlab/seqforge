@@ -1764,6 +1764,8 @@ def _graph_tip(i: int, record: BoundsRecord, study: StudyReport) -> str:
     if record.p is not None:
         said.append(f"p {record.p:g}")
     body = f'<div class="pp-head font-mono">{esc(record.id)}</div>'
+    if record.title:
+        body += f'<div class="text-sm font-bold">{esc(record.title)}</div>'
     body += f'<div class="pp-basis">{esc(" · ".join(said))}</div>'
     if record.reason:
         body += f'<p class="m-0 mt-2">{esc(record.reason)}</p>'

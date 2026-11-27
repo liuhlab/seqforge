@@ -48,7 +48,8 @@ resolve_metadata(FileIdentity,  -> samples, Warnings. Which sample each file is,
   => manifest.yaml     THE IR.    What the data IS. One per dataset. Immutable, hashed.
   => sample_metadata.tsv   One row per sample. With `--study`, the reading joins in by BioSample
                            accession: a column per factor and varying label, and `reading_hash`.
-                           Mismatches only WARN; the manifest and its hash do not change
+                           Mismatches only WARN; the manifest and its hash do not change. A
+                           droplet pipeline's last rule copies the labels into each .h5ad
 plan(Assertions, flags, policy) -> ProcessingSection   precedence: flag > instruction > policy
   => processing.yaml   THE FLAGS. What to DO with it. Many per dataset. Sparse; empty is legal.
 compose(manifest, processing)   -> Snakefile + config + units.tsv   deterministic

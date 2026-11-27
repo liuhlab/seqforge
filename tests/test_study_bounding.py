@@ -100,9 +100,14 @@ class Store:
     def open_many(self, accessions: Iterable[str]) -> dict[str, Record]:
         day = dt.date(2026, 1, 1)
         return {
-            a: Record(a, "GEO Series", None, day, day, day, (), "", day, tuple(links))
+            a: Record(a, "GEO Series", None, day, day, day, _title(a), "", day, tuple(links))
             for a, links in self.links(accessions).items()
         }
+
+
+def _title(accession: str) -> tuple[tuple[str, str], ...]:
+    """A Series record's title field, as the store holds it; GSE12's record has none."""
+    return () if accession == "GSE12" else (("Series_title", f"series {accession}"),)
 
 
 class Papers:
@@ -228,6 +233,25 @@ def test_a_study_is_its_series_and_every_record_one_link_away_each_placed_by_jev
         3,
         ["GSE20", "GSE90", "GSE91"],
     ), refused.output
+
+
+def test_each_placed_record_carries_its_title_copied_from_its_record(
+    drawn: tuple[Path, dict[str, Any], Any],
+) -> None:
+    """Each kept and left-out record's title is copied into the bounds file from its Series record
+    or its paper, so the report never reads a store. A record with no title has no entry."""
+    set_dir, _, _ = drawn
+    bounds = yaml.safe_load((set_dir / "GSE10" / "job-bounds.yaml").read_text())
+
+    assert bounds["titles"] == {
+        "GSE10": "series GSE10",
+        "GSE11": "series GSE11",
+        "pmid:100": "paper 100",
+        "GSE19": "series GSE19",
+        "GSE13": "series GSE13",
+        "GSE14": "series GSE14",
+        "pmid:200": "paper 200",
+    }
 
 
 def test_a_study_whose_two_answers_disagree_on_a_record_is_unsettled_and_still_written(

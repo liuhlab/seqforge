@@ -379,12 +379,15 @@ class BoundsRecord(_View):
     claim's note, and ``reason_passages`` are the bounds file's passages the claim is quoted from or
     rests on. ``superseries`` is the SuperSeries a sub-Series belongs to. Only the standard set's
     study file says which Series that is, so it is ``None`` for any other folder. ``passages`` are
-    the reading's passages quoted from this record, empty when the study has no reading.
+    the reading's passages quoted from this record, empty when the study has no reading. ``title``
+    is the record's title as the bounds file copied it, ``None`` for a file drawn before titles were
+    copied, whose records go by their ids alone.
     """
 
     id: str
     kind: Literal["series", "paper"]
     kept: bool
+    title: str | None = None
     backing: Literal["quoted", "inferred", "unknown"] | None = None
     reason: str | None = None
     reason_passages: list[PassageView] = Field(default_factory=list)

@@ -204,6 +204,7 @@ def collect_study(study: StudyFolder, report_dir: Path) -> StudyReport:
             id=id_,
             kind="paper" if id_.startswith("pmid:") else "series",
             kept=kept,
+            title=bounds.titles.get(id_),
             backing=backing,
             reason=None if claim is None else (claim.inferred or claim.unknown),
             reason_passages=[_passage_view(n, bounds.passages[n]) for n in cites],
