@@ -11,6 +11,7 @@ asked about every other Series and every paper of the group twice, as a closed q
 :mod:`.closed`: as written, then negated. A record is in the study when Jev's answer to the
 question as written is yes. The answer is the bounds file and Jev's two answers for each record
 asked, saved as every job saves them, since the file has no place for a kept paper's probability.
+Code copies each placed record's title into the file from its Series record or its paper.
 
 A unit ends refused when its group holds more than :data:`MOST_SERIES` Series, when Jev gives no
 answer about a record, or when its bounds fail the format check; unsettled when Jev's two answers do
@@ -35,7 +36,7 @@ from .group import SERIES, group_text, linked_series, paper_reader, read_group, 
 
 KIND_NAME = name_of(__name__)
 #: Raise it when a question, the answer's shape or a rule of placing changes.
-KIND_VERSION = "2026.11.2"
+KIND_VERSION = "2026.11.3"
 #: The most Series a linked group may hold. A larger group is refused before its records are read.
 MOST_SERIES = 50
 #: The role Jev fills. :data:`.closed.JEV` fills it unless a pass names another model.
@@ -143,6 +144,11 @@ def _draw(u: Unit) -> dict[str, Any]:
         "reason": reason,
         "passages": {},
     }
+    # Each placed record's title, copied from its record or paper; one with no title has no entry.
+    titles = {s["id"]: " ".join(s["fields"]["Title"]) for s in group["series"] if s["held"]}
+    titles |= {p["id"]: p["title"] or "" for p in group["papers"]}
+    placed = {*papers, *(claim["id"] for claim in series + left_out)}
+    bounds["titles"] = {r: t for r, t in titles.items() if r in placed and t.strip()}
     if problems := check_bounds(bounds):
         u.refuse("bounds_format", "; ".join(f"{p['field']}: {p['reason']}" for p in problems))
     return {

@@ -3350,3 +3350,24 @@ def test_the_bounds_graph_data_holds_every_kept_and_left_out_record_with_its_rea
     }  # fmt: skip
     assert study["reason"] == VALID["reason"]
     assert study["has_reading"] is True
+
+
+@pytest.mark.parametrize("titled", [True, False], ids=["with titles", "drawn before titles"])
+def test_a_record_carries_its_title_only_when_the_bounds_file_has_one(
+    tmp_path: Path, titled: bool
+) -> None:
+    """The title comes from the bounds file alone, so the report reads no store. A bounds file
+    drawn before titles were copied has none, and every record goes by its id alone."""
+    folder = _study_folder(tmp_path)
+    if titled:
+        bounds = yaml.safe_load((folder / "bounds.yaml").read_text())
+        bounds["titles"] = {"GSE1": "Kept Series", "pmid:22": "Left-out paper"}
+        (folder / "bounds.yaml").write_text(yaml.safe_dump(bounds, sort_keys=False))
+    result = runner.invoke(app, ["report", "--study", str(folder), "--no-timestamp"])
+    assert result.exit_code == 0, result.output
+
+    records = json.loads((folder / "report.json").read_text())["study"]["records"]
+    titles = {"GSE1": "Kept Series", "pmid:22": "Left-out paper"} if titled else {}
+    assert {r["id"]: r["title"] for r in records} == {
+        r: titles.get(r) for r in ("GSE1", "GSE2", "pmid:11", "GSE3", "pmid:22")
+    }
