@@ -330,7 +330,26 @@
   // title="" a reader could neither select nor keep open; and a Results metric COLUMN HEADER
   // (.metric-head) carries what the number means — on the header, not the cell, because the hint
   // describes the metric and is stored once per column instead of once per sample.
-  var CELL_SEL = ".mx-cell, .metric-head";
+  // A third kind joined them with the Study tab: a sample table's cell (.st-cell, and .st-fcell for
+  // a factor's), which carries how its claim is backed and opens the passages behind it.
+  var CELL_SEL = ".mx-cell, .metric-head, .st-cell, .st-fcell";
+
+  // The reading's passages by number, read once from the page's own embedded report.json. A study
+  // cell names its passages by number so that each quote is in the page once, not once per sample.
+  var studyPassages = null;
+  function passagesOf(numbers) {
+    if (studyPassages === null) {
+      studyPassages = {};
+      var block = document.getElementById("seqforge-report-data");
+      try {
+        var study = block ? JSON.parse(block.textContent).study : null;
+        ((study && study.passages) || []).forEach(function (p) { studyPassages[p.number] = p; });
+      } catch (e) {}
+    }
+    return (numbers || "").split(",").filter(Boolean).map(function (n) {
+      return studyPassages[n] || { number: n, source: "", quote: "passage " + n + " is missing" };
+    });
+  }
 
   // The one handle out of the popover's closure. Turning a sample table's page can take the cell a
   // popover is pinned beside off the page, and a card left floating beside nothing is worse than no
@@ -409,6 +428,26 @@
         q.textContent = quote;
         pop.appendChild(q);
       }
+      // A study cell: how its claim was worked out, then the passages it is quoted from or rests
+      // on, then any that speak against it. Every value is set as text, never as markup.
+      var note = cell.getAttribute("data-note") || "";
+      if (note) pop.appendChild(el("mt-2", note));
+      var copied = [];
+      function passages(numbers, title) {
+        var found = passagesOf(numbers);
+        if (!found.length) return;
+        pop.appendChild(el("pp-basis mt-3", title));
+        found.forEach(function (p) {
+          var b = document.createElement("blockquote");
+          b.className = "pp-quote";
+          b.appendChild(el("text-xs not-italic text-faint", "[" + p.number + "] " + p.source));
+          b.appendChild(document.createTextNode(p.quote));
+          pop.appendChild(b);
+          copied.push("[" + p.number + "] " + p.source + ": “" + p.quote + "”");
+        });
+      }
+      passages(cell.getAttribute("data-passages"), cell.getAttribute("data-passages-title") || "");
+      passages(cell.getAttribute("data-against"), "against");
       var bar = el("pp-bar");
       var copyBtn = document.createElement("button");
       copyBtn.className = "pp-copy";
@@ -417,6 +456,8 @@
       copyBtn.addEventListener("click", function (e) {
         e.stopPropagation();
         var text = head.textContent + "\n" + basisLine.textContent + (quote ? "\n“" + quote + "”" : "");
+        if (note) text += "\n" + note;
+        if (copied.length) text += "\n" + copied.join("\n");
         copyText(text, copyBtn);
       });
       bar.appendChild(copyBtn);
@@ -499,6 +540,51 @@
     });
   }
 
+  // ---- the design table's counts and the sample tables' topics ----------------------------------
+  // A count names its card by id, as a graph record does, and the card shows while the pointer or
+  // the focus is on the count. The topic bar is rendered hidden: without this script every topic's
+  // table shows, one under the other, and with it one at a time.
+  function initStudyTables() {
+    document.querySelectorAll("[data-hover-card]").forEach(function (node) {
+      var tip = document.getElementById(node.getAttribute("data-hover-card"));
+      if (!tip) return;
+      function show() {
+        tip.hidden = false;
+        var r = node.getBoundingClientRect();
+        var left = Math.max(8, Math.min(r.left, window.innerWidth - tip.offsetWidth - 12));
+        var top = r.bottom + 6;
+        if (top + tip.offsetHeight > window.innerHeight - 8) {
+          top = Math.max(8, r.top - tip.offsetHeight - 6);
+        }
+        tip.style.left = left + "px";
+        tip.style.top = top + "px";
+      }
+      function hide() { tip.hidden = true; }
+      node.addEventListener("mouseenter", show);
+      node.addEventListener("mouseleave", hide);
+      node.addEventListener("focusin", show);
+      node.addEventListener("focusout", hide);
+    });
+    document.querySelectorAll("[data-topic-tabs]").forEach(function (bar) {
+      var scope = bar.parentNode;
+      var tabs = bar.querySelectorAll("[data-topic-tab]");
+      function pick(at) {
+        tabs.forEach(function (t) {
+          t.classList.toggle("active", t.getAttribute("data-topic-tab") === at);
+        });
+        scope.querySelectorAll("[data-topic-pane]").forEach(function (p) {
+          p.hidden = p.getAttribute("data-topic-pane") !== at;
+        });
+        closeProvenance(); // a card pinned beside a table that is no longer showing
+      }
+      tabs.forEach(function (t) {
+        t.addEventListener("click", function () { pick(t.getAttribute("data-topic-tab")); });
+      });
+      bar.hidden = false;
+      pick("0");
+    });
+  }
+
   // ---- boot --------------------------------------------------------------------------------------
   // The Flow tab is plain HTML cards (CSS handles the responsive layout), so there is no diagram
   // engine to drive here — the shell is a few DOM handlers and nothing loads off the network.
@@ -509,6 +595,7 @@
     initProvPopover(); // before the grids: it is what gives them a popover to close
     initSampleGrids();
     initBoundsGraph();
+    initStudyTables();
   }
 
   if (document.readyState === "loading") {

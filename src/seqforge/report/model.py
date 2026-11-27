@@ -396,13 +396,117 @@ class BoundsRecord(_View):
     passages: list[PassageView] = Field(default_factory=list)
 
 
+class StudyCell(_View):
+    """One label of one sample, as the reading says it and as a sample table shows it.
+
+    ``value`` is what the claim says, without its level: its made-up id, its text, its number or
+    its term. It is ``None`` for a gap, which ``backing`` names as unknown or na. ``level`` is the
+    factor level the claim names, ``None`` for a claim outside its factor's levels and for every
+    label that is no factor. ``note`` is how an inferred claim was worked out, or the gap's note.
+    ``passages`` are the reading's passages the claim is quoted from, or rests on when it is not
+    quoted, and ``against`` those that speak against it, each by its number in
+    :attr:`StudyReport.passages`. ``inherited`` is true for a claim the sample takes from
+    ``shared``.
+    """
+
+    value: str | None = None
+    term: list[str] = Field(default_factory=list)
+    level: str | None = None
+    backing: Literal["quoted", "inferred", "unknown", "na"]
+    note: str | None = None
+    p: float | None = None
+    inherited: bool = False
+    passages: list[int] = Field(default_factory=list)
+    against: list[int] = Field(default_factory=list)
+
+
+class StudySample(_View):
+    """One sample of the reading: its GEO Sample, the BioSample its record links, its claims."""
+
+    sample: str
+    biosample_accession: str | None = None
+    #: Every label the sample has once the shared claims are applied, by label.
+    cells: dict[str, StudyCell] = Field(default_factory=dict)
+
+
+class StudyFactor(_View):
+    """A label the study varied on purpose: its levels in order, its baseline, and its claim's p."""
+
+    label: str
+    levels: list[str]
+    baseline: str | None = None
+    ordered: bool = False
+    p: float | None = None
+
+
+class DesignCount(_View):
+    """The samples of one design group under one assay, or under every assay when ``assay`` is None."""
+
+    assay: str | None = None
+    samples: list[str] = Field(default_factory=list)
+
+
+class DesignGroup(_View):
+    """One combination of factor levels and its samples.
+
+    ``levels`` is aligned to :attr:`StudyReport.factors`, ``None`` where the samples are at no level
+    of that factor. ``counts`` holds one entry per assay that has a sample here, and is empty for a
+    cross-table cell no sample is in.
+    """
+
+    levels: list[str | None] = Field(default_factory=list)
+    counts: list[DesignCount] = Field(default_factory=list)
+
+
+class DesignTable(_View):
+    """The minimum design table: how many samples are at each combination of factor levels.
+
+    ``cross`` for two factors: ``rows`` are the first factor's levels and ``columns`` the second's,
+    each with ``None`` after them when a sample is at no level, and ``groups`` holds every pair,
+    row by row. ``grouped`` otherwise: ``rows`` and ``columns`` are empty, and ``groups`` holds one
+    entry per combination the samples take, in the factors' level order. ``assays`` are the assays
+    the counts are split by, empty when the study has one.
+    """
+
+    kind: Literal["cross", "grouped"]
+    rows: list[str | None] = Field(default_factory=list)
+    columns: list[str | None] = Field(default_factory=list)
+    groups: list[DesignGroup] = Field(default_factory=list)
+    assays: list[str] = Field(default_factory=list)
+
+
+class SameForAll(_View):
+    """A label whose claim is the same for every sample, folded into one line: the label and it."""
+
+    label: str
+    cell: StudyCell
+
+
+class TopicTable(_View):
+    """One sample table: the labels of one topic, those that vary as columns, the rest folded.
+
+    ``labels`` is every label of the topic the reading has, factors aside: a factor is a column of
+    every topic table, at the left. ``varying`` are the labels whose claims differ between samples,
+    the table's columns in order, and ``same`` the labels folded into one "same for all" line. The
+    rows are :attr:`StudyReport.samples`, in their order.
+    """
+
+    topic: str
+    labels: list[str] = Field(default_factory=list)
+    varying: list[str] = Field(default_factory=list)
+    same: list[SameForAll] = Field(default_factory=list)
+
+
 class StudyReport(_View):
-    """The study folder the report read: its bounds, as the records of the Study tab's graph.
+    """The study folder the report read: its bounds, its design and what each sample was.
 
     ``path`` is the folder relative to the report's own directory, as every path here is: ``.``
     when the report was written into the study folder. ``reason`` is the bounds file's one line on
     why these records are one study. ``records`` holds every record the bounds placed, kept and
-    left out, in the order the bounds file writes them.
+    left out, in the order the bounds file writes them. The rest is the reading's, and empty, with
+    ``design`` ``None``, when the study has none: ``samples`` in the design's order, ``factors`` in
+    the reading's, ``topics`` in the label table's, and ``passages`` the reading's, which a cell
+    names by number.
     """
 
     study: str
@@ -410,6 +514,11 @@ class StudyReport(_View):
     reason: str
     records: list[BoundsRecord] = Field(default_factory=list)
     has_reading: bool = False
+    passages: list[PassageView] = Field(default_factory=list)
+    factors: list[StudyFactor] = Field(default_factory=list)
+    samples: list[StudySample] = Field(default_factory=list)
+    design: DesignTable | None = None
+    topics: list[TopicTable] = Field(default_factory=list)
 
 
 class ProjectReport(_View):
@@ -478,6 +587,14 @@ __all__ = [  # noqa: RUF022 - grouped by concept under comments, not alphabetica
     "WorkspaceReport",
     "PassageView",
     "BoundsRecord",
+    "StudyCell",
+    "StudySample",
+    "StudyFactor",
+    "DesignCount",
+    "DesignGroup",
+    "DesignTable",
+    "SameForAll",
+    "TopicTable",
     "StudyReport",
     "ProjectReport",
 ]

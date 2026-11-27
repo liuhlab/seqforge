@@ -34,6 +34,7 @@ from .model import (
     AssayReport,
     BoundsRecord,
     DecisionField,
+    DesignGroup,
     MatrixCellView,
     MatrixView,
     PassageView,
@@ -42,7 +43,10 @@ from .model import (
     ProjectReport,
     ReadView,
     SampleView,
+    StudyCell,
+    StudyFactor,
     StudyReport,
+    TopicTable,
 )
 
 #: Role/region ids the read layout uses → plain words a wet-lab reader recognises. A read is described
@@ -1647,7 +1651,7 @@ def study_pane(study: StudyReport) -> str:
             '<p class="sf-notice mt-4">No reading yet: the study has bounds, and the reading job '
             "has not written what each sample is.</p>"
         )
-    return pane
+    return pane + _design_panel(study) + _samples_panel(study)
 
 
 def _bounds_graph(study: StudyReport) -> str:
@@ -1779,6 +1783,273 @@ def _tip_quote(passage: PassageView) -> str:
     return (
         f'<blockquote class="pp-quote"><div class="text-xs not-italic text-faint">'
         f"[{passage.number}] {esc(passage.source)}</div>{esc(passage.quote)}</blockquote>"
+    )
+
+
+# ---- the design table and the sample tables ----
+
+#: The colours of an unordered factor's levels, in turn: distinct hues, each dark enough for white
+#: text on it to read at a small size in either theme.
+_LEVEL_HUES = (
+    "#1d4ed8",
+    "#b45309",
+    "#047857",
+    "#be185d",
+    "#6d28d9",
+    "#0e7490",
+    "#4d7c0f",
+    "#b91c1c",
+    "#4b5563",
+    "#a16207",
+)
+#: An ordered factor's levels go from this lightness to the darker one, in one hue.
+_ORDERED_LIGHT, _ORDERED_DARK = 88, 32
+#: Above this lightness a level's text is ink, and below it white.
+_ORDERED_INK_ABOVE = 57
+
+
+def _level_chip(factor: StudyFactor, level: str | None) -> str:
+    """A factor level as a coloured chip: one hue light to dark when ordered, a hue each when not.
+
+    The baseline is marked with a diamond. A sample at no level of the factor is "not a level".
+    """
+    if level is None:
+        return '<span class="st-lvl st-nolvl">not a level</span>'
+    at = factor.levels.index(level)
+    if factor.ordered:
+        step = at / (len(factor.levels) - 1) if len(factor.levels) > 1 else 1.0
+        light = _ORDERED_LIGHT - (_ORDERED_LIGHT - _ORDERED_DARK) * step
+        ink = "#14181f" if light > _ORDERED_INK_ABOVE else "#ffffff"
+        style = f"background:hsl(222 62% {light:.0f}%);color:{ink}"
+    else:
+        style = f"background:{_LEVEL_HUES[at % len(_LEVEL_HUES)]};color:#ffffff"
+    mark = " ◆" if level == factor.baseline else ""
+    return f'<span class="st-lvl" style="{style}">{esc(level)}{mark}</span>'
+
+
+def _design_panel(study: StudyReport) -> str:
+    """The minimum design table: a cross-table for two factors, a grouped list otherwise."""
+    design = study.design
+    if design is None:
+        return ""
+    tips: list[str] = []
+
+    def count(group: DesignGroup) -> str:
+        """One cell's count, a line per assay when the study has two, its samples on hover."""
+        members = [s for c in group.counts for s in c.samples]
+        if not members:
+            return '<td class="text-center text-faint">·</td>'
+        tip = f"design-tip-{len(tips)}"
+        names = ["not a level" if level is None else level for level in group.levels]
+        head = " · ".join(names) or "every sample"
+        tips.append(
+            f'<div class="prov-pop" id="{tip}" role="tooltip" hidden>'
+            f'<div class="pp-head">{esc(head)}</div>'
+            f'<div class="pp-basis">{len(members)} sample(s)</div>'
+            f'<p class="m-0 mt-2 font-mono text-xs">{esc(", ".join(members))}</p></div>'
+        )
+        lines = "<br>".join(
+            f"{len(c.samples)}"
+            + (
+                f' <span class="text-xs font-normal text-faint">{esc(c.assay)}</span>'
+                if c.assay
+                else ""
+            )
+            for c in group.counts
+        )
+        return (
+            f'<td class="text-center font-bold tabular-nums" data-hover-card="{tip}" '
+            f'tabindex="0">{lines}</td>'
+        )
+
+    if design.kind == "cross":
+        first, second = study.factors
+        head = (
+            f'<th class="text-xs">{esc(first.label)} ↓ · {esc(second.label)} →</th>'
+            + "".join(f"<th>{_level_chip(second, c)}</th>" for c in design.columns)
+            + '<th class="text-xs">total</th>'
+        )
+        body = ""
+        width = len(design.columns)
+        for r, row in enumerate(design.rows):
+            groups = design.groups[r * width : (r + 1) * width]
+            total = sum(len(c.samples) for g in groups for c in g.counts)
+            body += (
+                f"<tr><th>{_level_chip(first, row)}</th>"
+                + "".join(count(g) for g in groups)
+                + f'<td class="text-center tabular-nums text-dim">{total}</td></tr>'
+            )
+    else:
+        head = "".join(f"<th>{esc(f.label)}</th>" for f in study.factors) + "<th>n</th>"
+        body = "".join(
+            "<tr>"
+            + "".join(
+                f"<td>{_level_chip(f, level)}</td>"
+                for f, level in zip(study.factors, g.levels, strict=True)
+            )
+            + count(g)
+            + "</tr>"
+            for g in design.groups
+        )
+    said = [
+        f"{f.label}{' (ordered)' if f.ordered else ''}" + (f" p {f.p:g}" if f.p is not None else "")
+        for f in study.factors
+    ]
+    foot = (
+        f'<p class="m-0 mt-2 text-xs text-dim">{len(study.samples)} samples'
+        + "".join(f" · {esc(s)}" for s in said)
+        + " · ◆ baseline</p>"
+    )
+    split = ", split by assay" if design.assays else ""
+    table = (
+        f'<div class="sf-scroll-x"><table><thead><tr>{head}</tr></thead>'
+        f"<tbody>{body}</tbody></table></div>"
+    )
+    if not study.factors:
+        table = (
+            '<p class="sf-empty">The reading names no factor, so every sample is one group.</p>'
+            + table
+        )
+    return _panel(
+        "Design",
+        table + foot + "".join(tips),
+        sub=f"How many samples are in each group of the factors{split}. Hover a count for its samples.",
+    )
+
+
+def _cell_attrs(sample: str, label: str, cell: StudyCell) -> str:
+    """What a click on a cell opens: the label, the value, its backing, the note and the passages.
+
+    The passages are named by number; the script reads them from the page's own data.
+    """
+    value = _cell_text(cell)
+    if cell.term:
+        value += f" ({', '.join(cell.term)})"
+    if cell.level is not None:
+        value += f" · level {cell.level}"
+    basis: list[str] = [cell.backing]
+    if cell.p is not None:
+        basis.append(f"p {cell.p:g}")
+    if cell.inherited:
+        basis.append("from shared")
+    title = "quoted from" if cell.backing == "quoted" else "rests on"
+    return (
+        f'role="button" tabindex="0" data-key="{esc(label)}" data-value="{esc(value)}" '
+        f'data-basis="{esc(" · ".join(basis))}" data-source="{esc(sample)}" '
+        f'data-note="{esc(cell.note)}" data-passages="{",".join(map(str, cell.passages))}" '
+        f'data-passages-title="{title}" data-against="{",".join(map(str, cell.against))}"'
+    )
+
+
+def _cell_text(cell: StudyCell) -> str:
+    """What a cell shows: the claim's value, or the gap it marks."""
+    if cell.value is not None:
+        return cell.value
+    return "n/a" if cell.backing == "na" else "?"
+
+
+def _cell_class(cell: StudyCell) -> str:
+    return f"st-cell st-{cell.backing}" + (" st-inh" if cell.inherited else "")
+
+
+def _cell_style(cell: StudyCell) -> str:
+    """How strongly a cell is tinted: paler for a lower p, full for a claim no model gave p to."""
+    if cell.p is None:
+        return f"--st-a:{_TINT_FULL}%"
+    share = min(max((cell.p - 0.5) * 2, 0.0), 1.0)
+    return f"--st-a:{_TINT_PALE + (_TINT_FULL - _TINT_PALE) * share:.0f}%"
+
+
+#: A cell's tint, in percent of its backing's colour: at p 0.5 or below, and at p 1.
+_TINT_PALE, _TINT_FULL = 8, 34
+
+
+def _samples_panel(study: StudyReport) -> str:
+    """One sample table per topic, as sub-tabs, with the factor columns repeated at the left."""
+    if not study.topics:
+        return ""
+    legend = (
+        '<p class="m-0 mb-3 flex flex-wrap items-center gap-3 text-xs text-dim">'
+        + "".join(
+            f'<span class="st-cell st-{b}" style="--st-a:{_TINT_FULL}%">{b}</span>'
+            for b in ("quoted", "inferred", "unknown", "na")
+        )
+        + "<span>Paler: lower p. <i>Italic</i>: from shared. ★ a factor. "
+        "Click a cell for the passages behind it.</span></p>"
+    )
+    bar = "".join(
+        f'<button type="button" class="st-subtab{" active" if i == 0 else ""}" '
+        f'data-topic-tab="{i}">{esc(t.topic)} '
+        f'<span class="text-faint">{len(t.varying)}/{len(t.labels)}</span></button>'
+        for i, t in enumerate(study.topics)
+    )
+    panes = "".join(
+        f'<div data-topic-pane="{i}">{_topic_table(study, t)}</div>'
+        for i, t in enumerate(study.topics)
+    )
+    return _panel(
+        "Samples",
+        legend + f'<nav class="mb-3 flex gap-1 overflow-x-auto border-b border-line" hidden '
+        f'data-topic-tabs aria-label="Sample tables by topic">{bar}</nav>' + panes,
+        sub="What each sample was, one table per topic. A count on a tab is how many of its "
+        "labels vary between samples.",
+    )
+
+
+def _topic_table(study: StudyReport, table: TopicTable) -> str:
+    """One topic's table: the labels the same for every sample on one line, then the rest."""
+    n = len(study.samples)
+    head = (
+        f'<h3 class="sf-sub-h">{esc(table.topic)}: {len(table.varying)} of '
+        f"{len(table.labels)} labels vary</h3>"
+    )
+    line = ""
+    if table.same:
+        line = (
+            '<p class="m-0 mb-2 flex flex-wrap items-center gap-1 text-sm">'
+            f'<span class="text-faint">Same for all {n}:</span>'
+            + "".join(
+                f'<span class="{_cell_class(s.cell)}" style="{_cell_style(s.cell)}" '
+                f"{_cell_attrs(f'all {n} samples', s.label, s.cell)}>"
+                f"<b>{esc(s.label)}</b> {esc(_cell_text(s.cell))}</span>"
+                for s in table.same
+            )
+            + "</p>"
+        )
+    if not table.varying:
+        return (
+            head + line + '<p class="sf-empty">No label in this topic varies between samples.</p>'
+        )
+    cols = (
+        "<th>sample</th>"
+        + "".join(f"<th>{esc(f.label)} ★</th>" for f in study.factors)
+        + "".join(f"<th>{esc(label)}</th>" for label in table.varying)
+    )
+    rows = ""
+    for sample in study.samples:
+        cells = ""
+        for f in study.factors:
+            claim = sample.cells.get(f.label)
+            if claim is None:
+                cells += "<td></td>"
+                continue
+            cells += (
+                f'<td class="st-fcell" {_cell_attrs(sample.sample, f.label, claim)}>'
+                f"{_level_chip(f, claim.level)}</td>"
+            )
+        for label in table.varying:
+            claim = sample.cells.get(label)
+            if claim is None:
+                cells += '<td class="text-faint">no claim</td>'
+                continue
+            cells += (
+                f'<td class="{_cell_class(claim)}" style="{_cell_style(claim)}" '
+                f"{_cell_attrs(sample.sample, label, claim)}>{esc(_cell_text(claim))}</td>"
+            )
+        rows += f'<tr><th class="font-mono">{esc(sample.sample)}</th>{cells}</tr>'
+    return (
+        head + line + f'<div class="sf-scroll-x"><table><thead><tr>{cols}</tr></thead>'
+        f"<tbody>{rows}</tbody></table></div>"
     )
 
 
