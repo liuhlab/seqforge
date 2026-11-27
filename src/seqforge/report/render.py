@@ -42,7 +42,7 @@ from pathlib import Path
 from typing import NamedTuple
 
 from .model import ProjectReport
-from .panels import assay_section, assay_switcher, esc, tab_bar
+from .panels import assay_section, assay_switcher, esc, study_section, tab_bar
 
 _VERDICT_LABEL = {
     "compiled": "Compiled",
@@ -83,13 +83,26 @@ def _data_block(report: ProjectReport) -> str:
     return f'<script type="application/json" id="seqforge-report-data">{data}</script>'
 
 
-def _workspace_names(report: ProjectReport) -> str:
-    """What the page is a report on, for its title and header: each workspace's name."""
-    return ", ".join(ws.name for ws in report.workspaces) or "report"
+def _report_names(report: ProjectReport) -> str:
+    """What the page is a report on, for its title and header: the study, then each workspace."""
+    names = [] if report.study is None else [f"study {report.study.study}"]
+    names += [ws.name for ws in report.workspaces]
+    return ", ".join(names) or "report"
+
+
+def _verdict_pill(report: ProjectReport) -> str:
+    """The header pill for the whole project, or nothing for a report with no compile in it."""
+    if not report.assays:
+        return ""
+    kind, label = _project_verdict(report)
+    return (
+        f'<span class="sf-verdict sf-v-{esc(kind)}">'
+        f'<span class="size-2 rounded-full bg-current"></span>{esc(label)}</span>'
+    )
 
 
 def _project_verdict(report: ProjectReport) -> tuple[str, str]:
-    """The header pill for the whole project: the most severe assay outcome, and its label."""
+    """The project's most severe assay outcome, and its label."""
     kinds = {a.conclusion.kind for a in report.assays}
     for kind in ("blocker", "question", "ir_ready", "compiled"):
         if kind in kinds:
@@ -102,19 +115,19 @@ def render_html(report: ProjectReport) -> str:
     styles = "\n".join(f"<style>{_asset(name)}</style>" for name in _STYLESHEETS)
     report_js = _script_guard(_asset("report.js"))
 
-    verdict_kind, verdict_label = _project_verdict(report)
-    sections = "".join(assay_section(a, i) for i, a in enumerate(report.assays))
+    sections = study_section(report)
+    sections += "".join(assay_section(a, i) for i, a in enumerate(report.assays))
 
     ts = f" · {esc(report.generated_at)}" if report.generated_at else ""
-    names = _workspace_names(report)
-    viewed = ", ".join(
-        f'<span class="font-mono">{esc(ws.name)}/seqforge/</span>' for ws in report.workspaces
-    )
+    names = _report_names(report)
+    folders = [] if report.study is None else [f"{report.study.study}/"]
+    folders += [f"{ws.name}/seqforge/" for ws in report.workspaces]
+    viewed = ", ".join(f'<span class="font-mono">{esc(f)}</span>' for f in folders)
     footer = (
         '<footer class="sf-page mt-6 border-t border-line py-6 text-xs text-dim">'
         f"seqforge report v{esc(report.report_version)}{ts} · "
         f"a deterministic view of {viewed}. "
-        "The manifest and YAML hold the exhaustive detail; this page is the glance layer."
+        "The files it reads hold the exhaustive detail; this page is the glance layer."
         "</footer>"
     )
 
@@ -126,8 +139,7 @@ def render_html(report: ProjectReport) -> str:
         f'<span class="min-w-0 truncate font-mono text-sm text-dim">{esc(names)}</span>'
         '<span class="flex-1"></span>'
         f"{assay_switcher(report)}"
-        f'<span class="sf-verdict sf-v-{esc(verdict_kind)}">'
-        f'<span class="size-2 rounded-full bg-current"></span>{esc(verdict_label)}</span>'
+        f"{_verdict_pill(report)}"
         '<button id="theme-toggle" class="sf-icon-btn" title="Toggle light / dark" aria-label="Toggle theme">☽</button>'
         "</div></header>"
     )

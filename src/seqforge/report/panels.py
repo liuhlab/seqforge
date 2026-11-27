@@ -32,14 +32,17 @@ from .flow import FlowStep, flow_steps
 from .model import (
     ArtifactEmbed,
     AssayReport,
+    BoundsRecord,
     DecisionField,
     MatrixCellView,
     MatrixView,
+    PassageView,
     PipelineStage,
     PlanView,
     ProjectReport,
     ReadView,
     SampleView,
+    StudyReport,
 )
 
 #: Role/region ids the read layout uses → plain words a wet-lab reader recognises. A read is described
@@ -262,7 +265,7 @@ def overview_pane(assay: AssayReport) -> str:
     if project and project.abstract:
         abstract = (
             '<div class="mt-6 border-t border-line pt-6"><div class="sf-sub-h mb-2">'
-            "About this study</div>"
+            "About the archive project</div>"
             '<p class="m-0 max-w-[70ch] border-l-2 border-line pl-4">'
             f"{esc(project.abstract)}</p></div>"
         )
@@ -1595,6 +1598,188 @@ def _decade(exponent: int) -> str:
     return str(10**exponent)
 
 
+# ---- the Study tab ------------------------------------------------------------------------------
+
+#: The bounds graph's drawing box, in SVG user units, which are pixels here: the graph is drawn at
+#: its own size and scrolls in its own region on a narrow viewport, because a scaled-down SVG's
+#: text shrinks with it. Series sit in the left column, papers in the right, the study between.
+_GRAPH_W, _GRAPH_ROW, _GRAPH_TOP = 760, 56, 28
+_GRAPH_SIDE_X = 120
+_NODE_W, _NODE_H = 132, 30
+#: The width of one character of a record id at the graph's 12-unit monospace size, which is how
+#: long the line striking a left-out id through is drawn.
+_GRAPH_CHAR_W = 7.3
+
+
+def study_section(report: ProjectReport) -> str:
+    """The Study tab's one pane, outside every assay section: a study is not one assay's.
+
+    ``data-study`` is the hook ``report.js`` toggles the pane by, as it does an assay's panes.
+    """
+    study = report.study
+    if study is None:
+        return ""
+    active = " active" if not report.assays else ""
+    return (
+        f'<section data-study><div class="pane{active}" data-tab="study">'
+        f"{study_pane(study)}</div></section>"
+    )
+
+
+def study_pane(study: StudyReport) -> str:
+    """The bounds graph, and a notice when the study has no reading yet."""
+    graph = _bounds_graph(study)
+    reason = (
+        '<p class="m-0 mt-3 max-w-[70ch] text-sm text-dim">'
+        f"<b>Why these are one study:</b> {esc(study.reason)}</p>"
+    )
+    legend = (
+        '<p class="m-0 mb-3 text-xs text-dim">Solid: kept. Dashed and struck through: left out. '
+        "A thin line joins a SuperSeries to its sub-Series. Hover a record for why.</p>"
+    )
+    pane = _panel(
+        "Bounds",
+        legend + graph + reason,
+        sub=f"The GEO Series and papers that make up study {study.study}, and the records left out.",
+    )
+    if not study.has_reading:
+        pane += (
+            '<p class="sf-notice mt-4">No reading yet: the study has bounds, and the reading job '
+            "has not written what each sample is.</p>"
+        )
+    return pane
+
+
+def _bounds_graph(study: StudyReport) -> str:
+    """The bounds as hand-built inline SVG: Series left, the study centre, papers right.
+
+    Each record is a box joined to the study. A kept record is drawn solid and a left-out one
+    dashed, its id struck through. Each box is focusable and names a hover card, rendered here
+    beside the figure with every value escaped, which the script shows while the pointer or the
+    focus is on the box.
+    """
+    series = [(i, r) for i, r in enumerate(study.records) if r.kind == "series"]
+    papers = [(i, r) for i, r in enumerate(study.records) if r.kind == "paper"]
+    rows = max(len(series), len(papers), 1)
+    height = _GRAPH_TOP + rows * _GRAPH_ROW
+    cy = _GRAPH_TOP + rows * _GRAPH_ROW / 2
+    cx = _GRAPH_W / 2
+
+    def ys(n: int) -> list[float]:
+        step = rows * _GRAPH_ROW / max(n, 1)
+        return [_GRAPH_TOP + (k + 0.5) * step for k in range(n)]
+
+    at: dict[int, tuple[float, float]] = {}
+    for (i, _r), y in zip(series, ys(len(series)), strict=True):
+        at[i] = (_GRAPH_SIDE_X, y)
+    for (i, _r), y in zip(papers, ys(len(papers)), strict=True):
+        at[i] = (_GRAPH_W - _GRAPH_SIDE_X, y)
+
+    edges, boxes, joins = "", "", ""
+    half = _NODE_W / 2
+    for i, record in enumerate(study.records):
+        x, y = at[i]
+        side = -1 if record.kind == "series" else 1  # which side of the study the record is on
+        x0, bend, x1 = x - side * half, cx + side * 120, cx + side * 60
+        line = "stroke-accent" if record.kept else "stroke-faint"
+        dash = "" if record.kept else ' stroke-dasharray="4 3"'
+        width = 2 if record.kept else 1.2
+        edges += (
+            f'<path class="fill-none {line}" stroke-width="{width}"{dash} '
+            f'd="M{x0:.1f},{y:.1f} C{bend:.1f},{y:.1f} {bend:.1f},{cy:.1f} {x1:.1f},{cy:.1f}"/>'
+        )
+        boxes += _graph_node(i, record, x, y)
+    for i, record in enumerate(study.records):
+        parent = next((j for j, r in enumerate(study.records) if r.id == record.superseries), None)
+        if parent is None:
+            continue
+        (px, py), (_x, y) = at[parent], at[i]
+        left = px - half
+        joins += (
+            f'<path class="fill-none stroke-faint" stroke-width="1" '
+            f'd="M{left:.1f},{py:.1f} C{left - 34:.1f},{py:.1f} {left - 34:.1f},{y:.1f} '
+            f'{left:.1f},{y:.1f}"/>'
+        )
+    centre = (
+        f'<rect class="fill-surface stroke-accent" stroke-width="2" x="{cx - 60:.1f}" '
+        f'y="{cy - 22:.1f}" width="120" height="44" rx="22"/>'
+        f'<text class="fill-ink font-sans" font-size="12" font-weight="700" x="{cx:.1f}" '
+        f'y="{cy - 2:.1f}" text-anchor="middle">study</text>'
+        f'<text class="fill-dim font-mono" font-size="11" x="{cx:.1f}" y="{cy + 13:.1f}" '
+        f'text-anchor="middle">{esc(study.study)}</text>'
+    )
+    heads = "".join(
+        f'<text class="fill-faint font-sans" font-size="10" letter-spacing="1" x="{x}" y="14" '
+        f'text-anchor="middle">{label}</text>'
+        for x, label in ((_GRAPH_SIDE_X, "GEO SERIES"), (_GRAPH_W - _GRAPH_SIDE_X, "PAPERS"))
+    )
+    svg = (
+        f'<svg class="mx-auto block" width="{_GRAPH_W}" height="{height:.0f}" '
+        f'viewBox="0 0 {_GRAPH_W} {height:.0f}" role="img">'
+        f"<title>The records of study {esc(study.study)}, kept and left out</title>"
+        f"{heads}{joins}{edges}{centre}{boxes}</svg>"
+    )
+    tips = "".join(_graph_tip(i, r, study) for i, r in enumerate(study.records))
+    return f'<div class="sf-scroll-x p-2">{svg}</div>{tips}'
+
+
+def _graph_node(i: int, record: BoundsRecord, x: float, y: float) -> str:
+    """One record's box: solid when kept, dashed with its id struck through when left out."""
+    half_w, half_h = _NODE_W / 2, _NODE_H / 2
+    line = "stroke-accent" if record.kept else "stroke-faint"
+    dash = "" if record.kept else ' stroke-dasharray="4 3"'
+    ink = "fill-ink" if record.kept else "fill-dim"
+    strike = ""
+    if not record.kept:
+        half = len(record.id) * _GRAPH_CHAR_W / 2
+        strike = (
+            f'<line class="stroke-dim" stroke-width="1" x1="{x - half:.1f}" y1="{y:.1f}" '
+            f'x2="{x + half:.1f}" y2="{y:.1f}"/>'
+        )
+    said = "kept" if record.kept else "left out"
+    return (
+        f'<g data-bounds-node="bounds-tip-{i}" tabindex="0" aria-label="{esc(record.id)}, {said}">'
+        f'<rect class="fill-surface {line}" stroke-width="1.5"{dash} x="{x - half_w:.1f}" '
+        f'y="{y - half_h:.1f}" width="{_NODE_W}" height="{_NODE_H}" rx="8"/>'
+        f'<text class="{ink} font-mono" font-size="12" x="{x:.1f}" y="{y + 4:.1f}" '
+        f'text-anchor="middle">{esc(record.id)}</text>{strike}</g>'
+    )
+
+
+def _graph_tip(i: int, record: BoundsRecord, study: StudyReport) -> str:
+    """One record's hover card: kept or left out, the reason, p, and the passages quoted from it."""
+    parents = {r.superseries for r in study.records if r.superseries}
+    kind = "paper" if record.kind == "paper" else "Series"
+    if record.id in parents:
+        kind = "SuperSeries"
+    elif record.superseries:
+        kind = f"sub-Series of {record.superseries}"
+    said = ["kept" if record.kept else "left out", kind]
+    if record.backing is not None:
+        said.append(record.backing)
+    if record.p is not None:
+        said.append(f"p {record.p:g}")
+    body = f'<div class="pp-head font-mono">{esc(record.id)}</div>'
+    body += f'<div class="pp-basis">{esc(" · ".join(said))}</div>'
+    if record.reason:
+        body += f'<p class="m-0 mt-2">{esc(record.reason)}</p>'
+    body += "".join(_tip_quote(q) for q in record.reason_passages)
+    if record.passages:
+        body += f'<div class="sf-sub-h mt-3">Quoted in the reading ({len(record.passages)})</div>'
+        body += "".join(_tip_quote(q) for q in record.passages)
+    elif study.has_reading:
+        body += '<p class="sf-empty">The reading quotes no passage from it.</p>'
+    return f'<div class="prov-pop" id="bounds-tip-{i}" role="tooltip" hidden>{body}</div>'
+
+
+def _tip_quote(passage: PassageView) -> str:
+    """One passage in a hover card: where it was read, then the quote."""
+    return (
+        f'<blockquote class="pp-quote"><div class="text-xs not-italic text-faint">'
+        f"[{passage.number}] {esc(passage.source)}</div>{esc(passage.quote)}</blockquote>"
+    )
+
+
 # ---- assay section + tab bar --------------------------------------------------------------------
 
 
@@ -1629,12 +1814,19 @@ def tab_bar(report: ProjectReport) -> str:
     leading to "not run yet". A workspace that has only been compiled then renders exactly the page it
     rendered before this tab existed — the reader is never offered a door into an empty room, and the
     tab's presence becomes the signal that *something* here has results.
+
+    Study comes first, as the study chain comes before the compile, and only when the report read a
+    study folder; a report on a study folder alone has no compile tab at all. Overview opens the page
+    whenever there is a compile, so a compile's reader lands where they always did.
     """
     has_results = any(a.pipeline_stats is not None for a in report.assays)
+    keys = [("study", "Study")] if report.study is not None else []
+    if report.assays:
+        keys += [(k, label) for k, label in _TABS if k != "results" or has_results]
+    opens = "overview" if report.assays else "study"
     tabs = "".join(
-        f'<button class="tab{" active" if key == "overview" else ""}" data-tab="{key}">{esc(label)}</button>'
-        for key, label in _TABS
-        if key != "results" or has_results
+        f'<button class="tab{" active" if key == opens else ""}" data-tab="{key}">{esc(label)}</button>'
+        for key, label in keys
     )
     # `overflow-x-auto` on the strip and not on the page: at a narrow viewport the tabs scroll
     # sideways, which is the one horizontal scroll this page is allowed to have.
@@ -1657,4 +1849,4 @@ def assay_switcher(report: ProjectReport) -> str:
     )
 
 
-__all__ = ["assay_section", "assay_switcher", "esc", "tab_bar"]
+__all__ = ["assay_section", "assay_switcher", "esc", "study_section", "tab_bar"]

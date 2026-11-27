@@ -28,6 +28,7 @@ from seqforge.report import collect_report, render_html
 from seqforge.report.flow import flow_steps
 from seqforge.report.model import AssayReport, ProjectReport, WorkspaceReport
 from seqforge.workflows.metrics import Alert, DecisionRef, PipelineStats
+from test_study import READING, VALID
 
 if TYPE_CHECKING:  # the resolver seam is private, and only its type is wanted at module scope
     from seqforge.models.dataset import DatasetManifest
@@ -990,12 +991,15 @@ def test_a_forbidden_matrix_cell_is_a_pinnable_popover_not_a_transient_tooltip()
     assert "title=" not in cell.group(0)  # no transient native tooltip on the cell
 
     # The script's end of the same contract: it selects these cells, it PINS (a click handler, not a
-    # mouseover), it offers Copy, and Escape closes it.
+    # mouseover), it offers Copy, and Escape closes it. Read inside the popover's own initialiser:
+    # the bounds graph's record cards are another component, and they do show on hover.
+    popover = script[script.index("function initProvPopover") : script.index("// ---- boot")]
+    popover = popover[: popover.index("// ---- the bounds graph")]
     assert ".mx-cell" in script
-    assert 'copyBtn.textContent = "Copy"' in script
-    assert 'e.key === "Escape"' in script
-    assert "mouseover" not in script
-    assert "mouseenter" not in script
+    assert 'copyBtn.textContent = "Copy"' in popover
+    assert 'e.key === "Escape"' in popover
+    assert "mouseover" not in popover
+    assert "mouseenter" not in popover
 
 
 def _samples_grid_of(ws: Path, n_samples: int) -> str:
@@ -3256,3 +3260,93 @@ def test_the_page_keeps_its_standing_guarantees_with_the_gene_model_alert_render
     assert "the alternative is <b>Reverse</b>" in block
     assert not re.findall(r'(?:src|href)\s*=\s*"(?:https?:)?//[^"]+"', html)
     assert html == render_html(collect_report(own_workspace))
+
+
+# -- the Study tab ---------------------------------------------------------------------------------
+#
+# A study folder is built here from the study tests' own valid files, with one more record left out:
+# a SuperSeries, which the standard set's study file names. Everything is checked through
+# `report.json`, the file a program reads and the page is rendered from.
+
+
+def _study_folder(root: Path) -> Path:
+    """A study folder with bounds, a reading and a study file: two Series kept under a SuperSeries."""
+    folder = root / "GSE1"
+    folder.mkdir(parents=True)
+    superseries = {"id": "GSE3", "inferred": "A SuperSeries repeats its sub-Series.", "p": 0.95}
+    bounds = {**VALID, "left_out": [superseries, *VALID["left_out"]]}
+    study = {"id": "GSE1", "records": {"series": ["GSE1", "GSE2", "GSE3"], "superseries": "GSE3"}}
+    for name, content in (
+        ("bounds.yaml", bounds),
+        ("reading.yaml", READING),
+        ("study.yaml", study),
+    ):
+        (folder / name).write_text(yaml.safe_dump(content, sort_keys=False))
+    return folder
+
+
+@pytest.mark.parametrize("with_workspace", [False, True], ids=["study folder alone", "workspace"])
+def test_a_study_report_renders_with_no_workspace_and_writes_where_it_started(
+    tmp_path: Path, request: pytest.FixtureRequest, with_workspace: bool
+) -> None:
+    """``report --study`` needs no compile: from a study folder alone it writes the page and its data
+    into that folder, with no workspace in them. With a workspace it writes into ``seqforge/`` as
+    always and reads the study folder where it is, so nothing is written into the folder."""
+    folder = _study_folder(tmp_path / "studies")
+    args = ["report", "--study", str(folder), "--no-timestamp"]
+    where = folder
+    if with_workspace:
+        workspace: Path = request.getfixturevalue("own_workspace")
+        args += ["-C", str(workspace)]
+        where = workspace / "seqforge"
+    result = runner.invoke(app, args)
+    assert result.exit_code == 0, result.output
+
+    payload = json.loads(result.stdout)
+    assert Path(payload["report"]) == where / "report.html"
+    assert Path(payload["json"]) == where / "report.json"
+    data = json.loads((where / "report.json").read_text())
+    assert _embedded_report_data((where / "report.html").read_text()) == data
+    assert len(data["workspaces"]) == int(with_workspace)
+    assert data["study"]["study"] == "GSE1"
+    assert (where / data["study"]["path"]).resolve() == folder.resolve()
+    written = [] if with_workspace else ["report.html", "report.json"]
+    assert sorted(p.name for p in folder.iterdir()) == sorted(
+        ["bounds.yaml", "reading.yaml", "study.yaml", *written]
+    )
+
+
+def test_the_bounds_graph_data_holds_every_kept_and_left_out_record_with_its_reason(
+    tmp_path: Path,
+) -> None:
+    """Every record the bounds placed reaches ``report.json``, kept or left out, with its backing,
+    its reason, its p, the SuperSeries it belongs to and the reading's passages quoted from it:
+    what a reader checks the bounds by, without opening a file."""
+    folder = _study_folder(tmp_path)
+    result = runner.invoke(app, ["report", "--study", str(folder), "--no-timestamp"])
+    assert result.exit_code == 0, result.output
+
+    study = json.loads((folder / "report.json").read_text())["study"]
+    said = {
+        r["id"]: (
+            r["kind"],
+            r["kept"],
+            r["backing"],
+            r["reason"],
+            [q["number"] for q in r["reason_passages"]],
+            r["p"],
+            r["superseries"],
+            [q["number"] for q in r["passages"]],
+        )
+        for r in study["records"]
+    }
+    assert said == {
+        "GSE1": ("series", True, "quoted", None, [1, 2], 0.9, "GSE3", [1]),
+        "GSE2": ("series", True, "inferred", "Same samples, later run.", [2], 1, "GSE3", []),
+        "pmid:11": ("paper", True, None, None, [], None, None, [4]),
+        "GSE3": ("series", False, "inferred", "A SuperSeries repeats its sub-Series.", [], 0.95,
+                 None, []),
+        "pmid:22": ("paper", False, "unknown", "Nothing read says who made it", [], None, None, []),
+    }  # fmt: skip
+    assert study["reason"] == VALID["reason"]
+    assert study["has_reading"] is True
