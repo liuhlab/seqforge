@@ -25,7 +25,7 @@ from .reading import Reading, SampleClaim
 
 #: The column that names the reading a row's labels came from.
 READING_HASH = "reading_hash"
-#: What a label's column is called when a column of the compile's own already has its name.
+#: What a label's column name takes before it while another column already has that name.
 CLAIMED_PREFIX = "reading_"
 #: The prefix of a species term's NCBI Taxonomy id.
 TAXON = "NCBITaxon:"
@@ -139,8 +139,9 @@ def join_reading(
 ) -> Joined:
     """The reading's labels on the compiled ``samples``, joined by BioSample accession.
 
-    ``taken`` names the columns the compile's own table already has; a label of the same name
-    takes :data:`CLAIMED_PREFIX` before it.
+    ``taken`` names the columns the compile's own table already has; a label whose name a column
+    has, :data:`READING_HASH` and each label's before it included, takes :data:`CLAIMED_PREFIX`
+    before it until no column has that name.
     """
     rows = reading.rows()
     # Several rows can link one BioSample, such as a pull-down and its input from one material.
@@ -203,7 +204,14 @@ def join_reading(
         for label, by_sample in values.items()
         if label in reading.factors or varies([by_sample.get(sid) for sid in joined])
     ]
-    names = {label: f"{CLAIMED_PREFIX}{label}" if label in taken else label for label in kept}
+    assigned = {*taken, READING_HASH}
+    names: dict[str, str] = {}
+    for label in kept:
+        name = label
+        while name in assigned:
+            name = f"{CLAIMED_PREFIX}{name}"
+        assigned.add(name)
+        names[label] = name
     digest = reading.content_hash()
     cells = {
         sid: {

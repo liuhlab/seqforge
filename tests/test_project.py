@@ -133,19 +133,38 @@ def _batch_on_two(reading: dict[str, Any]) -> None:
         reading["samples"][gsm]["batch"] = quoted("first")
 
 
+def _labels_named_like_columns(reading: dict[str, Any]) -> None:
+    """Labels of the study's own named as the hash column, a compile column, and its prefixed name."""
+    for label in ("reading_hash", "organism", "reading_organism"):
+        reading["samples"]["GSM1"][label] = quoted(label.upper())
+
+
+def _only_on_first(value: str) -> dict[str, str]:
+    return {"SAMN1": value, "SAMN3": "", "SAMN4": "", "SAMN6": ""}
+
+
 @pytest.mark.parametrize(
-    ("change", "batch"),
+    ("change", "extra"),
     [
-        pytest.param(None, None, id="the reading as written"),
+        pytest.param(None, {}, id="the reading as written"),
         pytest.param(
             _batch_on_two,
-            {"SAMN1": "first", "SAMN3": "first", "SAMN4": "", "SAMN6": ""},
+            {"batch": {"SAMN1": "first", "SAMN3": "first", "SAMN4": "", "SAMN6": ""}},
             id="a label some samples lack varies",
+        ),
+        pytest.param(
+            _labels_named_like_columns,
+            {
+                "reading_reading_hash": _only_on_first("READING_HASH"),
+                "reading_organism": _only_on_first("ORGANISM"),
+                "reading_reading_organism": _only_on_first("READING_ORGANISM"),
+            },
+            id="a label's column takes no name another column has",
         ),
     ],
 )
 def test_a_named_study_joins_its_factors_and_varying_labels_into_the_sample_table(
-    tmp_path: Path, synth_10x_v3: SynthDataset, change: Any, batch: dict[str, str] | None
+    tmp_path: Path, synth_10x_v3: SynthDataset, change: Any, extra: dict[str, dict[str, str]]
 ) -> None:
     """The reading owns what each sample was, and the compile joins it by BioSample accession: one
     column per factor and per label that varies across the compiled samples, and the hash of the
@@ -159,7 +178,7 @@ def test_a_named_study_joins_its_factors_and_varying_labels_into_the_sample_tabl
 
     assert list(rows[0]) == [
         *["sample_id", "accession", "assay", "organism", "n_files", "files"],
-        *["age", "genotype", "biosample", *(["batch"] if batch else []), "reading_hash"],
+        *["age", "genotype", "biosample", *extra, "reading_hash"],
     ]
     by_accession = {r["accession"]: r for r in rows}
     assert {a: (r["age"], r["genotype"], r["biosample"]) for a, r in by_accession.items()} == {
@@ -168,8 +187,8 @@ def test_a_named_study_joins_its_factors_and_varying_labels_into_the_sample_tabl
         "SAMN4": ("old", "wt", "B4"),
         "SAMN6": ("young", "ko", "B5"),
     }
-    if batch:
-        assert {a: r["batch"] for a, r in by_accession.items()} == batch
+    for column, values in extra.items():
+        assert {a: r[column] for a, r in by_accession.items()} == values
     assert {r["reading_hash"] for r in rows} == {said["study"]["reading_hash"]}
     assert said["study"]["warnings"] == []
     # The same inputs again write nothing: a pipeline's labelling rule reads the table's mtime.
