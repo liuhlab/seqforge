@@ -329,8 +329,9 @@ def test_each_h5ad_carries_its_samples_labels_as_categorical_obs_and_the_reading
     said, _ = _metadata(tmp_path, _study(tmp_path / "GSE1"))
     labelled = ad.read_h5ad(label("s_SAMN3", tmp_path / "s_SAMN3.h5ad"))
 
-    assert list(labelled.obs.columns) == ["age", "genotype", "biosample"]
-    assert all(str(labelled.obs[c].dtype) == "category" for c in labelled.obs.columns)
-    assert labelled.obs.iloc[0].to_dict() == {"age": "middle", "genotype": "wt", "biosample": "B3"}
+    obs: Any = labelled.obs
+    assert list(obs.columns) == ["age", "genotype", "biosample"]
+    assert all(str(obs[c].dtype) == "category" for c in obs.columns)
+    assert obs.iloc[0].to_dict() == {"age": "middle", "genotype": "wt", "biosample": "B3"}
     assert labelled.uns["reading_hash"] == said["study"]["reading_hash"]
-    assert (labelled.X != ad.read_h5ad(counts).X).nnz == 0
+    assert np.array_equal(csr_matrix(labelled.X).toarray(), np.eye(3, dtype=np.int32))

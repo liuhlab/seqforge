@@ -2901,8 +2901,8 @@ def test_a_new_sample_table_relabels_a_finished_droplet_run_and_runs_nothing_els
         (run_dir / path).parent.mkdir(parents=True, exist_ok=True)
         (run_dir / path).touch()
     finished = time.time() - 60
-    for path in sources:
-        os.utime(path, (finished - 60, finished - 60))
+    for source in sources:
+        os.utime(source, (finished - 60, finished - 60))
     for path in kept:
         os.utime(run_dir / path, (finished, finished))
     assert {job.rule for job in _planned_jobs(dry_run(run_dir))} <= {"all"}

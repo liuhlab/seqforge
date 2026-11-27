@@ -63,7 +63,6 @@ from .params import (
     render_param,
 )
 
-
 #: The config key naming the project's sample table, for a module whose rules label what they write
 #: from it. Emitted only to a module that reads it, which the module's source says.
 SAMPLE_TABLE_KEY = "sample_table"

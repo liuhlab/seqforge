@@ -480,9 +480,7 @@ def write_h5ad(
 UNLABELLED_DIRNAME = "unlabelled"
 
 
-def label_h5ad(
-    source: Path, out: Path, obs: Mapping[str, str], uns: Mapping[str, str]
-) -> Path:
+def label_h5ad(source: Path, out: Path, obs: Mapping[str, str], uns: Mapping[str, str]) -> Path:
     """``source`` with each of ``obs`` as a categorical column over every cell, and ``uns`` added.
 
     A label names the sample, so every cell carries the same value; categorical, so objects
@@ -495,11 +493,11 @@ def label_h5ad(
         shutil.copyfile(source, out)
         return out
     import anndata as ad
-    import pandas as pd
 
     adata = ad.read_h5ad(source)
     for name, value in obs.items():
-        adata.obs[name] = pd.Categorical([value or None] * adata.n_obs)
+        adata.obs[name] = [value or None] * adata.n_obs
+        adata.obs[name] = adata.obs[name].astype("category")
     adata.uns.update(uns)
     adata.write_h5ad(out)
     return out
@@ -507,12 +505,12 @@ def label_h5ad(
 
 __all__ = [
     "SOLO_FEATURE_OUTPUT",
-    "UNLABELLED_DIRNAME",
     "STAR_BAM",
     "STAR_FINAL_LOG",
     "STAR_JUNCTIONS",
     "STAR_LOG_FILES",
     "STAR_PROGRESS_LOGS",
+    "UNLABELLED_DIRNAME",
     "H5adError",
     "SoloAxis",
     "SoloFeatureOutput",
