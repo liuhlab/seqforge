@@ -367,7 +367,9 @@ def taxonomy(sample: Mapping[str, Any]) -> tuple[str | None, str | None]:
 
 def biosample_accessions(sources: Mapping[str, Any]) -> dict[str, str]:
     """Each sequenced sample's BioSample accession, for the samples whose record links one."""
-    return {s["id"]: s["biosample_accession"] for s in sources["samples"] if "biosample_accession" in s}
+    return {
+        s["id"]: s["biosample_accession"] for s in sources["samples"] if "biosample_accession" in s
+    }
 
 
 def sample_ids(sources: Mapping[str, Any]) -> list[str]:

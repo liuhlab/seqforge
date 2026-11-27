@@ -79,9 +79,11 @@ BIOSAMPLE_ID = r"^SAM(N|EA|D)\d+$"
 
 
 class SampleRow(BaseModel):
-    """One sample's row: its claims, each under its label, and the BioSample accession its GEO
-    Sample record links, an id copied from that record and no claim. The accession is absent when
-    the record links none."""
+    """One sample's row: its claims, each under its label, and its BioSample accession.
+
+    The accession is the one the sample's GEO record links, an id copied from that record and no
+    claim. It is absent when the record links none.
+    """
 
     model_config = ConfigDict(extra="allow", strict=True)
     __pydantic_extra__: dict[str, SampleClaim] = Field(init=False)
