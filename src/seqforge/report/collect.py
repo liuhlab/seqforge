@@ -25,13 +25,14 @@ from __future__ import annotations
 import json
 import os
 import re
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal, NamedTuple
 
 import yaml
 
 from ..liulab_data import LiulabDataMissing, needed
+from ..models.blocker import BlockerSubject, ValidationWarning
 from ..models.dataset import DatasetManifest, LibrarySection
 from ..models.processing import ProcessingManifest
 from ..models.records import ArchiveRecordSet
@@ -107,63 +108,122 @@ _MAX_MATRIX_TECHS = 6
 
 
 def collect_report(
-    workspace: str | Path | None,
+    workspaces: str | Path | Sequence[str | Path] | None,
     *,
     study: StudyFolder | None = None,
     generated_at: str | None = None,
     results_dir: Path | None = None,
     report_dir: Path | None = None,
 ) -> ProjectReport:
-    """Project a workspace, a study folder or both into a :class:`ProjectReport`.
+    """Project one or several workspaces, a study folder or both into a :class:`ProjectReport`.
 
-    The workspace gives one :class:`AssayReport` per assay, and ``study``, a folder already opened
+    Each workspace gives one :class:`AssayReport` per assay, and ``study``, a folder already opened
     through its checks, gives the Study tab. With no workspace the report is the study's alone.
+    Several workspaces are one report only of a named study: each keeps its own assays, and the
+    Study tab marks which of them compiled each sample.
     ``generated_at`` is threaded through verbatim (a caller may pin it for byte-deterministic output).
     ``results_dir`` says where a finished pipeline's per-sample outputs are; ``None`` derives it from
     the composed config's ``outdir``, which is what a pipeline started in its own directory used.
     ``report_dir`` is the directory the report will be written into, which every path in the report
-    is relative to; ``None`` is the default report's: ``seqforge/`` with a workspace, the study
-    folder without one. All three are caller-supplied *machine* facts, and none can change what the
-    page says the compiler decided.
+    is relative to; ``None`` is the default report's: the folder it starts from, which is
+    ``seqforge/`` of one workspace and the study folder otherwise. All three are caller-supplied
+    *machine* facts, and none can change what the page says the compiler decided.
     Raises :class:`FileNotFoundError` only when there is genuinely nothing to report — no manifest and
-    no draft anywhere under ``seqforge/``.
+    no draft anywhere under a workspace's ``seqforge/``.
     """
     from . import REPORT_VERSION
 
-    if workspace is None:
-        if study is None:
-            raise ValueError("a report reads a workspace, a study folder or both")
-        where = study.path if report_dir is None else Path(report_dir)
-        return ProjectReport(
-            report_version=REPORT_VERSION,
-            generated_at=generated_at,
-            study=collect_study(study, where),
-        )
+    if workspaces is None:
+        roots: list[Path] = []
+    elif isinstance(workspaces, (str, Path)):
+        roots = [Path(workspaces)]
+    else:
+        roots = [Path(ws) for ws in workspaces]
+    if study is None and len(roots) != 1:
+        raise ValueError("a report reads a study folder, one workspace, or a study and several")
+    if report_dir is not None:
+        where = Path(report_dir)
+    elif len(roots) == 1:
+        where = report_html_path(roots[0]).parent
+    else:
+        assert study is not None
+        where = study.path
 
-    ws = Path(workspace)
-    where = report_html_path(ws).parent if report_dir is None else Path(report_dir)
+    read = [_collect_workspace(ws, results_dir, where) for ws in roots]
+    if study is None:
+        return ProjectReport(
+            report_version=REPORT_VERSION, generated_at=generated_at, workspaces=read
+        )
+    view = collect_study(study, where)
+    view = view.model_copy(update={"samples": [_coverage(sample, read) for sample in view.samples]})
+    return ProjectReport(
+        report_version=REPORT_VERSION,
+        generated_at=generated_at,
+        workspaces=read,
+        study=view,
+        warnings=[w for ws in read if (w := _stale(ws, view)) is not None],
+    )
+
+
+def _collect_workspace(ws: Path, results_dir: Path | None, where: Path) -> WorkspaceReport:
+    """One workspace's assays, and the hash of the reading its sample table joined."""
+    from ..project import joined_reading_hash
+
     assays_on_disk = discover_assays(ws)
     if not assays_on_disk:
         assay = _collect_draft(ws)
-        assays = [assay] if assay is not None else []
-        if not assays:
+        if assay is None:
             raise FileNotFoundError(
                 f"no manifest (or draft) under {state_dir(ws)} — nothing to report yet. Run "
                 f"`seqforge run` (or at least `manifest fill`) first."
             )
+        assays = [assay]
     else:
         assays = [
             _collect_assay(ws, subdir, mpath, results_dir, where)
             for subdir, mpath in assays_on_disk
         ]
+    return WorkspaceReport(
+        name=_workspace_name(ws),
+        path=_relative(ws, where),
+        assays=assays,
+        reading_hash=joined_reading_hash(ws),
+    )
 
-    return ProjectReport(
-        report_version=REPORT_VERSION,
-        generated_at=generated_at,
-        workspaces=[
-            WorkspaceReport(name=_workspace_name(ws), path=_relative(ws, where), assays=assays)
-        ],
-        study=None if study is None else collect_study(study, where),
+
+def _coverage(sample: StudySample, workspaces: list[WorkspaceReport]) -> StudySample:
+    """``sample`` marked with each workspace whose manifest holds its BioSample accession.
+
+    The compile's join meets the two sides on the same id, so a sample is compiled where the join
+    would label it.
+    """
+    accession = sample.biosample_accession
+    if accession is None:
+        return sample
+    return sample.model_copy(
+        update={
+            "compiled_in": [
+                ws.path
+                for ws in workspaces
+                if any(s.accession == accession for a in ws.assays for s in a.samples)
+            ]
+        }
+    )
+
+
+def _stale(ws: WorkspaceReport, study: StudyReport) -> ValidationWarning | None:
+    """A warning when ``ws`` joined a reading other than the study folder's current one."""
+    if ws.reading_hash is None or study.reading_hash is None:
+        return None
+    if ws.reading_hash == study.reading_hash:
+        return None
+    return ValidationWarning(
+        code="READING_STALE",
+        message=f"workspace {ws.name} joined reading {ws.reading_hash[:12]}, and study "
+        f"{study.study} now holds reading {study.reading_hash[:12]}: the labels in its sample "
+        "table and .h5ad files are older than the Study tab. Re-run `seqforge project metadata "
+        "--study` there to join the current reading.",
+        subject=BlockerSubject(kind="dataset", ref=ws.name),
     )
 
 
@@ -224,6 +284,7 @@ def collect_study(study: StudyFolder, report_dir: Path) -> StudyReport:
         reason=bounds.reason,
         records=records,
         has_reading=study.reading is not None,
+        reading_hash=None if study.reading is None else study.reading.content_hash(),
     )
     if study.reading is None:
         return view

@@ -1624,14 +1624,24 @@ def study_section(report: ProjectReport) -> str:
     if study is None:
         return ""
     active = " active" if not report.assays else ""
+    stale = "".join(
+        f'<p class="sf-notice mb-4"><b>Stale reading:</b> {esc(w.message)}</p>'
+        for w in report.warnings
+        if w.code == "READING_STALE"
+    )
+    named = {ws.path: ws.name for ws in report.workspaces}
     return (
         f'<section data-study><div class="pane{active}" data-tab="study">'
-        f"{study_pane(study)}</div></section>"
+        f"{stale}{study_pane(study, named)}</div></section>"
     )
 
 
-def study_pane(study: StudyReport) -> str:
-    """The bounds graph, and a notice when the study has no reading yet."""
+def study_pane(study: StudyReport, workspaces: dict[str, str] | None = None) -> str:
+    """The bounds graph, and a notice when the study has no reading yet.
+
+    ``workspaces`` names each workspace the report read by its path; with any, each sample table
+    marks which of them compiled each sample, and which none did.
+    """
     graph = _bounds_graph(study)
     reason = (
         '<p class="m-0 mt-3 max-w-[70ch] text-sm text-dim">'
@@ -1651,7 +1661,7 @@ def study_pane(study: StudyReport) -> str:
             '<p class="sf-notice mt-4">No reading yet: the study has bounds, and the reading job '
             "has not written what each sample is.</p>"
         )
-    return pane + _design_panel(study) + _samples_panel(study)
+    return pane + _design_panel(study) + _samples_panel(study, workspaces or {})
 
 
 def _bounds_graph(study: StudyReport) -> str:
@@ -1964,7 +1974,7 @@ def _cell_style(cell: StudyCell) -> str:
 _TINT_PALE, _TINT_FULL = 8, 34
 
 
-def _samples_panel(study: StudyReport) -> str:
+def _samples_panel(study: StudyReport, workspaces: dict[str, str]) -> str:
     """One sample table per topic, as sub-tabs, with the factor columns repeated at the left."""
     if not study.topics:
         return ""
@@ -1984,7 +1994,7 @@ def _samples_panel(study: StudyReport) -> str:
         for i, t in enumerate(study.topics)
     )
     panes = "".join(
-        f'<div data-topic-pane="{i}">{_topic_table(study, t)}</div>'
+        f'<div data-topic-pane="{i}">{_topic_table(study, t, workspaces)}</div>'
         for i, t in enumerate(study.topics)
     )
     return _panel(
@@ -1996,8 +2006,12 @@ def _samples_panel(study: StudyReport) -> str:
     )
 
 
-def _topic_table(study: StudyReport, table: TopicTable) -> str:
-    """One topic's table: the labels the same for every sample on one line, then the rest."""
+def _topic_table(study: StudyReport, table: TopicTable, workspaces: dict[str, str]) -> str:
+    """One topic's table: the labels the same for every sample on one line, then the rest.
+
+    With any workspace read, a column after the sample names the workspaces that compiled it, or
+    says none did.
+    """
     n = len(study.samples)
     head = (
         f'<h3 class="sf-sub-h">{esc(table.topic)}: {len(table.varying)} of '
@@ -2022,12 +2036,20 @@ def _topic_table(study: StudyReport, table: TopicTable) -> str:
         )
     cols = (
         "<th>sample</th>"
+        + ("<th>compiled in</th>" if workspaces else "")
         + "".join(f"<th>{esc(f.label)} ★</th>" for f in study.factors)
         + "".join(f"<th>{esc(label)}</th>" for label in table.varying)
     )
     rows = ""
     for sample in study.samples:
         cells = ""
+        if workspaces:
+            where = ", ".join(workspaces.get(p, p) for p in sample.compiled_in)
+            cells += (
+                f'<td class="font-mono">{esc(where)}</td>'
+                if where
+                else '<td class="text-faint">none</td>'
+            )
         for f in study.factors:
             claim = sample.cells.get(f.label)
             if claim is None:
@@ -2107,12 +2129,21 @@ def tab_bar(report: ProjectReport) -> str:
 
 
 def assay_switcher(report: ProjectReport) -> str:
-    """The assay picker, or nothing when the report holds a single assay."""
+    """The assay picker, or nothing when the report holds a single assay.
+
+    Each workspace keeps its own compile tabs, so with several each option names its workspace.
+    """
     if not report.is_multi_assay:
         return ""
+    several = len(report.workspaces) > 1
+    labels = [
+        f"{ws.name} · {a.label}" if several else a.label
+        for ws in report.workspaces
+        for a in ws.assays
+    ]
     opts = "".join(
-        f'<option value="{i}">{esc(a.label)} · {a.n_samples} sample(s)</option>'
-        for i, a in enumerate(report.assays)
+        f'<option value="{i}">{esc(label)} · {a.n_samples} sample(s)</option>'
+        for i, (label, a) in enumerate(zip(labels, report.assays, strict=True))
     )
     return (
         '<div class="flex shrink-0 items-center gap-2">'

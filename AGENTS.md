@@ -62,8 +62,8 @@ compose(manifest, processing)   -> Snakefile + config + units.tsv   deterministi
       │ seqforge/, and the study folder `--study` names: its bounds, design table and
       │ sample tables by topic, on the Study tab
 REPORT -> report.html + report.json   `seqforge report`; one page and its data, written into the
-          folder it starts from: seqforge/, or the study folder when `--study` is given alone.
-          Nothing else is written into either folder
+          folder it starts from: seqforge/ of one workspace, or the study folder when `--study`
+          is given alone or with several workspaces. Nothing else is written into either folder
 ```
 
 ## Non-negotiable rules: R1–R12
