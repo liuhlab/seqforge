@@ -203,6 +203,41 @@ def test_observation_cache_is_namespaced_by_probe_version(tmp_path: Path) -> Non
     assert cache.read_observation(sha) is None
 
 
+def test_every_cached_resolve_result_reads_back_with_its_matrix(tmp_path: Path) -> None:
+    """The cache that writes the resolve results is the one that lists them back, so a reader in
+    another package (the report) never spells the cache's folder names: the module that writes an
+    artifact owns reading it. Two results go in under two dataset ids, one with an evidence matrix;
+    both come back in id order, each with its matrix or ``None``."""
+    from seqforge.models.resolve import Candidate, ResolveResult, RoleAssignment
+    from seqforge.resolve.cache import Cache
+
+    def result(ds_id: str, tech: str) -> ResolveResult:
+        return ResolveResult(
+            dataset_id=ds_id,
+            kb_version="2026.1.0",
+            rung_reached=0,
+            candidates=[
+                Candidate(
+                    technology=tech,
+                    score=TechScore(technology=tech, status="scored", value=1.0),
+                    role_assignment=RoleAssignment(assignment={"R1": "a" * 64}),
+                    rung_resolved={},
+                )
+            ],
+            conflicts=[],
+            questions=[],
+        )
+
+    cache = Cache(tmp_path)
+    cache.write_resolve("b" * 64, result("b" * 64, "bulk-rnaseq"))
+    cache.write_resolve("a" * 64, result("a" * 64, "10x-3p-gex-v3"))
+    matrix = {"10x-3p-gex-v3": {"R1": {"a" * 64: {"status": "scored", "value": 1.0}}}}
+    cache.write_matrices("a" * 64, matrix)
+
+    read = [(r.candidates[0].technology, mx) for r, mx in cache.resolve_results()]
+    assert read == [("10x-3p-gex-v3", matrix), ("bulk-rnaseq", None)]
+
+
 def test_resolve_dataset_scoring_threads_matches_serial(tmp_path: Path) -> None:
     """Per-spec scoring across a thread pool (sharing the read-only registry) is winner-invariant:
     same inputs, ``score_threads`` 1 vs N -> byte-identical ResolveResult AND evidence matrices.

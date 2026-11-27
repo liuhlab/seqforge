@@ -8,14 +8,14 @@ from __future__ import annotations
 import json
 from enum import StrEnum
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 import typer
 from pydantic import ValidationError
 
 from ..harvest.seam import DEFAULT_CEILING_USD
 from ..manifest import instructions_from_assertions
-from ..workspace import documents_dir, logs_dir, readable
+from ..workspace import logs_dir
 from ._common import _emit, _StageOut
 from .root import harvest_app
 
@@ -63,10 +63,9 @@ def harvest_normalize(
     nowhere — a filename trigger would be spoofable by renaming a downloaded PDF.
     """
     from ..harvest import normalize_document
+    from ..harvest.artifacts import write_documents
 
     backend: PdfBackend = pdf_backend.value
-    outdir = documents_dir(workspace)
-    outdir.mkdir(parents=True, exist_ok=True)
     rows = []
     handed = _roled(docs, instruction)
     if not handed:
@@ -79,8 +78,7 @@ def harvest_normalize(
         except (OSError, RuntimeError) as exc:
             typer.echo(f"{doc}: {exc}", err=True)
             raise typer.Exit(1) from exc
-        target = outdir / _document_filename(nd)
-        target.write_text(nd.text)
+        (target,) = write_documents(workspace, [nd])
         rows.append(
             {
                 "source": nd.source_basename,
@@ -95,18 +93,6 @@ def harvest_normalize(
             }
         )
     typer.echo(json.dumps({"normalized": rows}, indent=2))
-
-
-def _document_filename(doc: Any) -> str:
-    """``paper.pdf`` -> ``paper-3f8a1c2d9b04.txt``; a record -> ``experiment-SRX22069914-....txt``.
-
-    The hash stays, because two documents can share a name and the identity is the hash. But a
-    directory of bare 64-hex filenames is a directory you cannot read, and an early build's document
-    cache was exactly that: nothing in it said which file was the paper. The source
-    name is already known -- we opened the file -- so printing it costs nothing and no model is
-    involved in producing it.
-    """
-    return readable(Path(doc.source_basename).stem, doc.doc_sha256) + ".txt"
 
 
 def _roled(docs: list[Path] | None, instruction: list[Path] | None) -> list[tuple[Path, DocRole]]:
@@ -250,6 +236,7 @@ def _harvest_extract_pipeline(
         stop_blocker,
         verify_drafts,
     )
+    from ..harvest.artifacts import write_assertions, write_documents
     from ..kb import load_all_specs
     from ..recordset import RecordSetError, load_record_set
 
@@ -416,27 +403,14 @@ def _harvest_extract_pipeline(
     # check a staged paper against the records (the wrong-paper guard), and it too lived only in this
     # process's memory. Code owns both mappings because code chose both documents.
     # It spans `plan.all_documents` rather than the send list, so every document on disk has a scope.
-    (logs / "assertions.json").write_text(
-        json.dumps(
-            {
-                "instruction_docs": sorted(instruction_docs),
-                "document_subjects": [
-                    {"doc_sha256": d.doc_sha256, "scope": d.scope, "subject": d.subject}
-                    for d in sorted(every, key=lambda d: d.doc_sha256)
-                ],
-                "assertions": [a.model_dump(mode="json") for a in fan.assertions],
-            },
-            indent=2,
-        )
+    write_assertions(
+        workspace, assertions=fan.assertions, documents=every, instruction_docs=instruction_docs
     )
     # The rendered documents, on disk, under readable names. A span citation is only checkable if the
     # exact text it was greppedded against still exists -- and for a record-derived document these
     # bytes exist nowhere else, because we made them. A COLLAPSED member's bytes exist nowhere else
     # either, and it is the one a fanned citation names, so it is written too (ADR-0031).
-    docdir = documents_dir(workspace)
-    docdir.mkdir(parents=True, exist_ok=True)
-    for nd in every:
-        (docdir / _document_filename(nd)).write_text(nd.text)
+    write_documents(workspace, every)
     # How many DRAFTS survived the tripwire; a fan never copies a claim, so it is also how many
     # Assertions were written.
     payload["n_accepted"] = report.n_accepted
@@ -503,12 +477,9 @@ def _nothing_to_ask(workspace: Path) -> _StageOut:
     whatever ``--verify`` says, because with no drafts the verified and the unverified artifact are
     the same three empty lists.
     """
-    logs = logs_dir(workspace)
-    logs.mkdir(parents=True, exist_ok=True)
-    assertions = logs / "assertions.json"
-    assertions.write_text(
-        json.dumps({"instruction_docs": [], "document_subjects": [], "assertions": []}, indent=2)
-    )
+    from ..harvest.artifacts import write_assertions
+
+    assertions = write_assertions(workspace, assertions=(), documents=(), instruction_docs=())
     return _StageOut(
         {
             # Said in a field rather than implied by a row of zeros: "the extraction found nothing"
