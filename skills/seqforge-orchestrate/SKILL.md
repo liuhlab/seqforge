@@ -63,15 +63,14 @@ and the pipeline directory under `seqforge/`; re-running is resumable through ea
 content-addressed cache — **there is no `--resume` flag**, you just run it again.
 
 **A project can split into assays, and then there is more than one deliverable.** When the FASTQ span
-more than one chemistry (say a study with both 10x v2 and v3 libraries), code partitions them: each
+more than one chemistry (say 10x v2 and v3), code partitions them: each
 chemistry becomes an *assay* with its own `seqforge/<assay>/` subdir holding a complete, ordinary
 single-chemistry `manifest.yaml` + Snakefile — the same artifacts a uniform dataset produces, one
 level down. The summary then carries an **`assays`** list (chemistry, subdir, sample count, snakefile)
 instead of the flat `manifest`/`snakefile` keys, and **each assay's Snakefile is submitted on its
 own**. Two project-level files sit at the `seqforge/` top: `sample_metadata.tsv` (one row per sample
 across every assay) and `project.yaml` (the assay index). The partition is decided from bytes, not by
-you — you never sort samples into assays. A single-assay project (the common case) stays flat and
-byte-identical to before, just with the added `sample_metadata.tsv`; `seqforge project metadata`
+you — you never sort samples into assays. A single-assay project stays flat; `seqforge project metadata`
 rebuilds those two project views from the manifests without recompiling.
 
 **`--study <folder>`** on `run` or `project metadata` joins a study reading into
@@ -81,10 +80,10 @@ writes those labels into each `<sample>.h5ad` as categorical `obs` columns, with
 `uns`. After a newer reading, run `project metadata --study` and then the same Snakefile: it re-runs
 only that rule.
 
-**`seqforge report`** writes `report.html` and `report.json`, the same data for a program.
-`--study <folder>` adds the study's tab, and given alone needs no compile. With `--study`, `-C` can
-be given once per workspace: one report, written into the study folder, marks which workspace
-compiled each sample and warns when a workspace joined an older reading.
+**`seqforge report`** writes `report.html` and its data, `report.json`.
+`--study <folder>` adds the study's tab, and given alone needs no compile. With `--study`, `-C`
+repeats: one report, in the study folder, marks who compiled each sample, and warns
+of stale readings.
 
 `compile` is an alias for `run`.
 

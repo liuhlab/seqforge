@@ -151,11 +151,11 @@ def collect_report(
 
     read = [_collect_workspace(ws, results_dir, where) for ws in roots]
     if study is None:
-        return ProjectReport(report_version=REPORT_VERSION, generated_at=generated_at, workspaces=read)
+        return ProjectReport(
+            report_version=REPORT_VERSION, generated_at=generated_at, workspaces=read
+        )
     view = collect_study(study, where)
-    view = view.model_copy(
-        update={"samples": [_coverage(sample, read) for sample in view.samples]}
-    )
+    view = view.model_copy(update={"samples": [_coverage(sample, read) for sample in view.samples]})
     return ProjectReport(
         report_version=REPORT_VERSION,
         generated_at=generated_at,

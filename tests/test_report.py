@@ -3542,9 +3542,7 @@ def test_several_workspaces_give_one_report_in_the_study_folder_marking_who_comp
     named = {ws["path"]: ws["name"] for ws in data["workspaces"]}
     assert sorted(named.values()) == ["first", "second"]
     assert all(len(ws["assays"]) == 1 for ws in data["workspaces"])
-    coverage = {
-        s["sample"]: [named[p] for p in s["compiled_in"]] for s in data["study"]["samples"]
-    }
+    coverage = {s["sample"]: [named[p] for p in s["compiled_in"]] for s in data["study"]["samples"]}
     assert coverage == {"GSM1": ["first"], "GSM3": ["first"], "GSM4": ["second"], "GSM6": []}
 
 
