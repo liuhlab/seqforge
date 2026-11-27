@@ -55,10 +55,8 @@ read budget caps every FASTQ read; the probe reads a short head of each file, ne
 thing) and finishes in roughly a minute or two, paper included. Let the command block and read its JSON summary when it
 returns. Backgrounding it is the one reliable way to lose the whole run: in a headless (`-p`) session
 there is no next turn to receive a background-completion notification, so a backgrounded pipeline is
-**killed when the turn ends**, leaving a half-written workspace with only `records/`. If you catch
-yourself starting the pipeline in the background and then "waiting for a notification", stop — the
-notification is never coming. The same holds for the staged verbs: run each to completion in the
-foreground.
+**killed when the turn ends**, leaving a half-written workspace with only `records/`. The same holds
+for the staged verbs: run each to completion in the foreground.
 
 The summary's `snakefile` path is the deliverable. `run` writes `manifest.yaml`, `processing.yaml`,
 and the pipeline directory under `seqforge/`; re-running is resumable through each stage's
@@ -78,11 +76,13 @@ rebuilds those two project views from the manifests without recompiling.
 
 **`--study <folder>`** on `run` or `project metadata` joins a study reading into
 `sample_metadata.tsv` by BioSample accession. Mismatches warn and exit 0; the manifest is unchanged.
-`run` never starts the study chain; **seqforge-study** runs it.
+`run` never starts the study chain; **seqforge-study** runs it. A droplet pipeline's last rule
+writes those labels into each `<sample>.h5ad` as categorical `obs` columns, with `reading_hash` in
+`uns`. After a newer reading, run `project metadata --study` and then the same Snakefile: it re-runs
+only that rule.
 
-**`seqforge report`** writes `seqforge/report.html` and, beside it, `report.json`: the same data for
-a program. `--study <folder>` adds the study's tab, and with no workspace needs no compile. It exits
-0 whatever the verdict.
+**`seqforge report`** writes `report.html` and `report.json`, the same data for a program.
+`--study <folder>` adds the study's tab, and given alone needs no compile.
 
 `compile` is an alias for `run`.
 

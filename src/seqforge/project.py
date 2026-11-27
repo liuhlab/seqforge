@@ -17,15 +17,15 @@ import yaml
 from .models.blocker import BlockerSubject, ValidationWarning
 from .models.dataset import DatasetManifest
 from .study.folder import StudyFolder
-from .study.join import CompiledSample, join_reading
-from .workspace import state_dir
+from .study.join import READING_HASH, CompiledSample, join_reading
+from .workspace import SAMPLE_METADATA_TSV, state_dir
 
 #: The table's columns, in order. What a sample WAS (its tissue, strain or treatment) is not among
 #: them: a study reading holds it, and a compile that names its study joins those labels in after.
 _COLUMNS: tuple[str, ...] = ("sample_id", "accession", "assay", "organism", "n_files", "files")
 
 #: The project-level file names, written at the top of ``seqforge/`` (never inside an assay subdir).
-SAMPLE_METADATA_TSV = "sample_metadata.tsv"
+#: The table's own name is the workspace layout's, because a compiled pipeline reads it back.
 PROJECT_YAML = "project.yaml"
 
 
@@ -197,6 +197,30 @@ def write_project_views(
     return tsv_path, yaml_path, joined
 
 
+def sample_labels(table: Path, sample_id: str) -> tuple[dict[str, str], str | None]:
+    """One sample's labels in a table :func:`write_project_views` wrote, and the reading's hash.
+
+    The labels are the columns a joined study added: every column past the compile's own but the
+    hash. A sample with no reading hash carries no labels, which is what an absent table, a table
+    written with no study, a sample the join did not reach and a sample not in the table all mean;
+    each reads as ``({}, None)``.
+    """
+    if not table.is_file():
+        return {}, None
+    lines = table.read_text().splitlines()
+    header = lines[0].split("\t") if lines else []
+    for line in lines[1:]:
+        row = dict(zip(header, line.split("\t"), strict=True))
+        if row.get("sample_id") != sample_id:
+            continue
+        digest = row.get(READING_HASH) or None
+        if digest is None:
+            return {}, None
+        labels = {c: row[c] for c in header if c not in _COLUMNS and c != READING_HASH}
+        return labels, digest
+    return {}, None
+
+
 __all__ = [
     "PROJECT_YAML",
     "SAMPLE_METADATA_TSV",
@@ -204,6 +228,7 @@ __all__ = [
     "format_tsv",
     "join_study",
     "project_index",
+    "sample_labels",
     "sample_metadata_table",
     "write_project_views",
 ]
