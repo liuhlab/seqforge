@@ -10,8 +10,9 @@ The files and their checks:
   check to build on.
 - :mod:`.relations` — what a valid reading implies between its samples, worked out on demand and
   stored nowhere.
-- :mod:`.folder` — a folder of study folders: what each holds, which studies it lists, and how a
-  job's file is checked and written.
+- :mod:`.folder` — a folder of study folders: what each holds, which studies it lists, how a
+  job's file is checked and written, and the one reader that opens a study folder for any other
+  package.
 
 A format is a whole number on the file's first line, and only the current one is accepted.
 

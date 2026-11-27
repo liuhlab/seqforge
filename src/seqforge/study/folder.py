@@ -10,12 +10,17 @@ A job's pass keeps each study's answer in its task. :func:`write_files` turns ea
 into ``<out>/<key>/<name>`` with the job's own ``render``, checks the exact text it would write,
 and says how each study ended. The bounding job and the reading job both write through it, and the
 reading job reads each study's bounds file with :func:`bounds_in`.
+
+This module is the only code that knows a study folder's file names. Any other package reads a
+study folder through :func:`open_study_folder`, which hands back its files each through its format
+check, or refuses the folder.
 """
 
 from __future__ import annotations
 
 import os
 from collections.abc import Callable
+from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -24,6 +29,7 @@ import yaml
 from ..passes import SetupRefused
 from .bounds import Bounds, read_bounds
 from .claims import load
+from .reading import Reading, read_reading
 
 if TYPE_CHECKING:
     from labllm import Outcome, TaskReader
@@ -61,6 +67,80 @@ def picked_studies(folder: Path) -> list[str]:
     return list(pick_entries(folder))
 
 
+class StudyFolderRefused(Exception):
+    """A study folder the reader will not open: what is wrong with it, by the file it is in."""
+
+    def __init__(self, folder: Path, problems: dict[str, list[dict[str, str]]]) -> None:
+        self.folder = folder
+        #: Each file's problems by its name, each naming a field and the reason.
+        self.problems = problems
+        said = "; ".join(
+            f"{name} {p['field']}: {p['reason']}" for name, found in problems.items() for p in found
+        )
+        super().__init__(f"{folder} is refused: {said}")
+
+
+@dataclass(frozen=True)
+class StudyFolder:
+    """One study folder, opened and checked: what later stages read of a study.
+
+    ``study`` is the standard set's own study file, which only a study of the set has. A folder
+    always holds its bounds, and its reading once the reading job has written one.
+    """
+
+    path: Path
+    study: dict[str, Any] | None
+    bounds: Bounds
+    reading: Reading | None
+
+
+def _checked[T](
+    path: Path, read: Callable[[object], tuple[T | None, list[dict[str, str]]]]
+) -> tuple[T | None, list[dict[str, str]]]:
+    """The file at ``path`` through its check ``read``, or ``None`` and what is wrong with it."""
+    try:
+        text = path.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError) as exc:
+        return None, [{"field": "(file)", "reason": f"cannot read: {exc}"}]
+    data, problems = load(text)
+    if problems:
+        return None, problems
+    found, problems = read(data)
+    return (None, problems) if found is None or problems else (found, [])
+
+
+def _study_file(data: object) -> tuple[dict[str, Any] | None, list[dict[str, str]]]:
+    """The standard set's study file. It has no format number, so its shape is all there is to check."""
+    if not isinstance(data, dict):
+        return None, [{"field": "(file)", "reason": "not a mapping of fields"}]
+    return data, []
+
+
+def open_study_folder(folder: Path) -> StudyFolder:
+    """The study folder at ``folder``, each of its files read through its format check.
+
+    A standard-set folder also holds the jobs' files, ``job-bounds.yaml`` and ``job-reading.yaml``,
+    beside the set's own: the reader opens the set's own and never the jobs'. Refuses the folder,
+    naming each file and its problems, when it has no bounds file or when a file it holds fails its
+    check. The reading check judges ontology ids by liulab-data, so without liulab-data a folder
+    with a reading raises :class:`~seqforge.liulab_data.LiulabDataMissing`.
+    """
+    problems: dict[str, list[dict[str, str]]] = {}
+    study = bounds = reading = None
+    if (folder / STUDY).is_file():
+        study, problems[STUDY] = _checked(folder / STUDY, _study_file)
+    if (folder / BOUNDS).is_file():
+        bounds, problems[BOUNDS] = _checked(folder / BOUNDS, read_bounds)
+    else:
+        problems[BOUNDS] = [{"field": "(file)", "reason": "missing: a study folder holds its bounds"}]
+    if (folder / READING).is_file():
+        reading, problems[READING] = _checked(folder / READING, read_reading)
+    problems = {name: found for name, found in problems.items() if found}
+    if problems or bounds is None:
+        raise StudyFolderRefused(folder, problems)
+    return StudyFolder(path=folder, study=study, bounds=bounds, reading=reading)
+
+
 def bounds_in(folder: Path, key: str) -> Bounds:
     """Study ``key``'s bounds, read from its bounds file in ``folder`` through the format check.
 
@@ -72,15 +152,8 @@ def bounds_in(folder: Path, key: str) -> Bounds:
     path = folder / key / BOUNDS
     if not path.is_file():
         raise Held(f"no bounds file for {key} at {path}")
-    try:
-        text = path.read_text(encoding="utf-8")
-    except (OSError, UnicodeDecodeError) as exc:
-        raise Held(f"cannot read {path}: {exc}") from exc
-    data, problems = load(text)
-    bounds = None
-    if not problems:
-        bounds, problems = read_bounds(data)
-    if bounds is None or problems:
+    bounds, problems = _checked(path, read_bounds)
+    if bounds is None:
         said = "; ".join(f"{p['field']}: {p['reason']}" for p in problems)
         raise Held(f"{path} fails the bounds format check: {said}")
     return bounds

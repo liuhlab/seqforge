@@ -176,7 +176,7 @@ def study_write_reading(
 
 @study_app.command("check-bounds")
 def study_check_bounds(
-    file: Path = typer.Argument(..., help="A study's bounds file, such as <ID>/bounds.yaml."),
+    file: Path = typer.Argument(..., help=f"A study's bounds file, such as <ID>/{BOUNDS}."),
 ) -> None:
     """Check one bounds file against the current format.
 
@@ -190,7 +190,7 @@ def study_check_bounds(
 
 @study_app.command("check-reading")
 def study_check_reading(
-    file: Path = typer.Argument(..., help="A study's reading file, such as <ID>/reading.yaml."),
+    file: Path = typer.Argument(..., help=f"A study's reading file, such as <ID>/{READING}."),
 ) -> None:
     """Check one reading file against the current format.
 
@@ -206,7 +206,7 @@ def study_check_reading(
 
 @study_app.command("relations")
 def study_relations(
-    file: Path = typer.Argument(..., help="A study's reading file, such as <ID>/reading.yaml."),
+    file: Path = typer.Argument(..., help=f"A study's reading file, such as <ID>/{READING}."),
 ) -> None:
     """Print the relations between the samples of one valid reading.
 
