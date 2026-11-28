@@ -20,7 +20,7 @@ each dataset can be processed the right way. It does two jobs.
   cluster.
 
 One **report** shows a study's bounds and reading, a compiled dataset, or both, on one web page.
-**[See three example reports](examples/index.md)** before you read on.
+[Two example reports](examples/index.md) show what one looks like.
 
 ## What goes in, and what comes out
 
@@ -111,9 +111,9 @@ answers: measuring accuracy is a separate effort.
 
 ## Next
 
-- **See the output:** [Example reports](examples/index.md).
+- **Start here:** [Getting started](getting-started.md) installs seqforge and points to each job.
 - **Understand it:** [Understanding a study](how-it-works/study.md),
   [From FASTQ files to a pipeline](how-it-works/compiler.md) and
   [Why you can trust the output](how-it-works/trust.md).
-- **Use it:** [Getting started](getting-started.md).
+- **See the output:** [Example reports](examples/index.md).
 - **Look something up:** [Commands](reference/commands.md) and the other Reference pages.

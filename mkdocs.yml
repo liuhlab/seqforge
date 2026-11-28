@@ -42,19 +42,20 @@ extra_css:
 plugins:
   - search
 
-# The reader is someone shown the site who does not know the code: the examples come right after the
-# home page, the concept pages next, and every command detail sits in Reference at the end.
+# The reader is someone shown the site who does not know the code: Getting started comes right after
+# the home page, the concept pages next, then the guides and the example reports under Use it, and
+# every command detail sits in Reference at the end.
 nav:
   - Home: index.md
-  - Example reports: examples/index.md
+  - Getting started: getting-started.md
   - How it works:
       - Understanding a study: how-it-works/study.md
       - From FASTQ files to a pipeline: how-it-works/compiler.md
       - Why you can trust the output: how-it-works/trust.md
   - Use it:
-      - Getting started: getting-started.md
       - Read your own studies: guides/read-studies.md
-      - Compile with Claude: tutorials/with-claude.md
+      - Example reports: examples/index.md
+      - Compile with a coding agent: tutorials/with-agent.md
       - Compile step by step: tutorials/step-by-step.md
       - Add a technology: tutorials/adding-a-technology.md
   # "Supported assays" is nested under the knowledge base on purpose: with `navigation.sections`

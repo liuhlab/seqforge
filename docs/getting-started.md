@@ -9,7 +9,7 @@ seqforge does two jobs, and you can use either one alone:
   papers about them. It writes down what the data is and gives you a pipeline that turns the reads
   into count tables.
 
-This page installs seqforge, checks that it works, and says what each job needs.
+This page installs seqforge, checks that it works, and points you to the page for each job.
 
 ## Install it
 
@@ -58,27 +58,31 @@ sequencing technology seqforge knows, such as `10x-3p-gex-v3` and `smartseq3`. `
 roundtrip` makes fake reads for one technology, reads them back, and prints JSON that lists each
 check it ran. Look for `"passed": true` near the top.
 
-## Let Claude run it (optional)
+## Pick a job
 
-seqforge ships skills for [Claude Code](https://claude.com/claude-code), an AI assistant that runs
-in your terminal. A skill tells Claude which `seqforge` commands to run for a task. To install them
-for your user, run this in the clone:
+| Job | What it needs | Start here |
+| --- | --- | --- |
+| Read a set of studies | The lab's model gateway, and `liulab-data` with its record store, paper store and ontology store | [Read your own studies](guides/read-studies.md) |
+| Compile a dataset | `liulab-genome` for the genome. The model gateway only to read a paper or notes. A cluster to run the pipeline | [Compile step by step](tutorials/step-by-step.md) |
+
+Each job is one command. The page in the last column of the table walks you through it.
 
 ```bash
-pixi run install-skills
+# Read a set of studies
+seqforge study run --studies <folder> --ceiling-usd 2
+
+# Compile a dataset
+seqforge run reads/*.fastq.gz --assembly ce11 --annotation WS298
 ```
 
-Then you can ask Claude in plain words, for example "read the studies in this folder" or "compile
-the FASTQ files in `./data`".
+`--ceiling-usd` is the most the run may spend on models, in dollars. A first run costs a few
+cents a study. For a compile, the genome is the one choice you must make: `--assembly` names it by
+its UCSC id, and `--annotation` names the gene annotation file registered for it.
 
-## What each job needs
+A coding agent, an AI assistant that runs commands in your terminal, can run either job for you.
+[Compile with a coding agent](tutorials/with-agent.md) shows how to give it seqforge's skills.
 
-| Job | What goes in | What it needs |
-| --- | --- | --- |
-| Read studies | A list of GEO Series | The lab's model gateway, and `liulab-data` with its record store, paper store and ontology store |
-| Compile a dataset | FASTQ files, and optionally an accession and a paper | The model gateway only to read a paper or notes. `liulab-genome` for the genome. A cluster to run the pipeline |
-
-Here is what each of those is.
+Here is what each of the needs in the table is.
 
 - **The lab's model gateway** is the lab's server for language models. seqforge sends every model
   question through it, so you need no account with a model provider. Open a tunnel to it and set
@@ -89,50 +93,4 @@ Here is what each of those is.
   store (`$LABDATA_PAPERS`) holds the papers, and the ontology store (`$LABDATA_ONTOLOGIES`) holds
   the term lists that a reading names each tissue, cell type and condition from.
 - **A cluster** is a shared computer with many processors. The compiled pipeline runs the aligner
-  there. seqforge writes the pipeline but never starts it: you submit it.
-
-## Read a set of studies
-
-One command reads a folder of studies under a spending limit in dollars:
-
-```bash
-seqforge study run --studies <folder> --ceiling-usd 2
-```
-
-A first run costs a few cents a study. The guide
-[Read your own studies](guides/read-studies.md) sets up the folder, explains the three ways a study
-can end, and makes a report for each study. To see the output first, open the
-[example reports](examples/index.md).
-
-## Compile a dataset
-
-One command takes FASTQ files to a pipeline:
-
-```bash
-seqforge run reads/*.fastq.gz --accession PRJNA1027859 --doc paper.pdf \
-    --assembly ce11 --annotation WS298
-```
-
-The genome is the one choice you must make. `--assembly` names it by its UCSC id (the assembly's name in the UCSC Genome Browser), and
-`--annotation` names the gene annotation file registered for it. The accession and the paper are
-optional, and `--no-llm` skips the model, so nothing reaches the gateway.
-
-seqforge writes everything under `seqforge/` in the current folder. `seqforge/manifest.yaml`
-records what the data is. The pipeline is a `Snakefile` under `seqforge/pipeline/`, which you
-submit to the cluster with Snakemake (a tool that runs a pipeline step by step). Add
-`--study <folder>/<ID>` to copy a study's reading into the sample table.
-
-Two tutorials walk the whole path:
-
-- [Compile with Claude](tutorials/with-claude.md): describe your data and let Claude run the
-  commands.
-- [Compile step by step](tutorials/step-by-step.md): run each command yourself and look at what
-  it wrote.
-
-## Exit codes
-
-Most commands print one JSON object, and every command reports its result through its exit code,
-so a script can act on the code alone. `0` means it worked. `3` and `4` are seqforge refusing to
-guess: `3` means blocked or stopped, and `4` means a person must decide.
-[Commands](reference/commands.md#exit-codes) lists every code, and every command with what it
-needs.
+  there. seqforge writes the pipeline but never starts it. You submit it.
