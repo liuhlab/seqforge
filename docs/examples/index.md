@@ -1,18 +1,19 @@
 # Example reports
 
-Three study reports, made by seqforge from public GEO records. Each one is a single web page that
-opens offline. Open one before you read anything else on this site: it shows what seqforge writes
-about a study, and how each claim points back to its source.
+Two study reports, made by seqforge from public GEO records. Each one is a single web page that
+opens offline. It shows what seqforge writes about a study, and how each claim points back to its
+source.
 
-The three studies come from the **standard set**, 50 GEO studies picked to cover many kinds of
-design. They were picked here because their designs differ, and because each reading quotes only
-public text: GEO records, and at most a paper's abstract on PubMed.
+The two studies come from the **standard set**, 50 GEO studies picked to cover many kinds of
+design. They were picked here because their designs differ, because each reading quotes only
+public text (GEO records, and at most a paper's abstract on PubMed), and because both jobs settled
+both studies. A job settles a study when each question it asks twice, the second time with the
+options in reverse order, gets the same answer both times.
 
-| Study | What it is | Design the reading found | Quotes from | Job's ending |
-| --- | --- | --- | --- | --- |
-| [GSE112068](GSE112068/report.html) | Human lung cells exposed to a drug that damages DNA, sampled over 8 days | 3 factors: treatment, dose and time point (11 times). 23 samples | GEO records only | Settled |
-| [GSE272899](GSE272899/report.html) | Open chromatin in fat-tissue immune cells of young and old mice | 2 factors: age and genotype (4 genotypes). 9 samples | GEO records and one abstract | Settled |
-| [GSE329430](GSE329430/report.html) | Bone marrow and brain cells in a mouse model of Alzheimer's disease | 4 factors: genotype, disease, tissue and cell type. 20 samples | GEO records and one abstract | **Unsettled** |
+| Study | What it is | Design the reading found | Quotes from |
+| --- | --- | --- | --- |
+| [GSE112068](GSE112068/report.html) | Human lung cells exposed to a drug that damages DNA, sampled over 8 days | 3 factors: treatment, dose and time point (11 times). 23 samples | GEO records only |
+| [GSE272899](GSE272899/report.html) | Open chromatin in fat-tissue immune cells of young and old mice | 2 factors: age and genotype (4 genotypes). 9 samples | GEO records and one abstract |
 
 ## How to read a report
 
@@ -30,10 +31,9 @@ A report has one tab, **Study**, in three parts.
   passage states it), **unknown** or **n/a** (it does not apply). A paler cell has a lower `p`.
   Click a cell to see the passages behind it, each with the record and field it came from.
 
-A report does not show how the job ended the study. The table above says it, and so does each
-section below.
+A report does not show how the job ended the study. Both studies on this page settled.
 
-## The three studies
+## The two studies
 
 ### GSE112068: a dose and time course
 
@@ -42,8 +42,6 @@ bleomycin, a drug that breaks DNA. The reading found three factors: treatment (n
 dose (0, 2 or 40 µg/ml) and time point (11 times, from the start to 8 days). Each factor has a
 baseline, and the levels of all three run in order. The study has no paper, so every quote comes
 from the GEO Series and Sample records.
-
-Both jobs settled it: each question asked twice got the same answer both times.
 
 [Open the GSE112068 report](GSE112068/report.html).
 
@@ -55,29 +53,11 @@ GDF3, among them a knockout in myeloid cells, the blood-cell family that macroph
 Every mouse got the same dose of LPS, a bacterial toxin, for 4 hours. The reading records that dose as a shared label and not as a factor, since all
 samples got it. Quotes come from the GEO records and the paper's PubMed abstract.
 
-Both jobs settled it.
-
 [Open the GSE272899 report](GSE272899/report.html).
-
-### GSE329430: four factors, left unsettled
-
-Bone marrow and brain cells from 12-month-old female mice, some carrying 5xFAD, a model of
-Alzheimer's disease. The reading found four factors: genotype, disease, tissue and cell type. Some
-of the 20 samples are not RNA at all. They are tag libraries read beside the RNA, which mark each
-cell's mouse or its surface proteins, and the reading lists them as assays of their own: CMO and
-HTO (tags that mark which mouse a cell came from) and ADT (antibody tags that count surface
-proteins). Quotes come from the GEO records and the paper's PubMed abstract.
-
-The reading job left it **unsettled**. Each question is asked twice, the second time with the
-options in reverse order. Here the two answers differed on two points: whether treatment was
-varied on purpose, and which cell type is the baseline. The file and the report still show the
-first answer, so treat those two points as open.
-
-[Open the GSE329430 report](GSE329430/report.html).
 
 ## How these were made
 
-All three were made on 2026-11-27, from a run over the whole standard set, with:
+Both were made on 2026-11-27, from a run over the whole standard set, with:
 
 - seqforge at commit `9209509`, report version `2026.11.8`;
 - the bounding job, version `2026.11.3`, and the reading job, version `2026.11.10`;

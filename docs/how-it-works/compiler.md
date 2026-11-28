@@ -195,4 +195,4 @@ file. Without `--study`, nothing is joined.
 starts from. For a compile, the page shows what seqforge decided and the evidence for it, and the
 pipeline's own results once it has run. With `--study`, it also shows the study's bounds, its
 design and its samples. The page opens in a browser with no network. The
-[example reports](../examples/index.md) show three.
+[example reports](../examples/index.md) show two.

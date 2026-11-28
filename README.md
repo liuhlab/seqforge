@@ -30,7 +30,7 @@ flowchart LR
 ```
 
 **See it first:** the [example reports](https://liuhlab.github.io/seqforge/examples/) on the docs
-site show three studies read from public GEO records.
+site show two studies read from public GEO records.
 
 ## Install
 
