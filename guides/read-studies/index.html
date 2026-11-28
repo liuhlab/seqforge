@@ -6,17 +6,17 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="A compiler from FASTQ + unstructured metadata to a validated manifest and a runnable pipeline.">
+        <meta name="description" content="Reads sequencing studies and their files, and writes down what they are, from the bounds of a study to a pipeline you submit.">
       
       
       
-        <link rel="canonical" href="https://liuhlab.github.io/seqforge/concepts/artifacts/">
+        <link rel="canonical" href="https://liuhlab.github.io/seqforge/guides/read-studies/">
       
       
-        <link rel="prev" href="../../formats/reading/">
+        <link rel="prev" href="../../getting-started/">
       
       
-        <link rel="next" href="../identifying/">
+        <link rel="next" href="../../tutorials/with-claude/">
       
       
         
@@ -27,7 +27,7 @@
     
     
       
-        <title>The two artifacts - seqforge</title>
+        <title>Read your own studies - seqforge</title>
       
     
     
@@ -90,7 +90,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#the-two-artifacts" class="md-skip">
+        <a href="#read-your-own-studies" class="md-skip">
           Skip to content
         </a>
       
@@ -125,7 +125,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              The two artifacts
+              Read your own studies
             
           </span>
         </div>
@@ -297,14 +297,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../../getting-started/" class="md-nav__link">
+      <a href="../../examples/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    Getting started
+    Example reports
   
 
     
@@ -347,7 +347,7 @@
   <span class="md-ellipsis">
     
   
-    Tutorials
+    How it works
   
 
     
@@ -363,11 +363,364 @@
             <span class="md-nav__icon md-icon"></span>
             
   
-    Tutorials
+    How it works
   
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../how-it-works/study/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Understanding a study
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../how-it-works/compiler/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    From FASTQ files to a pipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../how-it-works/trust/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Why you can trust the output
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Use it
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Use it
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting started
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Read your own studies
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Read your own studies
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#before-you-start" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Before you start
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#set-up-a-folder-of-studies" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Set up a folder of studies
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#run-it-under-a-spending-limit" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Run it under a spending limit
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Run it under a spending limit">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#what-a-run-costs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What a run costs
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#read-how-each-study-ended" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Read how each study ended
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#resume-a-run-that-stopped" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Resume a run that stopped
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#check-a-file" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Check a file
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#make-a-report-for-a-study" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Make a report for a study
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#go-further" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Go further
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
             
               
                 
@@ -383,7 +736,7 @@
   <span class="md-ellipsis">
     
   
-    Compiling with Claude
+    Compile with Claude
   
 
     
@@ -411,7 +764,7 @@
   <span class="md-ellipsis">
     
   
-    Compiling Step-by-step
+    Compile step by step
   
 
     
@@ -439,7 +792,7 @@
   <span class="md-ellipsis">
     
   
-    Adding a technology
+    Add a technology
   
 
     
@@ -466,15 +819,67 @@
   
   
   
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
     <li class="md-nav__item">
-      <a href="../../study-workflow/" class="md-nav__link">
+      <a href="../../reference/commands/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    The study workflow
+    Commands
   
 
     
@@ -486,36 +891,10 @@
     </li>
   
 
-    
-      
-      
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../hand-work-files/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Files from the hand work
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-    
-      
-      
+              
+            
+              
+                
   
   
   
@@ -540,38 +919,23 @@
     </li>
   
 
-    
-      
-      
-  
-  
-  
-  
-    
-    
-    
-    
-      
-        
-        
-      
-    
-    
-    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
-      
-        
-        
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
-        
-          
-          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="">
+              
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../study-workflow/" class="md-nav__link">
+        
   
   
   <span class="md-ellipsis">
     
   
-    File formats
+    The study workflow in detail
   
 
     
@@ -579,19 +943,11 @@
   
   
 
-            <span class="md-nav__icon md-icon"></span>
-          </label>
-        
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_7">
-            <span class="md-nav__icon md-icon"></span>
-            
-  
-    File formats
+      </a>
+    </li>
   
 
-          </label>
-          <ul class="md-nav__list" data-md-scrollfix>
+              
             
               
                 
@@ -649,197 +1005,6 @@
 
               
             
-          </ul>
-        </nav>
-      
-    </li>
-  
-
-    
-      
-      
-  
-  
-    
-  
-  
-  
-    
-    
-    
-    
-      
-        
-        
-      
-    
-    
-    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
-      
-        
-        
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8" checked>
-        
-          
-          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="">
-            
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Concepts
-  
-
-    
-  </span>
-  
-  
-
-            <span class="md-nav__icon md-icon"></span>
-          </label>
-        
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="true">
-          <label class="md-nav__title" for="__nav_8">
-            <span class="md-nav__icon md-icon"></span>
-            
-  
-    Concepts
-  
-
-          </label>
-          <ul class="md-nav__list" data-md-scrollfix>
-            
-              
-                
-  
-  
-    
-  
-  
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    The two artifacts
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    The two artifacts
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#a-fact-and-a-choice-are-different-things" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        A fact and a choice are different things
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#why-not-one-file" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Why not one file?
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#same-source-different-flags" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Same source, different flags
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#the-line-parsing-versus-counting" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        The line: parsing versus counting
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#one-project-one-or-more-datasets" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        One project, one or more datasets
-      
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
-    </li>
-  
-
-              
-            
               
                 
   
@@ -847,14 +1012,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../identifying/" class="md-nav__link">
+      <a href="../../hand-work-files/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    How a dataset is identified
+    Files from the hand work
   
 
     
@@ -874,59 +1039,21 @@
   
   
   
-    <li class="md-nav__item">
-      <a href="../refusal/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
     
-  
-    When it refuses
-  
-
     
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-          </ul>
-        </nav>
-      
-    </li>
-  
-
+    
     
       
-      
-  
-  
-  
-  
     
     
-    
-    
+    <li class="md-nav__item md-nav__item--nested">
       
         
         
-      
-    
-    
-    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
-      
-        
-        
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_9" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_7" >
         
           
-          <label class="md-nav__link" for="__nav_9" id="__nav_9_label" tabindex="">
+          <label class="md-nav__link" for="__nav_5_7" id="__nav_5_7_label" tabindex="0">
             
   
   
@@ -944,8 +1071,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_9_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_9">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5_7">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -1000,10 +1127,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_9_2" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_7_2" >
         
           
-          <label class="md-nav__link" for="__nav_9_2" id="__nav_9_2_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_5_7_2" id="__nav_5_7_2_label" tabindex="0">
             
   
   
@@ -1021,8 +1148,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_9_2_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_9_2">
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_5_7_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5_7_2">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -1186,6 +1313,14 @@
     </li>
   
 
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
     
   </ul>
 </nav>
@@ -1214,10 +1349,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#a-fact-and-a-choice-are-different-things" class="md-nav__link">
+  <a href="#before-you-start" class="md-nav__link">
     <span class="md-ellipsis">
       
-        A fact and a choice are different things
+        Before you start
       
     </span>
   </a>
@@ -1225,10 +1360,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#why-not-one-file" class="md-nav__link">
+  <a href="#set-up-a-folder-of-studies" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Why not one file?
+        Set up a folder of studies
       
     </span>
   </a>
@@ -1236,10 +1371,38 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#same-source-different-flags" class="md-nav__link">
+  <a href="#run-it-under-a-spending-limit" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Same source, different flags
+        Run it under a spending limit
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Run it under a spending limit">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#what-a-run-costs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What a run costs
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#read-how-each-study-ended" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Read how each study ended
       
     </span>
   </a>
@@ -1247,10 +1410,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#the-line-parsing-versus-counting" class="md-nav__link">
+  <a href="#resume-a-run-that-stopped" class="md-nav__link">
     <span class="md-ellipsis">
       
-        The line: parsing versus counting
+        Resume a run that stopped
       
     </span>
   </a>
@@ -1258,10 +1421,32 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#one-project-one-or-more-datasets" class="md-nav__link">
+  <a href="#check-a-file" class="md-nav__link">
     <span class="md-ellipsis">
       
-        One project, one or more datasets
+        Check a file
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#make-a-report-for-a-study" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Make a report for a study
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#go-further" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Go further
       
     </span>
   </a>
@@ -1285,7 +1470,7 @@
 
 
   
-    <a href="https://github.com/liuhlab/seqforge/edit/main/docs/concepts/artifacts.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+    <a href="https://github.com/liuhlab/seqforge/edit/main/docs/guides/read-studies.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
       
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
     </a>
@@ -1293,104 +1478,197 @@
   
 
 
-<h1 id="the-two-artifacts">The two artifacts<a class="headerlink" href="#the-two-artifacts" title="Permanent link">&para;</a></h1>
-<p>seqforge produces two files, and almost every design argument reduces to <em>why they are two files and
-not one</em>.</p>
-<h2 id="a-fact-and-a-choice-are-different-things">A fact and a choice are different things<a class="headerlink" href="#a-fact-and-a-choice-are-different-things" title="Permanent link">&para;</a></h2>
-<p>Those molecules went through that flowcell and produced those bytes: <strong>a fact</strong>, already in the past.
-You are going to align it to a particular genome and count particular things: <strong>a choice</strong>, which
-someone else could defensibly make differently, and which you will redo next year with a better
-aligner.</p>
-<p>Facts and choices have different lifetimes, so they get different files:</p>
+<h1 id="read-your-own-studies">Read your own studies<a class="headerlink" href="#read-your-own-studies" title="Permanent link">&para;</a></h1>
+<p>This guide takes a list of GEO Series (studies in the Gene Expression Omnibus archive) and gives you
+two files for each study, plus a report page:</p>
+<ul>
+<li><code>bounds.yaml</code> says which Series and which papers belong to the study, and which linked records
+  were left out and why.</li>
+<li><code>reading.yaml</code> says what each sequenced sample was: its species, tissue or cell type, condition,
+  and the factors the study varied on purpose, such as a treatment or an age. Each statement
+  quotes the record or paper it came from, or says that it was inferred or unknown.</li>
+</ul>
+<p>Models draw the bounds and write the reading. Code checks each quote against its source and each
+file against its format before it writes the file. To see what the result looks like, open the
+<a href="../../examples/">example reports</a>. <a href="../../how-it-works/study/">Understanding a study</a> explains
+how the two models work and why a study can end unsettled.</p>
+<h2 id="before-you-start">Before you start<a class="headerlink" href="#before-you-start" title="Permanent link">&para;</a></h2>
+<p>You need seqforge with <code>liulab-data</code> installed (see <a href="../../getting-started/">Getting started</a>), and
+these four settings in your shell:</p>
 <table>
 <thead>
 <tr>
-<th></th>
-<th><strong>dataset manifest</strong></th>
-<th><strong>processing manifest</strong></th>
+<th>Variable</th>
+<th>What it points at</th>
+<th>Needed for</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>answers</td>
-<td>what the data <strong>is</strong></td>
-<td>what to <strong>do</strong> with it</td>
+<td><code>LABLLM_GATEWAY</code></td>
+<td>The lab's model gateway, as <code>http://host:port</code>. Open a tunnel to it first</td>
+<td>Every model question. Without it the run stops before it spends anything</td>
 </tr>
 <tr>
-<td>authority</td>
-<td>the bytes, and the people who ran the experiment</td>
-<td>you</td>
+<td><code>LABDATA_STORE</code></td>
+<td><code>liulab-data</code>'s record store: its local copy of GEO and SRA records</td>
+<td>Finding each study's linked Series, samples and papers</td>
 </tr>
 <tr>
-<td>how many</td>
-<td>exactly one per dataset</td>
-<td>as many as you like</td>
+<td><code>LABDATA_PAPERS</code></td>
+<td><code>liulab-data</code>'s paper store</td>
+<td>Reading a study's papers. A study that has a paper waits until this is set</td>
 </tr>
 <tr>
-<td>can it change?</td>
-<td><strong>no</strong> — named by its hash, written once</td>
-<td>yes, freely</td>
+<td><code>LABDATA_ONTOLOGIES</code></td>
+<td><code>liulab-data</code>'s ontology store: dated lists of terms for species, tissues, cell types and conditions</td>
+<td>Naming each value in the reading by an ontology term</td>
 </tr>
 </tbody>
 </table>
-<h2 id="why-not-one-file">Why not one file?<a class="headerlink" href="#why-not-one-file" title="Permanent link">&para;</a></h2>
-<p>Because the moment they share a file, re-processing edits the truth. Re-run with a different genome
-build and you edit the file — but nothing about the data changed. You did. And the file's identity
-changed with it: if you were using its hash to say "this is that dataset", you have silently claimed
-it is a different one. Do that across ten thousand datasets and the corpus's provenance is fiction.</p>
-<p>So the rule is absolute: <strong>changing your mind about processing must never change the dataset's
-hash.</strong> A test compiles one dataset three ways and asserts the hash never moves.</p>
-<h2 id="same-source-different-flags">Same source, different flags<a class="headerlink" href="#same-source-different-flags" title="Permanent link">&para;</a></h2>
-<pre class="mermaid"><code>flowchart TD
-    D["&lt;span style='color:#fff'&gt;dataset manifest&lt;br/&gt;&lt;code&gt;hash: a3f9…&lt;/code&gt;&lt;br/&gt;&lt;i&gt;never changes&lt;/i&gt;&lt;/span&gt;"]
-
-    D --&gt; C1["compose"]
-    D --&gt; C2["compose"]
-    D --&gt; C3["compose"]
-
-    P1["processing:&lt;br/&gt;human genome&lt;br/&gt;count exons"] --&gt; C1
-    P2["processing:&lt;br/&gt;human genome&lt;br/&gt;count introns too"] --&gt; C2
-    P3["processing:&lt;br/&gt;newer genome build"] --&gt; C3
-
-    C1 --&gt; R1["run a1b2…"]
-    C2 --&gt; R2["run c3d4…"]
-    C3 --&gt; R3["run e5f6…"]
-
-    %% The inline white &lt;span&gt; is required on dark fills — see the comment in docs/index.md.
-    classDef artifact fill:#00695c,stroke:#004d40
-    class D artifact</code></pre>
-<p>Three runs, three identities, one unchanged fact at the top. Each run's identity is computed from
-everything that went into it — dataset, choices, knowledge base version, pipeline module version — so
-runs cannot collide, and any run traces back to exactly what produced it.</p>
-<p><code>-O2</code> does not get to edit your source code. A processing manifest does not get to edit the dataset
-manifest.</p>
-<h2 id="the-line-parsing-versus-counting">The line: parsing versus counting<a class="headerlink" href="#the-line-parsing-versus-counting" title="Permanent link">&para;</a></h2>
-<p><strong>How to parse the reads</strong> — where the barcode starts, how long the UMI is, which strand — is decided
-by the bytes. You cannot instruct it, and neither can a paper. It lives in the knowledge base.</p>
-<p><strong>What to count</strong> — genes, or genes-plus-introns, against which genome — is a choice. It lives in the
-processing manifest, and you can instruct it.</p>
-<p>The two sets <strong>do not overlap</strong>. Not "your instruction is deprioritized if it conflicts with the
-bytes" — there is no way to write the conflicting instruction down. You have no vocabulary in which
-to say "the barcode is 10 bases long".</p>
-<p>That is why seqforge can read your instructions without ever trusting them: it lets you talk only
-about things you are entitled to decide.</p>
-<h2 id="one-project-one-or-more-datasets">One project, one or more datasets<a class="headerlink" href="#one-project-one-or-more-datasets" title="Permanent link">&para;</a></h2>
-<p>The table above says "exactly one dataset manifest per dataset", and a dataset is <strong>one chemistry</strong>. A
-real study is often not that: a single archive series can mix 10x v2 and v3 libraries, and a manifest
-that averaged the two would describe neither.</p>
-<p>So a heterogeneous project <strong>splits into assays</strong> — one per chemistry, decided from the bytes, never
-by you. Each assay is an ordinary dataset: its own immutable <code>manifest.yaml</code>, its own hash, its own
-Snakefile, under its own <code>seqforge/&lt;assay&gt;/</code> directory. Nothing about the single-dataset story
-changes; there are simply several of them.</p>
-<p>Two files tie the project back together at the top level:</p>
+<p>If you saved a store's location with <code>liulab-data</code> itself, you can leave its variable unset. <a href="https://github.com/liuhlab/liulab-llms/blob/main/docs/reach-the-gateway.md">Reach the lab gateway</a>
+says how to open the tunnel.</p>
+<h2 id="set-up-a-folder-of-studies">Set up a folder of studies<a class="headerlink" href="#set-up-a-folder-of-studies" title="Permanent link">&para;</a></h2>
+<p>Make an empty folder for the studies. seqforge makes one folder in it for each study, named by its
+Series id. List the studies in one of two ways.</p>
+<p><strong>A <code>pick.yaml</code> in the folder.</strong> It needs a <code>studies</code> list, with the Series id of each study under
+<code>id</code>:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nt">studies</span><span class="p">:</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">id</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">GSE100021</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">id</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">GSE126954</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">id</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">GSE140511</span>
+</code></pre></div>
+<p><strong>A keys file.</strong> Write one Series id on each line, and pass the file with <code>--keys</code>. A keys file
+overrides the folder's <code>pick.yaml</code>, and the run takes the studies in the file's order.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>GSE100021
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>GSE126954
+</code></pre></div>
+<p>Each id must be a GEO Series, <code>GSE</code> and a number. Start from the Series the study was published
+under. The bounding job finds the other Series and papers linked to it.</p>
+<h2 id="run-it-under-a-spending-limit">Run it under a spending limit<a class="headerlink" href="#run-it-under-a-spending-limit" title="Permanent link">&para;</a></h2>
+<p>Pick one working folder and run every command from it. seqforge keeps the record of each pass in
+<code>seqforge/passes/</code> under the folder you run from, and a rerun from the same place resumes it.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>seqforge<span class="w"> </span>study<span class="w"> </span>run<span class="w"> </span>--studies<span class="w"> </span>&lt;folder&gt;<span class="w"> </span>--ceiling-usd<span class="w"> </span><span class="m">2</span>
+</code></pre></div>
+<p><code>--ceiling-usd</code> is required and has no default. It is the most both jobs together may spend, in
+dollars. The bounding job spends first, and the reading job gets what is left. To run only some
+studies, add <code>--keys &lt;file&gt;</code>.</p>
+<p>The command runs four steps in order:</p>
+<ol>
+<li>The bounding job asks a model about each linked record.</li>
+<li>seqforge writes <code>&lt;folder&gt;/&lt;ID&gt;/bounds.yaml</code> for each study.</li>
+<li>The reading job reads the records and papers that the bounds kept.</li>
+<li>seqforge writes <code>&lt;folder&gt;/&lt;ID&gt;/reading.yaml</code> for each study.</li>
+</ol>
+<p>It prints one JSON object. <code>spent_usd</code> is what the run paid, and <code>steps</code> holds what each step
+printed. The first step that fails stops the run.</p>
+<h3 id="what-a-run-costs">What a run costs<a class="headerlink" href="#what-a-run-costs" title="Permanent link">&para;</a></h3>
+<p>The bounding job asks Jev, a model that answers yes-or-no and multiple-choice questions with a
+probability. The reading job asks Jev and a writer model, DeepSeek Flash, which lists each study's
+factors and values. To use another model for one of these roles, pass <code>--model</code>.</p>
+<p>A first run costs a few cents a study, nearly all of it for the reading. The gateway keeps every
+answer, so a rerun of the same studies pays nothing. How many studies a run can take at once is
+<code>--units-at-once</code> (32 by default). Each run of the standard set, the lab's fixed list of 50 small
+GEO studies, is measured in a dated note with its cost and time; the latest is
+<a href="https://github.com/liuhlab/seqforge/blob/main/docs/research/study-chain-on-the-50-2026-11-27.md">the study chain on the 50 studies</a>.</p>
+<h2 id="read-how-each-study-ended">Read how each study ended<a class="headerlink" href="#read-how-each-study-ended" title="Permanent link">&para;</a></h2>
+<p>Each job ends each study in one of three ways.</p>
+<table>
+<thead>
+<tr>
+<th>Ending</th>
+<th>What it means</th>
+<th>File written</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Settled</td>
+<td>Every check passed.</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>Unsettled</td>
+<td>The file passed its checks, but Jev was asked a question twice, in two forms, and the two answers did not agree, or Jev left a question unanswered. A person or a stronger model should look at it</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>Refused</td>
+<td>The job could not give an answer it could check. The reason says why, such as a group of more than 50 linked Series, or a writer answer that could not be used twice</td>
+<td>No</td>
+</tr>
+</tbody>
+</table>
+<p>For bounding, Jev is asked about each record twice: as written, and negated. For reading, Jev is
+asked twice whether each factor was varied on purpose, which level is the baseline, and each
+sample's level. Any disagreement makes the study unsettled.</p>
+<p>The ending is kept in the pass's record, not in the study's files. You can find it in two places:</p>
 <ul>
-<li><strong><code>sample_metadata.tsv</code></strong> — one row per sample across every assay (sample id, accession, assay,
-  organism, files): the flat "one study" view.</li>
-<li><strong><code>project.yaml</code></strong> — the index of which assays exist, their chemistry and sample counts, and where
-  each one's manifest and pipeline live.</li>
+<li>In the JSON that <code>study run</code> prints, the two write steps list each study under <code>studies</code>, with
+  its <code>ending</code>. A refused study has its <code>reason</code> there.</li>
+<li><code>seqforge pass status study-bounds</code> and <code>seqforge pass status study-reading</code> print the count of
+  each ending. Run them from the same working folder. They work while a pass runs and with the
+  gateway down.</li>
 </ul>
-<p>A uniform project — most of them — is the simplest case: one assay, the flat layout of the rest of
-this guide, plus that top-level <code>sample_metadata.tsv</code>.</p>
+<p>A study can also wait without an ending. That happens when its id is not a GEO Series, when the
+record store does not hold it, when it has a paper and no paper store is set, or, for the reading,
+when its <code>bounds.yaml</code> is missing or fails its check. <code>pass status</code>
+lists each waiting study under <code>not_done</code>, with the reason. Fix the reason, then run again.</p>
+<h2 id="resume-a-run-that-stopped">Resume a run that stopped<a class="headerlink" href="#resume-a-run-that-stopped" title="Permanent link">&para;</a></h2>
+<p>Run the same command again. A study that was already answered replays from the gateway's cache and
+costs nothing, so the rerun pays only for studies not yet answered.</p>
+<p>The exit code says why a run stopped:</p>
+<table>
+<thead>
+<tr>
+<th>Code</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>0</code></td>
+<td>Every step finished. Some studies may still be unsettled or refused</td>
+</tr>
+<tr>
+<td><code>2</code></td>
+<td>It could not start, such as no gateway or a store it cannot open. Nothing was spent</td>
+</tr>
+<tr>
+<td><code>3</code></td>
+<td>It stopped: at the spending limit, at a provider's limit, while another process held the pass, or at a file that failed its format check</td>
+</tr>
+</tbody>
+</table>
+<p>A file already on disk is never replaced. To take a newer answer for a study, delete its file
+first, then run again.</p>
+<h2 id="check-a-file">Check a file<a class="headerlink" href="#check-a-file" title="Permanent link">&para;</a></h2>
+<p>Each file has a format, and a check that seqforge runs before it writes the file. You can run the
+same check on any file, for example one you edited by hand:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>seqforge<span class="w"> </span>study<span class="w"> </span>check-bounds<span class="w"> </span>&lt;folder&gt;/&lt;ID&gt;/bounds.yaml
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>seqforge<span class="w"> </span>study<span class="w"> </span>check-reading<span class="w"> </span>&lt;folder&gt;/&lt;ID&gt;/reading.yaml
+</code></pre></div>
+<p>Each prints <code>valid</code> and a list of <code>problems</code>, each naming a field and the reason. The exit code is
+0 for a valid file, 3 for a file with problems, and 2 for a file it cannot read. <code>check-reading</code>
+needs <code>liulab-data</code> installed, because it checks that each ontology id comes from the vocabulary
+its label uses, such as <code>UBERON:</code> for a tissue. It does not look the term itself up, and it checks
+the file alone, so it does not look the quotes up in their records either. The format pages list
+every field: <a href="../../formats/bounds/">the bounds file</a> and <a href="../../formats/reading/">the reading file</a>.</p>
+<h2 id="make-a-report-for-a-study">Make a report for a study<a class="headerlink" href="#make-a-report-for-a-study" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>seqforge<span class="w"> </span>report<span class="w"> </span>--study<span class="w"> </span>&lt;folder&gt;/&lt;ID&gt;
+</code></pre></div>
+<p>This writes <code>report.html</code> and <code>report.json</code> into the study's folder. The page opens in any browser
+with no network. It shows the bounds as a graph of the records kept and left out, and the reading's
+samples in tables by topic. It does not show whether the job ended the study settled or unsettled.
+That is in the pass's record, as described above.</p>
+<p>To join a reading to a compiled dataset, pass the same study folder to <code>seqforge run --study</code> when
+you compile. <a href="../../how-it-works/compiler/">From FASTQ files to a pipeline</a> explains the join.</p>
+<h2 id="go-further">Go further<a class="headerlink" href="#go-further" title="Permanent link">&para;</a></h2>
+<ul>
+<li><a href="../../study-workflow/">The study workflow in detail</a> gives each step and the rules it follows.</li>
+<li><a href="../../passes/">Passes</a> covers running one job at a time, its spending limit, and what a pass
+  prints.</li>
+</ul>
 
 
 

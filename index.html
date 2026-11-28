@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="A compiler from FASTQ + unstructured metadata to a validated manifest and a runnable pipeline.">
+        <meta name="description" content="Reads sequencing studies and their files, and writes down what they are, from the bounds of a study to a pipeline you submit.">
       
       
       
@@ -14,7 +14,7 @@
       
       
       
-        <link rel="next" href="getting-started/">
+        <link rel="next" href="examples/">
       
       
         
@@ -328,10 +328,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#the-problem" class="md-nav__link">
+  <a href="#what-goes-in-and-what-comes-out" class="md-nav__link">
     <span class="md-ellipsis">
       
-        The problem
+        What goes in, and what comes out
       
     </span>
   </a>
@@ -339,10 +339,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#how-it-works" class="md-nav__link">
+  <a href="#the-whole-pipeline" class="md-nav__link">
     <span class="md-ellipsis">
       
-        How it works
+        The whole pipeline
       
     </span>
   </a>
@@ -350,10 +350,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#what-you-get" class="md-nav__link">
+  <a href="#why-you-can-trust-it" class="md-nav__link">
     <span class="md-ellipsis">
       
-        What you get
+        Why you can trust it
       
     </span>
   </a>
@@ -361,10 +361,32 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#when-it-doesnt-know-it-says-so" class="md-nav__link">
+  <a href="#where-it-stands" class="md-nav__link">
     <span class="md-ellipsis">
       
-        When it doesn't know, it says so
+        Where it stands
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-it-does-not-do" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What it does not do
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#next" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Next
       
     </span>
   </a>
@@ -386,14 +408,14 @@
   
   
     <li class="md-nav__item">
-      <a href="getting-started/" class="md-nav__link">
+      <a href="examples/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    Getting started
+    Example reports
   
 
     
@@ -436,7 +458,7 @@
   <span class="md-ellipsis">
     
   
-    Tutorials
+    How it works
   
 
     
@@ -452,11 +474,210 @@
             <span class="md-nav__icon md-icon"></span>
             
   
-    Tutorials
+    How it works
   
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="how-it-works/study/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Understanding a study
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="how-it-works/compiler/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    From FASTQ files to a pipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="how-it-works/trust/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Why you can trust the output
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Use it
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Use it
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="getting-started/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting started
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="guides/read-studies/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Read your own studies
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
             
               
                 
@@ -472,7 +693,7 @@
   <span class="md-ellipsis">
     
   
-    Compiling with Claude
+    Compile with Claude
   
 
     
@@ -500,7 +721,7 @@
   <span class="md-ellipsis">
     
   
-    Compiling Step-by-step
+    Compile step by step
   
 
     
@@ -528,7 +749,7 @@
   <span class="md-ellipsis">
     
   
-    Adding a technology
+    Add a technology
   
 
     
@@ -555,15 +776,67 @@
   
   
   
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
     <li class="md-nav__item">
-      <a href="study-workflow/" class="md-nav__link">
+      <a href="reference/commands/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    The study workflow
+    Commands
   
 
     
@@ -575,36 +848,10 @@
     </li>
   
 
-    
-      
-      
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="hand-work-files/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Files from the hand work
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-    
-      
-      
+              
+            
+              
+                
   
   
   
@@ -629,38 +876,23 @@
     </li>
   
 
-    
-      
-      
-  
-  
-  
-  
-    
-    
-    
-    
-      
-        
-        
-      
-    
-    
-    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
-      
-        
-        
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
-        
-          
-          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="">
+              
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="study-workflow/" class="md-nav__link">
+        
   
   
   <span class="md-ellipsis">
     
   
-    File formats
+    The study workflow in detail
   
 
     
@@ -668,19 +900,11 @@
   
   
 
-            <span class="md-nav__icon md-icon"></span>
-          </label>
-        
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_7">
-            <span class="md-nav__icon md-icon"></span>
-            
-  
-    File formats
+      </a>
+    </li>
   
 
-          </label>
-          <ul class="md-nav__list" data-md-scrollfix>
+              
             
               
                 
@@ -738,15 +962,36 @@
 
               
             
-          </ul>
-        </nav>
-      
-    </li>
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="hand-work-files/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Files from the hand work
   
 
     
-      
-      
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
   
   
   
@@ -756,162 +1001,16 @@
     
     
       
-        
-        
-      
     
     
-    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_7" >
         
           
-          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="">
-            
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Concepts
-  
-
-    
-  </span>
-  
-  
-
-            <span class="md-nav__icon md-icon"></span>
-          </label>
-        
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_8">
-            <span class="md-nav__icon md-icon"></span>
-            
-  
-    Concepts
-  
-
-          </label>
-          <ul class="md-nav__list" data-md-scrollfix>
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="concepts/artifacts/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    The two artifacts
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="concepts/identifying/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    How a dataset is identified
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="concepts/refusal/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    When it refuses
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-          </ul>
-        </nav>
-      
-    </li>
-  
-
-    
-      
-      
-  
-  
-  
-  
-    
-    
-    
-    
-      
-        
-        
-      
-    
-    
-    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
-      
-        
-        
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_9" >
-        
-          
-          <label class="md-nav__link" for="__nav_9" id="__nav_9_label" tabindex="">
+          <label class="md-nav__link" for="__nav_5_7" id="__nav_5_7_label" tabindex="0">
             
   
   
@@ -929,8 +1028,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_9_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_9">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5_7">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -985,10 +1084,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_9_2" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_7_2" >
         
           
-          <label class="md-nav__link" for="__nav_9_2" id="__nav_9_2_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_5_7_2" id="__nav_5_7_2_label" tabindex="0">
             
   
   
@@ -1006,8 +1105,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_9_2_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_9_2">
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_5_7_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5_7_2">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -1171,6 +1270,14 @@
     </li>
   
 
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
     
   </ul>
 </nav>
@@ -1199,10 +1306,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#the-problem" class="md-nav__link">
+  <a href="#what-goes-in-and-what-comes-out" class="md-nav__link">
     <span class="md-ellipsis">
       
-        The problem
+        What goes in, and what comes out
       
     </span>
   </a>
@@ -1210,10 +1317,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#how-it-works" class="md-nav__link">
+  <a href="#the-whole-pipeline" class="md-nav__link">
     <span class="md-ellipsis">
       
-        How it works
+        The whole pipeline
       
     </span>
   </a>
@@ -1221,10 +1328,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#what-you-get" class="md-nav__link">
+  <a href="#why-you-can-trust-it" class="md-nav__link">
     <span class="md-ellipsis">
       
-        What you get
+        Why you can trust it
       
     </span>
   </a>
@@ -1232,10 +1339,32 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#when-it-doesnt-know-it-says-so" class="md-nav__link">
+  <a href="#where-it-stands" class="md-nav__link">
     <span class="md-ellipsis">
       
-        When it doesn't know, it says so
+        Where it stands
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-it-does-not-do" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What it does not do
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#next" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Next
       
     </span>
   </a>
@@ -1276,32 +1405,85 @@
 <!-- markdownlint-enable MD033 MD041 -->
 
 <h1 id="seqforge">seqforge<a class="headerlink" href="#seqforge" title="Permanent link">&para;</a></h1>
-<p>seqforge works out <strong>what a sequencing dataset actually is</strong> — which technology, which file holds
-what — and compiles that into a pipeline that processes it correctly. Your own sequencer, a core
-facility, a collaborator, a public archive: it does not matter where the files came from, or whether
-they sit on your disk or behind a URL (it can read what it needs from a remote FASTQ without
-downloading it).</p>
-<h2 id="the-problem">The problem<a class="headerlink" href="#the-problem" title="Permanent link">&para;</a></h2>
-<p><strong>Sequencing files do not say what they are.</strong></p>
-<p>To process a dataset you need what no FASTQ states: the technology, which file holds the barcodes,
-how long they are and where they start, which file holds the RNA, which direction it was read in.</p>
-<p>What you have instead is prose — a sentence in a paper, a line in a spreadsheet, a README, an email,
-or nothing. The filenames are no help: <code>_1</code> and <code>_2</code> say nothing about which read is which.</p>
-<p>So somebody guesses and types it into a config. When the guess is wrong, <strong>nothing crashes</strong>. The
-aligner exits successfully and hands you a count matrix that is quietly, unrecoverably wrong.</p>
-<p>The answers are in the bytes. seqforge reads them, treats prose as a hypothesis to check, and stops
-when it cannot be sure.</p>
-<h2 id="how-it-works">How it works<a class="headerlink" href="#how-it-works" title="Permanent link">&para;</a></h2>
-<pre class="mermaid"><code>flowchart LR
-    F["FASTQ files"] --&gt; P["probe&lt;br/&gt;&lt;i&gt;read the bytes&lt;/i&gt;"]
-    M["prose &amp;amp; metadata&lt;br/&gt;&lt;i&gt;paper, README, database&lt;/i&gt;"] --&gt; H["harvest&lt;br/&gt;&lt;i&gt;read the words&lt;/i&gt;"]
-    P --&gt; R["resolve&lt;br/&gt;&lt;i&gt;score &amp;amp; decide&lt;/i&gt;"]
-    H --&gt; R
-    KB[("knowledge base&lt;br/&gt;one entry per&lt;br/&gt;technology")] --&gt; R
-    R --&gt; D["&lt;span style='color:#fff'&gt;&lt;b&gt;dataset manifest&lt;/b&gt;&lt;br/&gt;what the data IS&lt;/span&gt;"]
-    D --&gt; C["compose"]
-    RECIPE["&lt;span style='color:#fff'&gt;&lt;b&gt;processing manifest&lt;/b&gt;&lt;br/&gt;what to DO with it&lt;/span&gt;"] --&gt; C
-    C --&gt; OUT["&lt;span style='color:#fff'&gt;pipeline config&lt;br/&gt;+ module selection&lt;/span&gt;"]
+<p>seqforge reads public sequencing studies and their files, and writes down what they are, so that
+each dataset can be processed the right way. It does two jobs.</p>
+<ul>
+<li><strong>It reads a study.</strong> Given a GEO Series, it works out which records and papers make up the study
+  (the study's <strong>bounds</strong>). Then it works out what each sample was: the factors the study varied
+  on purpose, each sample's level of each, and labels such as species, tissue and assay (the
+  study's <strong>reading</strong>).</li>
+<li><strong>It compiles a dataset.</strong> Given FASTQ files, it works out from the bytes which sequencing
+  technology made them and which file holds what. Then it writes a pipeline that you submit to a
+  cluster.</li>
+</ul>
+<p>One <strong>report</strong> shows a study's bounds and reading, a compiled dataset, or both, on one web page.
+<strong><a href="examples/">See three example reports</a></strong> before you read on.</p>
+<h2 id="what-goes-in-and-what-comes-out">What goes in, and what comes out<a class="headerlink" href="#what-goes-in-and-what-comes-out" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>You give it</th>
+<th>It writes</th>
+<th>What the file is for</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A GEO Series id</td>
+<td><code>bounds.yaml</code></td>
+<td>The Series and papers that make up one study, and the records left out</td>
+</tr>
+<tr>
+<td>The bounds</td>
+<td><code>reading.yaml</code></td>
+<td>What each sample was. Each claim carries a quote, or says it is inferred</td>
+</tr>
+<tr>
+<td>FASTQ files, and if you have them an accession and a paper</td>
+<td><code>manifest.yaml</code></td>
+<td>What the data is: technology, read roles, samples. One per dataset, and it never changes</td>
+</tr>
+<tr>
+<td>A genome and an annotation</td>
+<td><code>processing.yaml</code></td>
+<td>The recipe: what to do with the data. A dataset can have many</td>
+</tr>
+<tr>
+<td>The manifest and a recipe</td>
+<td>A Snakefile and its config</td>
+<td>The pipeline you submit. It ends in one count matrix (<code>.h5ad</code>) per sample</td>
+</tr>
+<tr>
+<td>Any of the above</td>
+<td><code>report.html</code></td>
+<td>One page to read it all</td>
+</tr>
+</tbody>
+</table>
+<h2 id="the-whole-pipeline">The whole pipeline<a class="headerlink" href="#the-whole-pipeline" title="Permanent link">&para;</a></h2>
+<pre class="mermaid"><code>flowchart TB
+    subgraph STUDY["Reading a study"]
+        direction LR
+        GEO["GEO and SRA records,&lt;br/&gt;papers"] --&gt; BOUND["bound&lt;br/&gt;&lt;i&gt;which records are one study&lt;/i&gt;"]
+        BOUND --&gt; BY["&lt;span style='color:#fff'&gt;&lt;b&gt;bounds.yaml&lt;/b&gt;&lt;/span&gt;"]
+        BY --&gt; READ["read&lt;br/&gt;&lt;i&gt;what each sample was&lt;/i&gt;"]
+        READ --&gt; RY["&lt;span style='color:#fff'&gt;&lt;b&gt;reading.yaml&lt;/b&gt;&lt;/span&gt;"]
+    end
+    subgraph COMPILE["Compiling a dataset"]
+        direction LR
+        FQ["FASTQ files"] --&gt; PROBE["probe&lt;br/&gt;&lt;i&gt;read the bytes&lt;/i&gt;"]
+        PROSE["papers, notes,&lt;br/&gt;archive records"] --&gt; HARVEST["harvest&lt;br/&gt;&lt;i&gt;quoted claims&lt;/i&gt;"]
+        PROBE --&gt; SCORE["score&lt;br/&gt;&lt;i&gt;which technology&lt;/i&gt;"]
+        HARVEST --&gt; SCORE
+        SCORE --&gt; MAN["&lt;span style='color:#fff'&gt;&lt;b&gt;manifest.yaml&lt;/b&gt;&lt;br/&gt;what the data is&lt;/span&gt;"]
+        MAN --&gt; COMPOSE["compose"]
+        REC["&lt;span style='color:#fff'&gt;&lt;b&gt;processing.yaml&lt;/b&gt;&lt;br/&gt;what to do with it&lt;/span&gt;"] --&gt; COMPOSE
+        COMPOSE --&gt; SNAKE["&lt;span style='color:#fff'&gt;&lt;b&gt;Snakefile&lt;/b&gt;&lt;br/&gt;you submit it&lt;/span&gt;"]
+    end
+    MAN --&gt; TSV["sample_metadata.tsv&lt;br/&gt;&lt;i&gt;one row per sample&lt;/i&gt;"]
+    RY -. "joined in by BioSample,&lt;br/&gt;when you ask" .-&gt; TSV
+    RY --&gt; REPORT["&lt;span style='color:#fff'&gt;&lt;b&gt;report.html&lt;/b&gt;&lt;/span&gt;"]
+    SNAKE --&gt; REPORT
 
     %% The white &lt;span&gt; on every dark-filled label is load-bearing, not decoration. Do not
     %% replace it with `color:#fff` in the classDef below: mkdocs-material renders each diagram
@@ -1311,25 +1493,50 @@ when it cannot be sure.</p>
     %% node on this site.
     classDef artifact fill:#00695c,stroke:#004d40
     classDef output fill:#37474f,stroke:#263238
-    class D,RECIPE artifact
-    class OUT output</code></pre>
-<p><strong>The model proposes; code decides.</strong> Its job is prose: find claims and point at where it found each
-one. Every claim carries the sentence it came from, and code checks that the sentence really says
-that, or throws the claim away. The model never supplies a value of its own, never overrides the
-bytes, and nothing it produces reaches a manifest without passing a validator.</p>
-<h2 id="what-you-get">What you get<a class="headerlink" href="#what-you-get" title="Permanent link">&para;</a></h2>
+    class BY,RY,MAN,REC artifact
+    class SNAKE,REPORT output</code></pre>
+<p>The two halves run on their own. A study can be read without compiling any of its files, and a
+dataset can be compiled with no study at all. They meet in the sample table: when you compile with
+<code>--study</code>, each sample's row takes the reading's factors and labels, matched by its BioSample
+accession (the archive's id for the biological sample). The manifest does not change.</p>
+<h2 id="why-you-can-trust-it">Why you can trust it<a class="headerlink" href="#why-you-can-trust-it" title="Permanent link">&para;</a></h2>
 <ul>
-<li><strong>Dataset manifest</strong> — what the data <em>is</em>. Written once, identified by a hash of its contents.</li>
-<li><strong>Processing manifest</strong> — what to <em>do</em> with it: genome, aligner, introns or not. Many per dataset.</li>
+<li><strong>A model answers only where code can check the answer.</strong> In a reading, every claim quotes a
+  passage that code finds again, word for word, in the record or paper. A claim with no such
+  passage is marked inferred.</li>
+<li><strong>Each question is asked twice.</strong> The second time, the options come in reverse order. If the two
+  answers differ, the study is marked unsettled, so you know which answers to check.</li>
+<li><strong>The bytes decide the technology.</strong> A paper that names a kit is a hint. The reads in the files
+  decide, and when the two disagree, seqforge stops and says so.</li>
+<li><strong>It refuses rather than guesses.</strong> A refusal is an exit code with a reason and a suggested fix,
+  not a best guess.</li>
+<li><strong>It never reads a whole FASTQ file.</strong> A small, fixed head of each file is enough.</li>
+<li><strong>Every study file and manifest is checked against its written format before it is saved.</strong></li>
 </ul>
-<p>Run the same dataset three ways: three pipelines, one unchanged dataset manifest.</p>
-<h2 id="when-it-doesnt-know-it-says-so">When it doesn't know, it says so<a class="headerlink" href="#when-it-doesnt-know-it-says-so" title="Permanent link">&para;</a></h2>
-<p>A missing barcode file, metadata contradicting the bytes, two technologies indistinguishable where
-the choice would change the output — it stops, with a reason and a suggested fix. It does not emit
-the best-scoring guess. A guess is how the quiet failures happen.</p>
-<hr />
-<p><strong>Next:</strong> <a href="getting-started/">Getting started</a> — or browse the
-<a href="kb/">technologies seqforge recognises</a>.</p>
+<p><a href="how-it-works/trust/">Why you can trust the output</a> explains each point.</p>
+<h2 id="where-it-stands">Where it stands<a class="headerlink" href="#where-it-stands" title="Permanent link">&para;</a></h2>
+<p>The study chain is built and run on the <strong>standard set</strong>, 50 GEO studies picked to cover many
+designs. Most of them settle, and a first run costs a few cents a study in model calls. The
+<a href="https://github.com/liuhlab/seqforge/blob/main/docs/research/study-chain-on-the-50-2026-11-27.md">dated note on the latest run</a>
+gives the counts and the cost. Nothing on this site scores those readings against a person's
+answers: measuring accuracy is a separate effort.</p>
+<h2 id="what-it-does-not-do">What it does not do<a class="headerlink" href="#what-it-does-not-do" title="Permanent link">&para;</a></h2>
+<ul>
+<li>It does not submit jobs. You run the Snakefile on your own cluster.</li>
+<li>It does not judge its own accuracy.</li>
+<li>Reading a study needs the lab's model gateway and its copy of the GEO and SRA records. Compiling
+  calls the gateway only to read prose, such as a paper or the archive's records, and
+  <code>seqforge run --no-llm</code> skips that step.</li>
+</ul>
+<h2 id="next">Next<a class="headerlink" href="#next" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>See the output:</strong> <a href="examples/">Example reports</a>.</li>
+<li><strong>Understand it:</strong> <a href="how-it-works/study/">Understanding a study</a>,
+  <a href="how-it-works/compiler/">From FASTQ files to a pipeline</a> and
+  <a href="how-it-works/trust/">Why you can trust the output</a>.</li>
+<li><strong>Use it:</strong> <a href="getting-started/">Getting started</a>.</li>
+<li><strong>Look something up:</strong> <a href="reference/commands/">Commands</a> and the other Reference pages.</li>
+</ul>
 
 
 

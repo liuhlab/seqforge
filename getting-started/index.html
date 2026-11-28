@@ -6,17 +6,17 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="A compiler from FASTQ + unstructured metadata to a validated manifest and a runnable pipeline.">
+        <meta name="description" content="Reads sequencing studies and their files, and writes down what they are, from the bounds of a study to a pipeline you submit.">
       
       
       
         <link rel="canonical" href="https://liuhlab.github.io/seqforge/getting-started/">
       
       
-        <link rel="prev" href="..">
+        <link rel="prev" href="../how-it-works/trust/">
       
       
-        <link rel="next" href="../tutorials/with-claude/">
+        <link rel="next" href="../guides/read-studies/">
       
       
         
@@ -294,6 +294,230 @@
       
   
   
+  
+  
+    <li class="md-nav__item">
+      <a href="../examples/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Example reports
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    How it works
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    How it works
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../how-it-works/study/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Understanding a study
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../how-it-works/compiler/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    From FASTQ files to a pipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../how-it-works/trust/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Why you can trust the output
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Use it
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Use it
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
     
   
   
@@ -357,10 +581,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#the-easiest-way-ask-claude" class="md-nav__link">
+  <a href="#install-it" class="md-nav__link">
     <span class="md-ellipsis">
       
-        The easiest way: ask Claude
+        Install it
       
     </span>
   </a>
@@ -368,10 +592,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#running-it-yourself" class="md-nav__link">
+  <a href="#check-that-it-works" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Running it yourself
+        Check that it works
       
     </span>
   </a>
@@ -379,10 +603,54 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#exit-codes-are-the-api" class="md-nav__link">
+  <a href="#let-claude-run-it-optional" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Exit codes are the API
+        Let Claude run it (optional)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-each-job-needs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What each job needs
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#read-a-set-of-studies" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Read a set of studies
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#compile-a-dataset" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Compile a dataset
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#exit-codes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Exit codes
       
     </span>
   </a>
@@ -396,38 +664,23 @@
     </li>
   
 
-    
-      
-      
-  
-  
-  
-  
-    
-    
-    
-    
-      
-        
-        
-      
-    
-    
-    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
-      
-        
-        
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
-        
-          
-          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+              
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guides/read-studies/" class="md-nav__link">
+        
   
   
   <span class="md-ellipsis">
     
   
-    Tutorials
+    Read your own studies
   
 
     
@@ -435,19 +688,11 @@
   
   
 
-            <span class="md-nav__icon md-icon"></span>
-          </label>
-        
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_3">
-            <span class="md-nav__icon md-icon"></span>
-            
-  
-    Tutorials
+      </a>
+    </li>
   
 
-          </label>
-          <ul class="md-nav__list" data-md-scrollfix>
+              
             
               
                 
@@ -463,7 +708,7 @@
   <span class="md-ellipsis">
     
   
-    Compiling with Claude
+    Compile with Claude
   
 
     
@@ -491,7 +736,7 @@
   <span class="md-ellipsis">
     
   
-    Compiling Step-by-step
+    Compile step by step
   
 
     
@@ -519,7 +764,7 @@
   <span class="md-ellipsis">
     
   
-    Adding a technology
+    Add a technology
   
 
     
@@ -546,15 +791,67 @@
   
   
   
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
     <li class="md-nav__item">
-      <a href="../study-workflow/" class="md-nav__link">
+      <a href="../reference/commands/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    The study workflow
+    Commands
   
 
     
@@ -566,36 +863,10 @@
     </li>
   
 
-    
-      
-      
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../hand-work-files/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Files from the hand work
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-    
-      
-      
+              
+            
+              
+                
   
   
   
@@ -620,38 +891,23 @@
     </li>
   
 
-    
-      
-      
-  
-  
-  
-  
-    
-    
-    
-    
-      
-        
-        
-      
-    
-    
-    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
-      
-        
-        
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
-        
-          
-          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="">
+              
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../study-workflow/" class="md-nav__link">
+        
   
   
   <span class="md-ellipsis">
     
   
-    File formats
+    The study workflow in detail
   
 
     
@@ -659,19 +915,11 @@
   
   
 
-            <span class="md-nav__icon md-icon"></span>
-          </label>
-        
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_7">
-            <span class="md-nav__icon md-icon"></span>
-            
-  
-    File formats
+      </a>
+    </li>
   
 
-          </label>
-          <ul class="md-nav__list" data-md-scrollfix>
+              
             
               
                 
@@ -729,15 +977,36 @@
 
               
             
-          </ul>
-        </nav>
-      
-    </li>
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../hand-work-files/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Files from the hand work
   
 
     
-      
-      
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
   
   
   
@@ -747,162 +1016,16 @@
     
     
       
-        
-        
-      
     
     
-    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_7" >
         
           
-          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="">
-            
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Concepts
-  
-
-    
-  </span>
-  
-  
-
-            <span class="md-nav__icon md-icon"></span>
-          </label>
-        
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_8">
-            <span class="md-nav__icon md-icon"></span>
-            
-  
-    Concepts
-  
-
-          </label>
-          <ul class="md-nav__list" data-md-scrollfix>
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../concepts/artifacts/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    The two artifacts
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../concepts/identifying/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    How a dataset is identified
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../concepts/refusal/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    When it refuses
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-          </ul>
-        </nav>
-      
-    </li>
-  
-
-    
-      
-      
-  
-  
-  
-  
-    
-    
-    
-    
-      
-        
-        
-      
-    
-    
-    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
-      
-        
-        
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_9" >
-        
-          
-          <label class="md-nav__link" for="__nav_9" id="__nav_9_label" tabindex="">
+          <label class="md-nav__link" for="__nav_5_7" id="__nav_5_7_label" tabindex="0">
             
   
   
@@ -920,8 +1043,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_9_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_9">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5_7">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -976,10 +1099,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_9_2" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_7_2" >
         
           
-          <label class="md-nav__link" for="__nav_9_2" id="__nav_9_2_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_5_7_2" id="__nav_5_7_2_label" tabindex="0">
             
   
   
@@ -997,8 +1120,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_9_2_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_9_2">
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_5_7_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5_7_2">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -1162,6 +1285,14 @@
     </li>
   
 
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
     
   </ul>
 </nav>
@@ -1190,10 +1321,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#the-easiest-way-ask-claude" class="md-nav__link">
+  <a href="#install-it" class="md-nav__link">
     <span class="md-ellipsis">
       
-        The easiest way: ask Claude
+        Install it
       
     </span>
   </a>
@@ -1201,10 +1332,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#running-it-yourself" class="md-nav__link">
+  <a href="#check-that-it-works" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Running it yourself
+        Check that it works
       
     </span>
   </a>
@@ -1212,10 +1343,54 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#exit-codes-are-the-api" class="md-nav__link">
+  <a href="#let-claude-run-it-optional" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Exit codes are the API
+        Let Claude run it (optional)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-each-job-needs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What each job needs
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#read-a-set-of-studies" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Read a set of studies
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#compile-a-dataset" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Compile a dataset
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#exit-codes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Exit codes
       
     </span>
   </a>
@@ -1248,113 +1423,122 @@
 
 
 <h1 id="getting-started">Getting started<a class="headerlink" href="#getting-started" title="Permanent link">&para;</a></h1>
-<h2 id="the-easiest-way-ask-claude">The easiest way: ask Claude<a class="headerlink" href="#the-easiest-way-ask-claude" title="Permanent link">&para;</a></h2>
-<p>You don't have to run seqforge yourself. It ships a set of skills for
-<a href="https://claude.com/claude-code">Claude Code</a>, so you can describe your data in plain words and let
-Claude drive the compiler — figuring out the technology, which file is which, and how to turn it into
-a runnable pipeline.</p>
+<p>seqforge does two jobs, and you can use either one alone:</p>
+<ul>
+<li><strong>Read a set of studies.</strong> You give it a list of GEO Series (GEO is the Gene Expression Omnibus,
+  the public archive of sequencing studies). For each study it writes which Series and papers
+  belong to it, and what each sample was.</li>
+<li><strong>Compile a dataset.</strong> You give it FASTQ files (the raw reads off a sequencer) and any notes or
+  papers about them. It writes down what the data is and gives you a pipeline that turns the reads
+  into count tables.</li>
+</ul>
+<p>This page installs seqforge, checks that it works, and says what each job needs.</p>
+<h2 id="install-it">Install it<a class="headerlink" href="#install-it" title="Permanent link">&para;</a></h2>
+<p>seqforge needs Python 3.13 or newer. Pick one of the two ways to install it.</p>
+<p><strong>Inside the lab, from a clone.</strong> <a href="https://pixi.sh">pixi</a> is the tool that builds the lab's
+software environments. It also installs the two lab packages that seqforge reads from:
+<code>liulab-genome</code> (genomes and their annotation files) and <code>liulab-data</code> (the lab's local copy of
+archive records, papers and ontologies).</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/liuhlab/seqforge
 <a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="nb">cd</span><span class="w"> </span>seqforge
 <a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>pixi<span class="w"> </span>install
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>pixi<span class="w"> </span>run<span class="w"> </span>install-skills<span class="w">      </span><span class="c1"># teach Claude how to drive seqforge</span>
 </code></pre></div>
-<p>Then open Claude Code in the folder with your data and just say what you have:</p>
-<blockquote>
-<p>Compile the single-cell RNA-seq data in <code>./data</code> with seqforge. It's accession PRJNA1027859, and
-the paper is <code>./info/paper.pdf</code>. Align against the ce11 genome, annotation WS298.</p>
-</blockquote>
-<p>Claude hands you back a <strong>manifest</strong> (what your data is) and a <strong>Snakefile</strong> (the pipeline that
-processes it). You don't need to know the chemistry, which file holds the barcodes, or what any flag
-means — that's exactly what seqforge recovers from the files themselves. The full walkthrough,
-including what to do when Claude stops and asks a question, is in
-<a href="../tutorials/with-claude/">Compiling with Claude</a>.</p>
-<p>One thing worth knowing up front: reading a paper or sample sheet uses a language model, through the
-lab's model gateway. Open a tunnel to it and set <code>LABLLM_GATEWAY</code> to its local address
-(<a href="https://liuhlab.github.io/liulab-llms/reach-the-gateway/">Reach the lab gateway</a>
-says how); you need no provider key. If you have no prose to read, you can skip that and stay fully
-offline.</p>
-<h2 id="running-it-yourself">Running it yourself<a class="headerlink" href="#running-it-yourself" title="Permanent link">&para;</a></h2>
-<p>If you'd rather drive it directly — or you're batching thousands of datasets in a script — seqforge
-is a plain command-line tool. Every command prints JSON and reports what happened through its <strong>exit
-code</strong>. There is no <code>--json</code> flag; JSON is simply what comes out.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="c1"># 1. what do the bytes say?</span>
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>pixi<span class="w"> </span>run<span class="w"> </span>--<span class="w"> </span>seqforge<span class="w"> </span>probe<span class="w"> </span>reads/*.fastq.gz
-<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>
-<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="c1"># 2. which technology is this, and how confident are we?</span>
-<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>pixi<span class="w"> </span>run<span class="w"> </span>--<span class="w"> </span>seqforge<span class="w"> </span>resolve<span class="w"> </span>score<span class="w"> </span>reads/*.fastq.gz
-<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>
-<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="c1"># 3. (optional) what does the archive DECLARE about it?</span>
-<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>pixi<span class="w"> </span>run<span class="w"> </span>--<span class="w"> </span>seqforge<span class="w"> </span>io<span class="w"> </span>records<span class="w"> </span>PRJNA1027859
-<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>
-<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="c1"># 4. write down what the data IS  (immutable, content-addressed)</span>
-<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="c1">#    --accession fetches the records and joins them to your files, so each file</span>
-<a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="c1">#    lands in its archive sample. Without one you still get a manifest -- samples</span>
-<a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a><span class="c1">#    grouped by run. Most data has no accession.</span>
-<a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a>pixi<span class="w"> </span>run<span class="w"> </span>--<span class="w"> </span>seqforge<span class="w"> </span>manifest<span class="w"> </span>fill<span class="w"> </span>reads/*.fastq.gz<span class="w"> </span>--accession<span class="w"> </span>PRJNA1027859
-<a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a>pixi<span class="w"> </span>run<span class="w"> </span>--<span class="w"> </span>seqforge<span class="w"> </span>manifest<span class="w"> </span>validate<span class="w"> </span>seqforge/manifest.yaml
-<a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a>
-<a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a><span class="c1"># 5. write down what you want DONE with it  (one of many)</span>
-<a id="__codelineno-1-18" name="__codelineno-1-18" href="#__codelineno-1-18"></a>pixi<span class="w"> </span>run<span class="w"> </span>--<span class="w"> </span>seqforge<span class="w"> </span>processing<span class="w"> </span>new<span class="w"> </span>seqforge/manifest.yaml<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-1-19" name="__codelineno-1-19" href="#__codelineno-1-19"></a><span class="w">    </span>--assembly<span class="w"> </span>ce11<span class="w"> </span>--annotation<span class="w"> </span>WS298<span class="w"> </span>--out<span class="w"> </span>seqforge/processing.yaml
-<a id="__codelineno-1-20" name="__codelineno-1-20" href="#__codelineno-1-20"></a>
-<a id="__codelineno-1-21" name="__codelineno-1-21" href="#__codelineno-1-21"></a><span class="c1"># 6. compile the two into something runnable</span>
-<a id="__codelineno-1-22" name="__codelineno-1-22" href="#__codelineno-1-22"></a>pixi<span class="w"> </span>run<span class="w"> </span>--<span class="w"> </span>seqforge<span class="w"> </span>compose<span class="w"> </span>seqforge/manifest.yaml<span class="w"> </span>--processing<span class="w"> </span>seqforge/processing.yaml
+<p>In the clone, put <code>pixi run</code> in front of each command on this site, or run <code>pixi shell</code> once to
+open a shell that has <code>seqforge</code> on its path.</p>
+<p><strong>Anywhere, from PyPI.</strong> PyPI is the public index of Python packages.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>pip<span class="w"> </span>install<span class="w"> </span>seqforge
 </code></pre></div>
-<p>Steps 4 and 5 are separate on purpose — see <a href="../concepts/artifacts/">The two artifacts</a>.</p>
-<p>Artifacts land under <code>seqforge/</code> in the working directory — visibly, because they are the point.
-<code>manifest fill</code> writes <code>seqforge/manifest.yaml</code> only once it validates clean; if it doesn't, you get
-<code>seqforge/manifest.draft.yaml</code> instead, and exactly one of the two exists.</p>
-<p>For the whole thing on a real dataset, one command at a time with real output, see the
-<a href="../tutorials/step-by-step/">step-by-step tutorial</a>.</p>
-<div class="admonition tip">
-<p class="admonition-title">The data doesn't have to be local</p>
-<p>seqforge can fingerprint a FASTQ straight from a URL without ever downloading it —
-<code>seqforge io probe-remote &lt;url&gt;</code> reads a small bounded slice over HTTP and identifies the library
-from that. Everything about identifying the data works the same whether the bytes are on your disk
-or on a remote server.</p>
-</div>
-<h2 id="exit-codes-are-the-api">Exit codes are the API<a class="headerlink" href="#exit-codes-are-the-api" title="Permanent link">&para;</a></h2>
+<p>That gives you the <code>seqforge</code> command. Reading studies and compiling against a real genome also
+need the two lab packages, which are not on PyPI:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">&quot;liulab-genome @ git+https://github.com/liuhlab/liulab-genome.git&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">            </span><span class="s2">&quot;liulab-data   @ git+https://github.com/liuhlab/liulab-data.git&quot;</span>
+</code></pre></div>
+<h2 id="check-that-it-works">Check that it works<a class="headerlink" href="#check-that-it-works" title="Permanent link">&para;</a></h2>
+<p>These three commands need no network, no model and no data of your own.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>seqforge<span class="w"> </span>version
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>seqforge<span class="w"> </span>kb<span class="w"> </span>list
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>seqforge<span class="w"> </span>kb<span class="w"> </span>roundtrip<span class="w"> </span>10x-3p-gex-v3
+</code></pre></div>
+<p><code>seqforge version</code> prints the version number. <code>seqforge kb list</code> prints one line for each
+sequencing technology seqforge knows, such as <code>10x-3p-gex-v3</code> and <code>smartseq3</code>. <code>seqforge kb
+roundtrip</code> makes fake reads for one technology, reads them back, and prints JSON that lists each
+check it ran. Look for <code>"passed": true</code> near the top.</p>
+<h2 id="let-claude-run-it-optional">Let Claude run it (optional)<a class="headerlink" href="#let-claude-run-it-optional" title="Permanent link">&para;</a></h2>
+<p>seqforge ships skills for <a href="https://claude.com/claude-code">Claude Code</a>, an AI assistant that runs
+in your terminal. A skill tells Claude which <code>seqforge</code> commands to run for a task. To install them
+for your user, run this in the clone:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>pixi<span class="w"> </span>run<span class="w"> </span>install-skills
+</code></pre></div>
+<p>Then you can ask Claude in plain words, for example "read the studies in this folder" or "compile
+the FASTQ files in <code>./data</code>".</p>
+<h2 id="what-each-job-needs">What each job needs<a class="headerlink" href="#what-each-job-needs" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
-<th>code</th>
-<th>meaning</th>
-<th>what to do</th>
+<th>Job</th>
+<th>What goes in</th>
+<th>What it needs</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><code>0</code></td>
-<td>fine</td>
-<td>carry on</td>
+<td>Read studies</td>
+<td>A list of GEO Series</td>
+<td>The lab's model gateway, and <code>liulab-data</code> with its record store, paper store and ontology store</td>
 </tr>
 <tr>
-<td><code>1</code></td>
-<td>an error</td>
-<td>it broke; read the message</td>
-</tr>
-<tr>
-<td><code>2</code></td>
-<td>you used it wrong</td>
-<td>check the arguments</td>
-</tr>
-<tr>
-<td><code>3</code></td>
-<td><strong>blocked</strong></td>
-<td>the data can't be processed as-is. The blocker names a remedy</td>
-</tr>
-<tr>
-<td><code>4</code></td>
-<td><strong>needs a human</strong></td>
-<td>a real ambiguity. Answer it and re-run</td>
+<td>Compile a dataset</td>
+<td>FASTQ files, and optionally an accession and a paper</td>
+<td>The model gateway only to read a paper or notes. <code>liulab-genome</code> for the genome. A cluster to run the pipeline</td>
 </tr>
 </tbody>
 </table>
-<p><code>3</code> and <code>4</code> are the point of the tool, not an inconvenience. See
-<a href="../concepts/refusal/">When it refuses</a>.</p>
-<hr />
-<p><strong>Next:</strong> <a href="../tutorials/with-claude/">Compiling with Claude</a>, or browse the
-<a href="../kb/">supported assays</a>.</p>
+<p>Here is what each of those is.</p>
+<ul>
+<li><strong>The lab's model gateway</strong> is the lab's server for language models. seqforge sends every model
+  question through it, so you need no account with a model provider. Open a tunnel to it and set
+  <code>$LABLLM_GATEWAY</code> to the tunnel's local address.
+  <a href="https://github.com/liuhlab/liulab-llms/blob/main/docs/reach-the-gateway.md">Reach the lab gateway</a> says how.</li>
+<li><strong>The record store</strong> is <code>liulab-data</code>'s local copy of GEO and SRA records (SRA is the Sequence
+  Read Archive, where the reads themselves are kept). <code>$LABDATA_STORE</code> points at it. The paper
+  store (<code>$LABDATA_PAPERS</code>) holds the papers, and the ontology store (<code>$LABDATA_ONTOLOGIES</code>) holds
+  the term lists that a reading names each tissue, cell type and condition from.</li>
+<li><strong>A cluster</strong> is a shared computer with many processors. The compiled pipeline runs the aligner
+  there. seqforge writes the pipeline but never starts it: you submit it.</li>
+</ul>
+<h2 id="read-a-set-of-studies">Read a set of studies<a class="headerlink" href="#read-a-set-of-studies" title="Permanent link">&para;</a></h2>
+<p>One command reads a folder of studies under a spending limit in dollars:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>seqforge<span class="w"> </span>study<span class="w"> </span>run<span class="w"> </span>--studies<span class="w"> </span>&lt;folder&gt;<span class="w"> </span>--ceiling-usd<span class="w"> </span><span class="m">2</span>
+</code></pre></div>
+<p>A first run costs a few cents a study. The guide
+<a href="../guides/read-studies/">Read your own studies</a> sets up the folder, explains the three ways a study
+can end, and makes a report for each study. To see the output first, open the
+<a href="../examples/">example reports</a>.</p>
+<h2 id="compile-a-dataset">Compile a dataset<a class="headerlink" href="#compile-a-dataset" title="Permanent link">&para;</a></h2>
+<p>One command takes FASTQ files to a pipeline:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>seqforge<span class="w"> </span>run<span class="w"> </span>reads/*.fastq.gz<span class="w"> </span>--accession<span class="w"> </span>PRJNA1027859<span class="w"> </span>--doc<span class="w"> </span>paper.pdf<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="w">    </span>--assembly<span class="w"> </span>ce11<span class="w"> </span>--annotation<span class="w"> </span>WS298
+</code></pre></div>
+<p>The genome is the one choice you must make. <code>--assembly</code> names it by its UCSC id (the assembly's name in the UCSC Genome Browser), and
+<code>--annotation</code> names the gene annotation file registered for it. The accession and the paper are
+optional, and <code>--no-llm</code> skips the model, so nothing reaches the gateway.</p>
+<p>seqforge writes everything under <code>seqforge/</code> in the current folder. <code>seqforge/manifest.yaml</code>
+records what the data is. The pipeline is a <code>Snakefile</code> under <code>seqforge/pipeline/</code>, which you
+submit to the cluster with Snakemake (a tool that runs a pipeline step by step). Add
+<code>--study &lt;folder&gt;/&lt;ID&gt;</code> to copy a study's reading into the sample table.</p>
+<p>Two tutorials walk the whole path:</p>
+<ul>
+<li><a href="../tutorials/with-claude/">Compile with Claude</a>: describe your data and let Claude run the
+  commands.</li>
+<li><a href="../tutorials/step-by-step/">Compile step by step</a>: run each command yourself and look at what
+  it wrote.</li>
+</ul>
+<h2 id="exit-codes">Exit codes<a class="headerlink" href="#exit-codes" title="Permanent link">&para;</a></h2>
+<p>Most commands print one JSON object, and every command reports its result through its exit code,
+so a script can act on the code alone. <code>0</code> means it worked. <code>3</code> and <code>4</code> are seqforge refusing to
+guess: <code>3</code> means blocked or stopped, and <code>4</code> means a person must decide.
+<a href="../reference/commands/#exit-codes">Commands</a> lists every code, and every command with what it
+needs.</p>
 
 
 

@@ -6,17 +6,17 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="A compiler from FASTQ + unstructured metadata to a validated manifest and a runnable pipeline.">
+        <meta name="description" content="Reads sequencing studies and their files, and writes down what they are, from the bounds of a study to a pipeline you submit.">
       
       
       
         <link rel="canonical" href="https://liuhlab.github.io/seqforge/study-workflow/">
       
       
-        <link rel="prev" href="../tutorials/adding-a-technology/">
+        <link rel="prev" href="../passes/">
       
       
-        <link rel="next" href="../hand-work-files/">
+        <link rel="next" href="../formats/bounds/">
       
       
         
@@ -27,7 +27,7 @@
     
     
       
-        <title>The study workflow - seqforge</title>
+        <title>The study workflow in detail - seqforge</title>
       
     
     
@@ -125,7 +125,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              The study workflow
+              The study workflow in detail
             
           </span>
         </div>
@@ -297,14 +297,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../getting-started/" class="md-nav__link">
+      <a href="../examples/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    Getting started
+    Example reports
   
 
     
@@ -347,7 +347,7 @@
   <span class="md-ellipsis">
     
   
-    Tutorials
+    How it works
   
 
     
@@ -363,11 +363,210 @@
             <span class="md-nav__icon md-icon"></span>
             
   
-    Tutorials
+    How it works
   
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../how-it-works/study/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Understanding a study
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../how-it-works/compiler/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    From FASTQ files to a pipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../how-it-works/trust/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Why you can trust the output
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Use it
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Use it
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting-started/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting started
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guides/read-studies/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Read your own studies
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
             
               
                 
@@ -383,7 +582,7 @@
   <span class="md-ellipsis">
     
   
-    Compiling with Claude
+    Compile with Claude
   
 
     
@@ -411,7 +610,7 @@
   <span class="md-ellipsis">
     
   
-    Compiling Step-by-step
+    Compile step by step
   
 
     
@@ -439,7 +638,7 @@
   <span class="md-ellipsis">
     
   
-    Adding a technology
+    Add a technology
   
 
     
@@ -468,6 +667,116 @@
   
   
   
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/commands/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Commands
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../passes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Passes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
     <li class="md-nav__item md-nav__item--active">
       
       <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
@@ -483,7 +792,7 @@
   <span class="md-ellipsis">
     
   
-    The study workflow
+    The study workflow in detail
   
 
     
@@ -501,7 +810,7 @@
   <span class="md-ellipsis">
     
   
-    The study workflow
+    The study workflow in detail
   
 
     
@@ -525,6 +834,17 @@
       Table of contents
     </label>
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#words-this-page-uses" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Words this page uses
+      
+    </span>
+  </a>
+  
+</li>
       
         <li class="md-nav__item">
   <a href="#the-steps-in-order" class="md-nav__link">
@@ -559,6 +879,39 @@
   
     <nav class="md-nav" aria-label="1. Bound the study">
       <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#what-the-bounding-job-reads" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What the bounding job reads
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#how-the-bounding-job-decides" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How the bounding job decides
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#how-the-bounding-job-ends-a-study" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How the bounding job ends a study
+      
+    </span>
+  </a>
+  
+</li>
         
           <li class="md-nav__item">
   <a href="#how-the-standard-set-got-its-bounds" class="md-nav__link">
@@ -596,6 +949,67 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="3. Read the study">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#what-the-reader-reads" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What the reader reads
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#how-the-reader-decides" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How the reader decides
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#assay-guides" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Assay guides
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ontology-ids" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Ontology ids
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#how-the-reader-ends-a-study" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How the reader ends a study
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -610,10 +1024,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#5-derive-the-relations" class="md-nav__link">
+  <a href="#5-work-out-the-relations" class="md-nav__link">
     <span class="md-ellipsis">
       
-        5. Derive the relations
+        5. Work out the relations
       
     </span>
   </a>
@@ -625,6 +1039,17 @@
     <span class="md-ellipsis">
       
         6. Run the chain unattended
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#after-the-chain" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        After the chain
       
     </span>
   </a>
@@ -649,112 +1074,7 @@
     </li>
   
 
-    
-      
-      
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../hand-work-files/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Files from the hand work
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-    
-      
-      
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../passes/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Passes
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-    
-      
-      
-  
-  
-  
-  
-    
-    
-    
-    
-      
-        
-        
-      
-    
-    
-    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
-      
-        
-        
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
-        
-          
-          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="">
-            
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    File formats
-  
-
-    
-  </span>
-  
-  
-
-            <span class="md-nav__icon md-icon"></span>
-          </label>
-        
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_7">
-            <span class="md-nav__icon md-icon"></span>
-            
-  
-    File formats
-  
-
-          </label>
-          <ul class="md-nav__list" data-md-scrollfix>
+              
             
               
                 
@@ -812,15 +1132,36 @@
 
               
             
-          </ul>
-        </nav>
-      
-    </li>
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../hand-work-files/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Files from the hand work
   
 
     
-      
-      
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
   
   
   
@@ -830,162 +1171,16 @@
     
     
       
-        
-        
-      
     
     
-    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_7" >
         
           
-          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="">
-            
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Concepts
-  
-
-    
-  </span>
-  
-  
-
-            <span class="md-nav__icon md-icon"></span>
-          </label>
-        
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_8">
-            <span class="md-nav__icon md-icon"></span>
-            
-  
-    Concepts
-  
-
-          </label>
-          <ul class="md-nav__list" data-md-scrollfix>
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../concepts/artifacts/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    The two artifacts
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../concepts/identifying/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    How a dataset is identified
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../concepts/refusal/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    When it refuses
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-          </ul>
-        </nav>
-      
-    </li>
-  
-
-    
-      
-      
-  
-  
-  
-  
-    
-    
-    
-    
-      
-        
-        
-      
-    
-    
-    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
-      
-        
-        
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_9" >
-        
-          
-          <label class="md-nav__link" for="__nav_9" id="__nav_9_label" tabindex="">
+          <label class="md-nav__link" for="__nav_5_7" id="__nav_5_7_label" tabindex="0">
             
   
   
@@ -1003,8 +1198,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_9_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_9">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5_7">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -1059,10 +1254,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_9_2" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_7_2" >
         
           
-          <label class="md-nav__link" for="__nav_9_2" id="__nav_9_2_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_5_7_2" id="__nav_5_7_2_label" tabindex="0">
             
   
   
@@ -1080,8 +1275,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_9_2_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_9_2">
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_5_7_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5_7_2">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -1245,6 +1440,14 @@
     </li>
   
 
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
     
   </ul>
 </nav>
@@ -1271,6 +1474,17 @@
       Table of contents
     </label>
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#words-this-page-uses" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Words this page uses
+      
+    </span>
+  </a>
+  
+</li>
       
         <li class="md-nav__item">
   <a href="#the-steps-in-order" class="md-nav__link">
@@ -1305,6 +1519,39 @@
   
     <nav class="md-nav" aria-label="1. Bound the study">
       <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#what-the-bounding-job-reads" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What the bounding job reads
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#how-the-bounding-job-decides" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How the bounding job decides
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#how-the-bounding-job-ends-a-study" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How the bounding job ends a study
+      
+    </span>
+  </a>
+  
+</li>
         
           <li class="md-nav__item">
   <a href="#how-the-standard-set-got-its-bounds" class="md-nav__link">
@@ -1342,6 +1589,67 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="3. Read the study">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#what-the-reader-reads" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What the reader reads
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#how-the-reader-decides" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How the reader decides
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#assay-guides" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Assay guides
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ontology-ids" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Ontology ids
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#how-the-reader-ends-a-study" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How the reader ends a study
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -1356,10 +1664,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#5-derive-the-relations" class="md-nav__link">
+  <a href="#5-work-out-the-relations" class="md-nav__link">
     <span class="md-ellipsis">
       
-        5. Derive the relations
+        5. Work out the relations
       
     </span>
   </a>
@@ -1371,6 +1679,17 @@
     <span class="md-ellipsis">
       
         6. Run the chain unattended
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#after-the-chain" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        After the chain
       
     </span>
   </a>
@@ -1414,25 +1733,35 @@
 
 
 <h1 id="the-study-workflow">The study workflow<a class="headerlink" href="#the-study-workflow" title="Permanent link">&para;</a></h1>
-<p>A <strong>study</strong> is one piece of research: the experiments one paper reports, or one project that has
-no paper yet. Public archives do not store studies. GEO (the Gene Expression Omnibus, a public
-archive of sequencing data) stores <strong>Series</strong>. One paper's data can span several Series, and a
-Series links to papers and to other Series that do not all belong to the same study.</p>
-<p>This page gives the chain of steps that takes one study from its database records to two files:</p>
+<p>This page gives each step of the study chain in order, and the rules each step follows.</p>
+<p><strong>What goes in:</strong> one GEO Series id per study. GEO, the Gene Expression Omnibus, is a public
+archive of sequencing data, and a <strong>Series</strong> is one deposit in it, with an id such as <code>GSE100021</code>.
+The chain reads the Series' archive records and the papers they link. It never reads sequencing
+data.</p>
+<p><strong>What comes out:</strong> two files in each study's folder.</p>
 <ul>
-<li><a href="../formats/bounds/"><code>bounds.yaml</code></a> holds the study's <strong>bounds</strong>: its name, the Series that belong to it, its papers,
-  and each linked record that was left out, with the reason. A study is whole Series. No step
-  splits a Series by sample.</li>
-<li><a href="../formats/reading/"><code>reading.yaml</code></a> holds the <strong>study reading</strong>: what was done to each sample, and how the samples
-  relate. There is one reading per study.</li>
+<li><a href="../formats/bounds/"><code>bounds.yaml</code></a> holds the study's <strong>bounds</strong>: the Series and the papers that
+  belong to it, and each linked record that was left out, with the reason.</li>
+<li><a href="../formats/reading/"><code>reading.yaml</code></a> holds the <strong>study reading</strong>: what each sequenced sample
+  was, which labels the study varied on purpose, and the quotes that back each statement.</li>
 </ul>
-<p>Each study's files sit in its <strong>study folder</strong>, <code>&lt;folder&gt;/&lt;ID&gt;/</code>. <code>&lt;ID&gt;</code> is the Series the study
-was picked by, such as <code>GSE100021</code>, and <code>&lt;folder&gt;</code> is a folder of study folders. Both jobs run on
-the folder that <code>pass start --studies &lt;folder&gt;</code> names. The chain is built and checked on the
-<strong>standard set</strong>, a fixed list of 50 small GEO studies in <code>evals/standard-set/</code>, which is the
-folder when <code>--studies</code> names none.</p>
-<p>The work is planned in stages, and one step is not done yet: stage 6 runs the whole chain once
-with no person involved. Its command is built, and its input and its output are below.</p>
+<p><strong>Why you can check it:</strong> models answer, and code decides whether an answer stands. Code finds
+every quote again in its source. Each question that decides an ending is asked twice, in two
+forms, and the two answers must agree. Every file passes its format check before it is written.</p>
+<h2 id="words-this-page-uses">Words this page uses<a class="headerlink" href="#words-this-page-uses" title="Permanent link">&para;</a></h2>
+<ul>
+<li>A <strong>study</strong> is one piece of research: the experiments one paper reports, or one project that has
+  no paper yet. A study is whole Series. No step splits a Series by sample.</li>
+<li>A <strong>study folder</strong> holds one study's files. It is named by the Series the study starts from,
+  such as <code>GSE100021</code>.</li>
+<li>A <strong>folder of study folders</strong> holds many study folders. Its <code>pick.yaml</code> lists the studies to
+  run. A folder with no <code>pick.yaml</code> needs a <code>--keys</code> file that names them, one Series per line.</li>
+<li>The <strong>standard set</strong> is a fixed list of 50 small GEO studies in <code>evals/standard-set/</code>. The chain
+  is built and checked on it, and it is the folder a pass uses when <code>--studies</code> names none.</li>
+<li><strong>Jev</strong> is a model that answers yes-or-no and multiple-choice questions with a probability.</li>
+<li>A <strong>job</strong> is one step that models do for each study: bounding or reading. Each job runs as a
+  <a href="../passes/">pass</a>, a run of one kind of work over many studies under a dollar ceiling.</li>
+</ul>
 <h2 id="the-steps-in-order">The steps in order<a class="headerlink" href="#the-steps-in-order" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
@@ -1440,9 +1769,8 @@ with no person involved. Its command is built, and its input and its output are 
 <th>#</th>
 <th>Step</th>
 <th>Command</th>
-<th>Reads</th>
+<th>Needs</th>
 <th>Writes</th>
-<th>State</th>
 </tr>
 </thead>
 <tbody>
@@ -1450,106 +1778,114 @@ with no person involved. Its command is built, and its input and its output are 
 <td>1</td>
 <td>Bound the study</td>
 <td><code>seqforge pass start study-bounds</code>, then <code>seqforge study write-bounds</code></td>
-<td>The records linked to the study, and its papers' abstracts</td>
+<td>The gateway, the record store and the paper store</td>
 <td><code>bounds.yaml</code></td>
-<td>Built</td>
 </tr>
 <tr>
 <td>2</td>
 <td>Check the bounds</td>
 <td><code>seqforge study check-bounds &lt;file&gt;</code></td>
-<td>One <code>bounds.yaml</code></td>
-<td>No file. It prints whether the file is accepted</td>
-<td>Built</td>
+<td>Nothing</td>
+<td>No file. It prints whether the file is valid</td>
 </tr>
 <tr>
 <td>3</td>
 <td>Read the study</td>
 <td><code>seqforge pass start study-reading</code>, then <code>seqforge study write-reading</code></td>
-<td>The study's <code>bounds.yaml</code>, its records, and its papers in full or by their abstracts</td>
+<td>The gateway and the record, paper and ontology stores</td>
 <td><code>reading.yaml</code></td>
-<td>Built</td>
 </tr>
 <tr>
 <td>4</td>
 <td>Check the reading</td>
 <td><code>seqforge study check-reading &lt;file&gt;</code></td>
-<td>One <code>reading.yaml</code></td>
-<td>No file. It prints whether the file is accepted</td>
-<td>Built</td>
+<td>liulab-data installed</td>
+<td>No file. It prints whether the file is valid</td>
 </tr>
 <tr>
 <td>5</td>
-<td>Derive the relations</td>
-<td><code>seqforge study relations &lt;reading.yaml&gt;</code></td>
-<td>One <code>reading.yaml</code></td>
+<td>Work out the relations</td>
+<td><code>seqforge study relations &lt;file&gt;</code></td>
+<td>liulab-data installed</td>
 <td>No file. It prints the relations</td>
-<td>Built</td>
 </tr>
 <tr>
 <td>6</td>
 <td>Run the chain unattended</td>
-<td><code>seqforge study run --studies &lt;folder&gt; --ceiling-usd &lt;USD&gt;</code></td>
-<td>About 2,000 GEO Series</td>
-<td>For each study, a <code>bounds.yaml</code> and a <code>reading.yaml</code>, or the reason the study stopped</td>
-<td>The command is built. The run over 2,000 Series is not done yet</td>
+<td><code>seqforge study run --studies &lt;folder&gt; --ceiling-usd &lt;dollars&gt;</code></td>
+<td>As steps 1 and 3</td>
+<td><code>bounds.yaml</code> and <code>reading.yaml</code> for each study</td>
 </tr>
 </tbody>
 </table>
-<p>Steps 1 to 5 handle one study. Step 6 is the same chain, run over many studies at once.</p>
-<p>The 50 studies of the standard set got their own bounds before step 1 was built, from commands
-that are now retired. <a href="#how-the-standard-set-got-its-bounds">How the standard set got its bounds</a>
-lists them. The checks run like this, on one study of the standard set:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>seqforge<span class="w"> </span>study<span class="w"> </span>check-bounds<span class="w"> </span>evals/standard-set/&lt;ID&gt;/bounds.yaml
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>seqforge<span class="w"> </span>study<span class="w"> </span>check-reading<span class="w"> </span>evals/standard-set/&lt;ID&gt;/reading.yaml
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>seqforge<span class="w"> </span>study<span class="w"> </span>relations<span class="w"> </span>evals/standard-set/&lt;ID&gt;/reading.yaml
-</code></pre></div>
+<p>The gateway is the lab's model server, reached at <code>$LABLLM_GATEWAY</code>. The stores belong to
+liulab-data, the lab's data package: the record store (<code>LABDATA_STORE</code>), the paper store
+(<code>LABDATA_PAPERS</code>) and the ontology store (<code>LABDATA_ONTOLOGIES</code>). <a href="../passes/">Passes</a> says how to
+set each one.</p>
+<p>Steps 1 to 5 handle one study at a time. Step 6 runs steps 1 and 3 over every study of a folder.</p>
 <h2 id="rules-that-every-step-follows">Rules that every step follows<a class="headerlink" href="#rules-that-every-step-follows" title="Permanent link">&para;</a></h2>
 <p><strong>One format at a time.</strong> Every <code>bounds.yaml</code> and every <code>reading.yaml</code> starts with the line
-<code>format: &lt;number&gt;</code>. Each check accepts only the current number. It rejects a file that has any
-other number, and its message names the number that it expected. A change to a format rewrites
-every existing file in the same change, so no file stays behind in an older format.</p>
-<p><strong>A person never blocks a step.</strong> A model writes, a model checks, and a person can read the
-results on a view-only page on the side. No step waits for a person's answer. A study that the
-chain cannot settle keeps its best answer with its probability, or the chain lists the study with
-the reason it stopped. If a person does answer a question while checking, the answer is saved as a
-small plain file: the question, the study, the answer, who gave it and when.</p>
-<p><strong>No step reads sequencing data.</strong> Every step works from database records and papers.</p>
+<code>format: &lt;number&gt;</code>. Each check accepts only the current number, and its message names the number
+it expected. A change to a format rewrites every existing file in the same change, so no file
+stays in an older format.</p>
+<p><strong>A file is never overwritten.</strong> <code>write-bounds</code> and <code>write-reading</code> write a study's file only when
+none is there. To take a newer answer, delete the old file by hand and write again.</p>
+<p><strong>A file that fails its check is not written.</strong> Each write runs the format check on the exact text
+it would write.</p>
+<p><strong>A person never blocks a step.</strong> No step waits for a person's answer. A study the chain cannot
+settle keeps its best answer, with each probability, or it is listed with the reason it stopped.
+If a person does answer a question while checking, the answer is saved as a small plain file: the
+question, the study, the answer, who gave it and when.</p>
+<p><strong>No step reads sequencing data.</strong> Every step works from archive records and papers.</p>
 <h2 id="1-bound-the-study">1. Bound the study<a class="headerlink" href="#1-bound-the-study" title="Permanent link">&para;</a></h2>
-<p>Bounding is drawing a study from its linked records. The bounding job runs a pass of the
-<code>study-bounds</code> kind, which asks a model the same kind of question once for each study and keeps
-each answer in the pass's task folder. <a href="../passes/">Passes</a> describes passes.
-A study is named by the GEO Series it starts from. With no <code>--keys</code> file, the pass runs the
-studies that the folder's <code>pick.yaml</code> lists: the 50 of the standard set by default. A folder with
-no <code>pick.yaml</code> needs a <code>--keys</code> file, and the pass exits 2 without one.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>seqforge<span class="w"> </span>pass<span class="w"> </span>start<span class="w"> </span>study-bounds<span class="w"> </span>--ceiling-usd<span class="w"> </span><span class="m">0</span>.1
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>seqforge<span class="w"> </span>study<span class="w"> </span>write-bounds<span class="w"> </span>--out<span class="w"> </span>evals/standard-set<span class="w"> </span>--name<span class="w"> </span>job-bounds.yaml
+<p>Bounding draws one study out of its linked records. One GEO Series can link to other Series and to
+papers that belong to a different study, such as an older dataset that the study re-uses. The
+bounding job decides which linked records belong.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>seqforge<span class="w"> </span>pass<span class="w"> </span>start<span class="w"> </span>study-bounds<span class="w"> </span>--ceiling-usd<span class="w"> </span><span class="m">0</span>.1<span class="w"> </span>--studies<span class="w"> </span>&lt;folder&gt;
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>seqforge<span class="w"> </span>study<span class="w"> </span>write-bounds<span class="w"> </span>--out<span class="w"> </span>&lt;folder&gt;
 </code></pre></div>
-<p>In another folder, give the same folder to both commands. The bounding job's file is then the
-<code>bounds.yaml</code> that the reader reads:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>seqforge<span class="w"> </span>pass<span class="w"> </span>start<span class="w"> </span>study-bounds<span class="w"> </span>--ceiling-usd<span class="w"> </span><span class="m">0</span>.1<span class="w"> </span>--studies<span class="w"> </span>&lt;folder&gt;<span class="w"> </span>--keys<span class="w"> </span>&lt;keys-file&gt;
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>seqforge<span class="w"> </span>study<span class="w"> </span>write-bounds<span class="w"> </span>--out<span class="w"> </span>&lt;folder&gt;
-</code></pre></div>
-<p><strong>What it reads.</strong> The job reads liulab-data, the lab package that stores the archive records and
-the papers, from <code>LABDATA_STORE</code> and <code>LABDATA_PAPERS</code>. For each study it gathers the <strong>linked
-group</strong>: the starting Series, every Series one link away from it, and every paper that those Series
-link. Four kinds of link count: a SuperSeries and its sub-Series, a shared BioProject, two
-BioProjects under one umbrella BioProject, and a shared paper. A reanalysis link counts for nothing,
-and so does a paper that only a BioProject links.</p>
-<p><strong>How it decides.</strong> Code keeps the starting Series, or each sub-Series when the study starts from a
-SuperSeries, and it leaves every SuperSeries out. Jev, a model that answers yes/no questions with a
-probability, is asked about each other Series and each paper twice: once as written, once reversed.
-Jev reads the records and each paper's title, journal, date and abstract, and never a full paper.
-An answer is yes when Jev's p(yes) is above 0.5, and no when it is below 0.5. At exactly 0.5 it is
-neither. A record is in the study when Jev's answer as written is yes. The two answers agree when
-one is yes and the other no. Each claim is <code>inferred</code>, and its text gives Jev's p(yes) to each of
-the two questions. A kept paper has no probability in the file, so the task keeps it.</p>
-<p><strong>What it writes.</strong> <code>seqforge study write-bounds --out &lt;folder&gt;</code> writes each study's answer as
-<code>&lt;folder&gt;/&lt;ID&gt;/bounds.yaml</code>, or under the name that <code>--name</code> gives. It never overwrites a file.
-So while a pass holds the task, it refuses and writes nothing: it exits 3 with
-<code>stopped: task_in_use</code> and names the process that holds the task. Run it again once the pass ends.
-For the standard set, the job's file is <code>job-bounds.yaml</code>, beside the set's own <code>bounds.yaml</code>. Each
-study ends in one of three ways:</p>
+<p>The first command needs the gateway, the record store and the paper store. The second reads only
+the pass's task. Give both commands the same folder. With no <code>--keys</code>, the pass runs the studies
+that the folder's <code>pick.yaml</code> lists.</p>
+<h3 id="what-the-bounding-job-reads">What the bounding job reads<a class="headerlink" href="#what-the-bounding-job-reads" title="Permanent link">&para;</a></h3>
+<p>For each study, the job gathers the <strong>linked group</strong>: the starting Series, every Series one link
+away from it, and every paper that those Series link. Four kinds of link count:</p>
+<ul>
+<li>a SuperSeries and its sub-Series (a SuperSeries is a Series that groups other Series);</li>
+<li>a shared BioProject, the archive's record of one research project;</li>
+<li>two BioProjects under one umbrella BioProject;</li>
+<li>a shared paper.</li>
+</ul>
+<p>A reanalysis link counts for nothing, and so does a paper that only a BioProject links. Jev reads
+each Series record with its samples, and each paper's title, journal, date, publication type and
+abstract. It never reads a full paper.</p>
+<h3 id="how-the-bounding-job-decides">How the bounding job decides<a class="headerlink" href="#how-the-bounding-job-decides" title="Permanent link">&para;</a></h3>
+<ol>
+<li>Code keeps the starting Series. When the study starts from a SuperSeries, code keeps each of
+   its sub-Series instead. Code leaves every SuperSeries out, because a SuperSeries only repeats
+   its sub-Series' samples.</li>
+<li>Jev is asked about each other Series and each paper, twice: once as written, and once
+   reversed. For a Series, the question is whether it was deposited for the same research. For a
+   paper, the question is whether it is the paper that first reports the data. A preprint and its
+   journal version both count.</li>
+<li>An answer is yes when Jev's probability of yes is above 0.5, and no when it is below 0.5. At
+   exactly 0.5 it is neither.</li>
+<li>A record is in the study when Jev's answer to the question as written is yes. The two answers
+   agree when one is yes and the other is no.</li>
+</ol>
+<p>Each claim in the file is <code>inferred</code>. A claim that code made says so, and has no probability. A
+claim that Jev made gives Jev's probability of yes to both questions, and carries <code>p</code>. A kept paper
+is listed by its id only. Its two answers are kept in the pass's task, because the file has no
+place for them.</p>
+<p>The job also copies each placed record's title into the file's <code>titles</code> map, from the Series
+record or the paper. That covers every record kept or left out. A record with no title has no
+entry.</p>
+<h3 id="how-the-bounding-job-ends-a-study">How the bounding job ends a study<a class="headerlink" href="#how-the-bounding-job-ends-a-study" title="Permanent link">&para;</a></h3>
+<p><code>seqforge study write-bounds --out &lt;folder&gt;</code> writes each study's answer as
+<code>&lt;folder&gt;/&lt;ID&gt;/bounds.yaml</code>, or under the name that <code>--name</code> gives. For the standard set, the
+job's file is <code>job-bounds.yaml</code>, beside the set's own <code>bounds.yaml</code>. While a pass holds the task,
+the write refuses and writes nothing: it exits 3 with <code>stopped: task_in_use</code> and names the process
+that holds the task. Run it again once the pass ends.</p>
 <table>
 <thead>
 <tr>
@@ -1572,96 +1908,140 @@ study ends in one of three ways:</p>
 <tr>
 <td>Refused</td>
 <td>The group holds more than 50 Series, Jev gives no answer about a record, or the bounds fail the format check</td>
-<td>None. <code>write-bounds</code> prints the reason, such as <code>group too large</code></td>
+<td>None. <code>write-bounds</code> prints the reason, such as <code>group too large: &lt;n&gt; Series</code></td>
+</tr>
+<tr>
+<td>Held</td>
+<td>The key is not a GEO Series, the record store does not hold the starting Series, or the study links a paper and no paper store is set</td>
+<td>None. <code>seqforge pass status study-bounds</code> lists the study under <code>not_done</code></td>
 </tr>
 </tbody>
 </table>
 <h3 id="how-the-standard-set-got-its-bounds">How the standard set got its bounds<a class="headerlink" href="#how-the-standard-set-got-its-bounds" title="Permanent link">&para;</a></h3>
-<p>This is history: these commands are retired. A small model drafted each of the 50 studies' bounds
-in a pass of the <code>standard-set-bounds</code> kind. The <code>standard-set draft</code> command wrote each answer as
-<code>&lt;ID&gt;/draft.yaml</code>. The <code>standard-set judge</code> command asked a large model about one draft and wrote
-<code>&lt;ID&gt;/verdict.yaml</code>, <code>&lt;ID&gt;/bounds.yaml</code> and <code>&lt;ID&gt;/study.yaml</code>. <code>seqforge standard-set list</code> still
-prints one JSON object per study. The
-<a href="https://github.com/liuhlab/seqforge/tree/main/evals/standard-set">standard set's own page</a> says
-what each file holds.</p>
+<p>The 50 studies of the standard set got their own <code>bounds.yaml</code> before the bounding job was built,
+from commands that are now retired. A small model drafted each study's bounds in a pass of the
+<code>standard-set-bounds</code> kind. The <code>standard-set draft</code> command wrote each answer as
+<code>&lt;ID&gt;/draft.yaml</code>. The <code>standard-set judge</code> command asked a large model about one draft, and wrote
+<code>&lt;ID&gt;/verdict.yaml</code>, <code>&lt;ID&gt;/bounds.yaml</code> and <code>&lt;ID&gt;/study.yaml</code>.</p>
+<p><code>seqforge standard-set list</code> is the one command left. It prints one JSON object per study, from its
+study file and its bounds file. <a href="../hand-work-files/">Files from the hand work</a> says what each file
+holds.</p>
 <h2 id="2-check-the-bounds">2. Check the bounds<a class="headerlink" href="#2-check-the-bounds" title="Permanent link">&para;</a></h2>
-<p><code>seqforge study check-bounds &lt;file&gt;</code> reads one <code>bounds.yaml</code> and nothing else. It opens no archive
-and calls no model. It prints one JSON object that says whether the file is accepted, and for each
-problem it names the field and the reason. It exits 0 for an accepted file, 3 for a rejected file
-and 2 for a file that it cannot read.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>seqforge<span class="w"> </span>study<span class="w"> </span>check-bounds<span class="w"> </span>&lt;folder&gt;/&lt;ID&gt;/bounds.yaml
+</code></pre></div>
+<p>The check reads one bounds file and nothing else. It opens no store and calls no model. It prints
+one JSON object: the file, the format number it accepts, whether the file is valid, and each
+problem, naming the field and the reason.</p>
+<table>
+<thead>
+<tr>
+<th>Exit</th>
+<th>When</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0</td>
+<td>The file is valid.</td>
+</tr>
+<tr>
+<td>3</td>
+<td>The file is rejected.</td>
+</tr>
+<tr>
+<td>2</td>
+<td>The file cannot be read.</td>
+</tr>
+</tbody>
+</table>
 <p>The check asks only whether the file is in the current format. It does not judge whether the
-bounds are right. The bounding job never writes a file that the check rejects: it ends the study
-refused, and <code>write-bounds</code> checks the exact text it writes, with each model named, before the file
-appears. The reader reads each study's bounds file through the same check. It holds a study whose
-file is missing or rejected, and the reason names each problem. <code>seqforge pass status study-reading</code>
-lists each held study under <code>not_done</code>, with that reason.</p>
+bounds are right. The reader reads each study's bounds file through the same check. A study whose
+file is missing or rejected is held, and its reason names each problem.</p>
 <h2 id="3-read-the-study">3. Read the study<a class="headerlink" href="#3-read-the-study" title="Permanent link">&para;</a></h2>
-<p>The reader writes one study's <strong>study reading</strong>: what each sequenced sample is, and which labels
-the study varied. It runs a pass of the <code>study-reading</code> kind, one study per unit, and keeps each
-answer in the pass's task folder. It runs on the folder that <code>--studies</code> names, the standard set
-by default, and it takes its units from that folder's pick as the bounding job does.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>seqforge<span class="w"> </span>pass<span class="w"> </span>start<span class="w"> </span>study-reading<span class="w"> </span>--ceiling-usd<span class="w"> </span><span class="m">2</span><span class="w"> </span>--units-at-once<span class="w"> </span><span class="m">2</span>
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>seqforge<span class="w"> </span>study<span class="w"> </span>write-reading<span class="w"> </span>--out<span class="w"> </span>evals/standard-set<span class="w"> </span>--name<span class="w"> </span>job-reading.yaml
+<p>The reader writes one study's <strong>study reading</strong>: what each sequenced sample was, and which labels
+the study varied. It runs a pass of the <code>study-reading</code> kind, one study per unit.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>seqforge<span class="w"> </span>pass<span class="w"> </span>start<span class="w"> </span>study-reading<span class="w"> </span>--ceiling-usd<span class="w"> </span><span class="m">2</span><span class="w"> </span>--studies<span class="w"> </span>&lt;folder&gt;
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>seqforge<span class="w"> </span>study<span class="w"> </span>write-reading<span class="w"> </span>--out<span class="w"> </span>&lt;folder&gt;
 </code></pre></div>
-<p>With <code>--units-at-once 2</code>, at most eight model requests are in flight at once.</p>
-<p>In another folder, the reader reads the <code>bounds.yaml</code> that <code>write-bounds</code> wrote there:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>seqforge<span class="w"> </span>pass<span class="w"> </span>start<span class="w"> </span>study-reading<span class="w"> </span>--ceiling-usd<span class="w"> </span><span class="m">2</span><span class="w"> </span>--studies<span class="w"> </span>&lt;folder&gt;<span class="w"> </span>--keys<span class="w"> </span>&lt;keys-file&gt;
-<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>seqforge<span class="w"> </span>study<span class="w"> </span>write-reading<span class="w"> </span>--out<span class="w"> </span>&lt;folder&gt;
-</code></pre></div>
-<p><strong>What it reads.</strong> The reader reads the study's <code>bounds.yaml</code> in the folder, and liulab-data from
-<code>LABDATA_STORE</code> and <code>LABDATA_PAPERS</code>: the records of the Series that the bounds keep, the sequenced
-samples of those Series, and the bounds' papers. It reads a paper's full text where the paper store
-holds one, and the abstract where it does not. Only a sequenced sample gets a row, so a microarray
-sample is left out. The reader never reads a supplementary file of GEO or of a paper. A label that
-only such a file gives is <code>unknown</code>.</p>
-<p><strong>How it decides.</strong> Two models and code share the work:</p>
+<p>The first command needs the gateway and the record, paper and ontology stores. It reads each
+study's <code>bounds.yaml</code> in the folder, so run it after step 1. For the standard set, add
+<code>--name job-reading.yaml</code> to the write, so the job's file sits beside the set's own five worked
+readings.</p>
+<p>Each study sends at most 4 requests to Jev at once. So <code>--units-at-once 2</code> keeps at most 8 Jev
+requests in flight.</p>
+<h3 id="what-the-reader-reads">What the reader reads<a class="headerlink" href="#what-the-reader-reads" title="Permanent link">&para;</a></h3>
+<p>The reader reads the study's <code>bounds.yaml</code>, and from the stores:</p>
+<ul>
+<li>the records of the Series that the bounds keep;</li>
+<li>the sequenced samples of those Series;</li>
+<li>the bounds' papers: the full text where the paper store holds one, and the abstract where it
+  does not.</li>
+</ul>
+<p>Only a sequenced sample gets a row, so a microarray sample is left out. The reader never reads a
+supplementary file of GEO or of a paper. A label that only such a file gives is <code>unknown</code>.</p>
+<h3 id="how-the-reader-decides">How the reader decides<a class="headerlink" href="#how-the-reader-decides" title="Permanent link">&para;</a></h3>
+<p>Two models and code share the work.</p>
 <ol>
-<li>A writing model, DeepSeek Flash with thinking on, reads the records and the papers. It lists the
-   <strong>factors</strong>, which are the labels that the study varied on purpose, with their levels. It also
-   lists every value that each label takes, each with a quote. It does not say which sample has
-   which value. An answer that cannot be used is asked for once more. The request sends no JSON
-   schema, because the gateway refuses a DeepSeek schema with thinking on. Code reads the JSON
-   object out of the reply's text instead: the whole reply is JSON, or it holds exactly one fenced
-   block. Any other reply cannot be used.</li>
-<li>Jev, a model that answers closed questions with a probability, answers every closed question. It
-   says whether each factor was varied on purpose, which level is the baseline, and whether the
-   levels are in order. Then, for each sample, it picks the sample's level on each factor and its
-   value on each label from the lists. Some questions are asked twice: whether a factor was varied,
-   plain and negated, and its baseline and each sample's level, with the options in order and
-   reversed. Each sample's label values are asked once, because only its level is compared.</li>
-<li>Code looks for every quote in its record, character for character, or in its paper once each
-   run of white space is one space. Jev judges whether each found passage backs its claim, or says
-   otherwise. A claim is <code>quoted</code> only from a found passage that backs it. Otherwise it is
-   <code>inferred</code>.</li>
-<li>Code writes the reading and runs the format check. It drops a level of a factor that no sample
-   is at.</li>
+<li><strong>A writing model lists the options.</strong> DeepSeek Flash (<code>deepseek/deepseek-flash</code>), with
+   thinking on, reads the records and the papers. It lists the <strong>factors</strong>, the labels that the
+   study varied on purpose, with their levels and baseline. It lists every value that each label
+   takes, each with a quote. It does not say which sample has which value. An answer that cannot
+   be used is asked for once more.</li>
+<li><strong>Jev answers every closed question.</strong> It says whether each factor was varied on purpose,
+   which level is the baseline, and whether the levels are in order. Then, for each sample, it
+   picks the sample's level on each factor and its value on each label, from the writer's lists.</li>
+<li><strong>Some questions are asked twice.</strong> Whether a factor was varied is asked plain and negated.
+   Its baseline, and each sample's level, are asked with the options in order and then reversed.
+   Each sample's label values are asked once.</li>
+<li><strong>Code finds every quote.</strong> A quote from a record must be in its named field, character for
+   character. A quote from a paper must be in the paper once each run of spaces and line breaks is
+   one space. Jev then judges whether each found passage backs its claim, or speaks against it.
+   A claim is <code>quoted</code> only from a found passage that backs it. Otherwise it is <code>inferred</code>.</li>
+<li><strong>Code writes the reading.</strong> It drops a factor level that no sample is at, copies each sample's
+   BioSample accession, and runs the format check.</li>
 </ol>
-<p><strong>Assay guides.</strong> An <strong>assay guide</strong> is a short text that the reader adds to the writer's
-instructions and to Jev's questions for a study whose records name its assay. Only pull-down
-assays have one: ChIP-seq, CUT&amp;RUN and CUT&amp;Tag. It says that the target is a label and never a
-factor. It also asks the writer to tie each control library to its pull-down libraries by the words
-that tie them, such as a replicate number in the sample titles. Jev checks each tie. Libraries that
-are tied share one <code>biosample</code> id.</p>
-<p><strong>Ontology ids.</strong> The ontologies are liulab-data's <strong>ontology store</strong>, found through
-<code>LABDATA_ONTOLOGIES</code> or the per-user pointer that <code>labdata ontology init</code> writes. The pass opens
-the store once when it starts, and the store keeps each vocabulary's snapshot fixed until the pass
-ends. If the store cannot be opened, <code>pass start</code> exits 2 and names <code>LABDATA_ONTOLOGIES</code>; it never
-reads with no search.</p>
-<p>The species id is the record's own taxonomy id, and <code>healthy</code> is <code>PATO:0000461</code>. The store names
-both, and an id it does not hold is not written. A <code>development_stage</code> of <code>adult</code> is the species'
-adult stage in its stage list, found by its whole name. For the mouse, that is MmusDv's
-<code>mature stage</code>. Every other id comes from a search of the store:
-up to 10 candidates, whole-text matches first, and Jev picks one or none. A term is written only
-when Jev is sure of its pick. A vocabulary that the store does not hold finds nothing, so its
-labels get no id. The reading's <code>ontology_snapshot</code> names each snapshot that its ids came from,
-such as <code>liulab-data ontology store: efo-3.96.0, ncbitaxon-2026-11-25, uberon-2026-11-05</code>. Its date
-is the UTC day the pass opened the store, because the store names its snapshots by UTC day.</p>
-<p><strong>What it writes.</strong> <code>seqforge study write-reading --out &lt;folder&gt;</code> writes each study's answer as
-<code>&lt;folder&gt;/&lt;ID&gt;/reading.yaml</code>, or under the name that <code>--name</code> gives. It never overwrites a file,
-and it writes no file whose exact text the format check rejects: it writes the others and exits 3,
-as <code>write-bounds</code> does. Like <code>write-bounds</code>, it refuses while a pass holds the task, so run it once
-the pass ends. For the standard set, the job's file is <code>job-reading.yaml</code>, beside the five worked
-examples. Each study ends in one of three ways:</p>
+<p>A sample's <strong>BioSample accession</strong> is the <code>SAMN</code> id that its GEO record links. Code copies it into
+the sample's row as <code>biosample_accession</code>, only when the record links exactly one. It is an id,
+not a claim. A compile joins a reading into its sample table by this id.</p>
+<p>The writer gets no JSON schema, because the gateway cannot send DeepSeek a schema while it thinks.
+Code reads the JSON object out of the reply's text instead. The reply must be all JSON, or hold
+exactly one fenced block.</p>
+<h3 id="assay-guides">Assay guides<a class="headerlink" href="#assay-guides" title="Permanent link">&para;</a></h3>
+<p>An <strong>assay guide</strong> is a short text that the reader adds to the writer's instructions and to Jev's
+questions, for a study whose records name one kind of assay. One guide exists today, for pull-down
+assays: ChIP-seq, ChIP-exo, CUT&amp;RUN and CUT&amp;Tag. In these assays an antibody pulls down the
+chromatin bound by one protein or histone mark, and a control library measures the background.</p>
+<p>The guide says that the target is a label and never a factor. It asks the writer to tie each
+control library to the pull-down libraries made from the same material, by the words that tie
+them, such as a replicate number in the sample titles. Jev checks each tie. Libraries that are tied
+share one <code>biosample</code> id. That <code>biosample</code> label is an id the reader makes up, such as <code>B1</code>. It is
+not the BioSample accession.</p>
+<h3 id="ontology-ids">Ontology ids<a class="headerlink" href="#ontology-ids" title="Permanent link">&para;</a></h3>
+<p>An ontology id names a term in a standard vocabulary, such as <code>UBERON:0002107</code>, the liver in
+UBERON, a vocabulary of body parts. The ids come from liulab-data's ontology store, found through
+<code>LABDATA_ONTOLOGIES</code> or the pointer that liulab-data saves. The pass opens the store once when it
+starts. The store keeps each vocabulary's snapshot fixed until the pass ends. If the store cannot
+be opened, <code>pass start</code> exits 2 and says why. It never reads a study with no search.</p>
+<ul>
+<li>The species id is the record's own taxonomy id.</li>
+<li><code>healthy</code> is <code>PATO:0000461</code>, from PATO, the ontology of traits and qualities.</li>
+<li>A <code>development_stage</code> of <code>adult</code> is the species' adult stage, found by its whole name. For the
+  mouse, that is <code>mature stage</code> in MmusDv, the ontology of mouse life stages.</li>
+<li>Every other id comes from a search of the store: up to 10 candidates, whole-text matches first.
+  Jev picks one or none, and a term is written only when Jev's pick has a probability of 0.8 or
+  more.</li>
+</ul>
+<p>The store must name an id, or the id is not written. A vocabulary that the store does not hold
+finds nothing, so its labels get no id. The reading's <code>ontology_snapshot</code> names each snapshot that
+its ids came from, such as
+<code>liulab-data ontology store: cl-2026-11-13, efo-3.96.0, ncbitaxon-2026-11-26, pato-2026-10-01</code>.
+Its <code>date</code> is the day in UTC (Coordinated Universal Time) when the pass opened the store, because
+the store names its snapshots by UTC day.</p>
+<h3 id="how-the-reader-ends-a-study">How the reader ends a study<a class="headerlink" href="#how-the-reader-ends-a-study" title="Permanent link">&para;</a></h3>
+<p><code>seqforge study write-reading --out &lt;folder&gt;</code> writes each study's answer as
+<code>&lt;folder&gt;/&lt;ID&gt;/reading.yaml</code>, or under the name that <code>--name</code> gives. It follows the same rules as
+<code>write-bounds</code>: it never overwrites a file, it writes no file that fails the format check, and it
+refuses while a pass holds the task.</p>
 <table>
 <thead>
 <tr>
@@ -1673,84 +2053,149 @@ examples. Each study ends in one of three ways:</p>
 <tbody>
 <tr>
 <td>Settled</td>
-<td>Jev's two answers agree on every question asked twice</td>
+<td>Jev's two answers agree on every question asked twice, and Jev answered every question asked once</td>
 <td>Written</td>
 </tr>
 <tr>
 <td>Unsettled</td>
-<td>Jev's two answers do not agree on whether a factor was varied on purpose, on its baseline, or on any sample's level. A missing answer, or a probability of exactly 0.5, never agrees. Or Jev leaves unanswered a question it is asked once: a sample's label value or a label with no listed value, whose claim is then <code>unknown</code> with no probability, where the material came from, whether a factor's levels are ordered, a passage check, a tie or a term pick</td>
+<td>Jev's two answers disagree on whether a factor was varied on purpose, on its baseline, or on a sample's level. Or Jev left a question asked once unanswered. A missing answer, or a probability of exactly 0.5, never agrees</td>
 <td>Written, with each probability</td>
 </tr>
 <tr>
 <td>Refused</td>
-<td>The writer's answer cannot be used after one retry, or the reading fails the format check</td>
+<td>The writer's answer cannot be used after one retry, the store holds no sequenced sample of the study, the writer lists more than 25 values for one label, or the reading fails the format check</td>
 <td>None. <code>write-reading</code> prints the reason</td>
+</tr>
+<tr>
+<td>Held</td>
+<td>The key is not a GEO Series, the study's bounds file is missing or fails its check, the record store does not hold a kept Series, or the study has papers and no paper store is set</td>
+<td>None. <code>seqforge pass status study-reading</code> lists the study under <code>not_done</code></td>
 </tr>
 </tbody>
 </table>
+<p>A question asked once is one of these: a sample's value on a label, a label with no listed value,
+where the libraries' material came from, whether a factor's levels are in order, a passage check,
+a tie, or a term pick. When Jev leaves one unanswered, its claim is <code>unknown</code> with no probability.</p>
 <h2 id="4-check-the-reading">4. Check the reading<a class="headerlink" href="#4-check-the-reading" title="Permanent link">&para;</a></h2>
-<p><code>seqforge study check-reading &lt;file&gt;</code> reads one <code>reading.yaml</code> and nothing else, and it accepts or
-rejects the file. For each problem it names the field and the reason.</p>
-<p>The check looks at the structure of the file. Every sample must have every label, every claim must
-say how it is backed in exactly one way, and every passage that a claim cites, for it or against
-it, must be in the file. A file that writes an ontology id must name where its ids came from.
-The check does not compare a quote with the record that the quote came from. That comparison needs
-the records, so it belongs to step 3.</p>
-<h2 id="5-derive-the-relations">5. Derive the relations<a class="headerlink" href="#5-derive-the-relations" title="Permanent link">&para;</a></h2>
-<p><code>seqforge study relations &lt;reading.yaml&gt;</code> reads one reading and prints how its samples relate. Code
-works the relations out from the labels in the reading each time the command runs. No file stores
-them, so a relation is never out of date with its reading.</p>
-<p>The command prints five kinds of relation:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>seqforge<span class="w"> </span>study<span class="w"> </span>check-reading<span class="w"> </span>&lt;folder&gt;/&lt;ID&gt;/reading.yaml
+</code></pre></div>
+<p>The check reads one reading file and accepts or rejects it. It prints the same JSON object as
+<code>check-bounds</code>, with the same exit codes. It also exits 2, with no verdict, when liulab-data is not
+installed, because liulab-data's vocabularies judge each ontology id.</p>
+<p>The check looks at the structure of the file:</p>
+<ul>
+<li>every sample has every label;</li>
+<li>every claim says how it is backed, in exactly one way;</li>
+<li>every passage that a claim cites, for it or against it, is in the file;</li>
+<li>a file that writes an ontology id names where its ids came from, and each id is from its label's
+  vocabulary.</li>
+</ul>
+<p>The check does not look for a quote in the record that the quote names. That needs the records,
+so it belongs to step 3.</p>
+<h2 id="5-work-out-the-relations">5. Work out the relations<a class="headerlink" href="#5-work-out-the-relations" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>seqforge<span class="w"> </span>study<span class="w"> </span>relations<span class="w"> </span>&lt;folder&gt;/&lt;ID&gt;/reading.yaml
+</code></pre></div>
+<p>The command checks the file as <code>check-reading</code> does, and rejects it the same way. For a valid file,
+its JSON also holds <code>relations</code>. Code works the relations out from the reading's labels each time
+the command runs. No file stores them, so a relation is never out of date with its reading.</p>
 <table>
 <thead>
 <tr>
 <th>Relation</th>
+<th>Key</th>
 <th>Meaning</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>Contrasts</td>
-<td>Two groups of samples that differ in one factor, with the other factors equal. One group is at the baseline, such as untreated</td>
+<td>Replicates</td>
+<td><code>replicates</code></td>
+<td>Samples with the same assay, the same target, the same control type and the same level of every factor.</td>
 </tr>
 <tr>
-<td>Replicates</td>
-<td>Samples that have the same assay, the same target, the same control type and the same level of every factor</td>
+<td>Contrasts</td>
+<td><code>contrasts</code></td>
+<td>Two groups of samples that differ in one factor, with the other factors equal. One group is at the baseline, such as untreated.</td>
 </tr>
 <tr>
 <td>Series</td>
-<td>Samples in order along a factor whose levels have an order, such as time points or doses. This kind of series is not a GEO Series</td>
+<td><code>series</code></td>
+<td>Samples in order along a factor whose levels have an order, such as time points or doses. This kind of series is not a GEO Series.</td>
 </tr>
 <tr>
 <td>Shared biosamples</td>
-<td>Samples that were made from the same biosample, such as two assays on one piece of tissue</td>
+<td><code>shared_biosample</code></td>
+<td>Samples made from the same material, such as two assays on one piece of tissue.</td>
 </tr>
 <tr>
 <td>Signal-to-control pairs</td>
-<td>A library that has a target, paired with its background control library, such as an input library, made from the same material</td>
+<td><code>signal_to_control</code></td>
+<td>A library that has a target, paired with its background control library made from the same material, such as an input library.</td>
 </tr>
 </tbody>
 </table>
 <h2 id="6-run-the-chain-unattended">6. Run the chain unattended<a class="headerlink" href="#6-run-the-chain-unattended" title="Permanent link">&para;</a></h2>
-<p><code>seqforge study run</code> runs steps 1 and 3 in order over the studies of one folder: the bounding
-pass, <code>study write-bounds</code>, the reading pass, then <code>study write-reading</code>. So the reading pass reads
-the bounds that were just written. Without <code>--keys</code>, it runs the studies that the folder's
-<code>pick.yaml</code> lists. One <code>--ceiling-usd</code> covers both passes: bounding spends first, and reading gets
-what is left. The first step that stops ends the command, with the exit code of that step. Run the
-same command again to resume. Every unit that was already answered replays from the gateway's
-cache at no cost.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>seqforge<span class="w"> </span>study<span class="w"> </span>run<span class="w"> </span>--studies<span class="w"> </span>&lt;folder&gt;<span class="w"> </span>--ceiling-usd<span class="w"> </span><span class="m">5</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>seqforge<span class="w"> </span>study<span class="w"> </span>run<span class="w"> </span>--studies<span class="w"> </span>&lt;folder&gt;<span class="w"> </span>--ceiling-usd<span class="w"> </span>&lt;dollars&gt;
 </code></pre></div>
-<p>This step runs the chain once over about 2,000 GEO Series, which is about 1% of the sequencing
-Series in GEO. The Series are drawn from liulab-data's store, and the 50 studies of the standard
-set are kept out. The chain bounds and reads every study with no person involved.</p>
-<p>For each study the run writes a <code>bounds.yaml</code> and a <code>reading.yaml</code>, or it lists the study with the
-reason it stopped. Every study ends as settled, unsettled or refused, as
-<a href="../passes/#start-a-pass">Passes</a> defines those endings. No study is sent
-to a person.</p>
+<p>This command needs the gateway and all three stores. It runs four commands in order over the
+studies of one folder:</p>
+<ol>
+<li><code>pass start study-bounds</code>;</li>
+<li><code>study write-bounds</code>, which writes each study's <code>bounds.yaml</code>;</li>
+<li><code>pass start study-reading</code>, which reads the bounds just written;</li>
+<li><code>study write-reading</code>, which writes each study's <code>reading.yaml</code>.</li>
+</ol>
+<p><code>--studies</code> is required. With no <code>--keys</code>, the command runs the studies that the folder's
+<code>pick.yaml</code> lists. One <code>--ceiling-usd</code> covers both passes: bounding spends first, and reading gets
+what is left. <code>--model</code>, <code>--units-at-once</code> and <code>--off-peak-only</code> work as they do for
+<code>pass start</code>. A <code>--model</code> role goes to each pass whose kind has that role.</p>
+<p>Each pass uses its default task, <code>seqforge/passes/&lt;kind&gt;/</code> in the current folder. The command adds
+no check of its own. It always writes the folder's own <code>bounds.yaml</code> and <code>reading.yaml</code>, so it
+cannot write the standard set's <code>job-bounds.yaml</code> and <code>job-reading.yaml</code>. Use steps 1 and 3 with
+<code>--name</code> for those.</p>
+<p>It prints one JSON object: the folder, the ceiling, <code>spent_usd</code>, and <code>steps</code>, with each step's
+command (<code>verb</code>), its exit code (<code>exit</code>) and its own output.</p>
+<table>
+<thead>
+<tr>
+<th>Exit</th>
+<th>When</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0</td>
+<td>Every step finished.</td>
+</tr>
+<tr>
+<td>2</td>
+<td>A setup a step cannot use. A setup refused before the first pass spends nothing.</td>
+</tr>
+<tr>
+<td>3</td>
+<td>A pass stopped, such as at the ceiling, a task was held by another process, or the format check rejected a file.</td>
+</tr>
+</tbody>
+</table>
+<p>The first step that does not finish stops the chain, and its exit code is the command's. To
+resume, run the same command again from the same folder. Every study already answered replays from
+the gateway's cache at no cost. A file already written is kept.</p>
+<p>Each run of the standard set is measured in a dated note under <code>docs/research/</code>: what it cost,
+how long it took and how each study ended. The latest is the
+<a href="https://github.com/liuhlab/seqforge/blob/main/docs/research/study-chain-on-the-50-2026-11-27.md">note on the run of 2026-11-27</a>.</p>
+<h2 id="after-the-chain">After the chain<a class="headerlink" href="#after-the-chain" title="Permanent link">&para;</a></h2>
+<p>Two commands use a study folder once the chain has written it:</p>
+<ul>
+<li><code>seqforge report --study &lt;folder&gt;/&lt;ID&gt;</code> writes <code>report.html</code> and <code>report.json</code> into that study
+  folder. It shows the folder's own <code>bounds.yaml</code> and <code>reading.yaml</code>, never the <code>job-*.yaml</code>
+  files. It does not show whether the job settled the study: that is kept in the pass's task.</li>
+<li><code>seqforge run --study &lt;folder&gt;/&lt;ID&gt;</code> joins the reading into the compiled <code>sample_metadata.tsv</code>
+  by BioSample accession, when you compile the study's FASTQ files.
+  <a href="../how-it-works/compiler/">From FASTQ files to a pipeline</a> says more.</li>
+</ul>
 <h2 id="files-that-exist-today">Files that exist today<a class="headerlink" href="#files-that-exist-today" title="Permanent link">&para;</a></h2>
-<p><a href="../hand-work-files/">Files from the hand work</a> lists every bounds file, reading and verdict made
-so far, with where each is, its format and who made it.</p>
+<p><a href="../hand-work-files/">Files from the hand work</a> lists every bounds file, reading and verdict made so
+far: where each one is, its format and who made it.</p>
 
 
 

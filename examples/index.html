@@ -6,35 +6,35 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="A compiler from FASTQ + unstructured metadata to a validated manifest and a runnable pipeline.">
+        <meta name="description" content="Reads sequencing studies and their files, and writes down what they are, from the bounds of a study to a pipeline you submit.">
       
       
       
-        <link rel="canonical" href="https://liuhlab.github.io/seqforge/concepts/refusal/">
+        <link rel="canonical" href="https://liuhlab.github.io/seqforge/examples/">
       
       
-        <link rel="prev" href="../identifying/">
+        <link rel="prev" href="..">
       
       
-        <link rel="next" href="../../kb/">
+        <link rel="next" href="../how-it-works/study/">
       
       
         
       
       
-      <link rel="icon" href="../../assets/favicon.png">
+      <link rel="icon" href="../assets/favicon.png">
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
     
     
       
-        <title>When it refuses - seqforge</title>
+        <title>Example reports - seqforge</title>
       
     
     
-      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
       
         
-        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
       
       
 
@@ -53,9 +53,9 @@
       
     
     
-      <link rel="stylesheet" href="../../stylesheets/extra.css">
+      <link rel="stylesheet" href="../stylesheets/extra.css">
     
-    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
   
@@ -90,7 +90,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#when-it-refuses" class="md-skip">
+        <a href="#example-reports" class="md-skip">
           Skip to content
         </a>
       
@@ -106,9 +106,9 @@
 
 <header class="md-header md-header--shadow" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="../.." title="seqforge" class="md-header__button md-logo" aria-label="seqforge" data-md-component="logo">
+    <a href=".." title="seqforge" class="md-header__button md-logo" aria-label="seqforge" data-md-component="logo">
       
-  <img src="../../assets/logo.png" alt="logo">
+  <img src="../assets/logo.png" alt="logo">
 
     </a>
     <label class="md-header__button md-icon" for="__drawer">
@@ -125,7 +125,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              When it refuses
+              Example reports
             
           </span>
         </div>
@@ -241,9 +241,9 @@
 
 <nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="../.." title="seqforge" class="md-nav__button md-logo" aria-label="seqforge" data-md-component="logo">
+    <a href=".." title="seqforge" class="md-nav__button md-logo" aria-label="seqforge" data-md-component="logo">
       
-  <img src="../../assets/logo.png" alt="logo">
+  <img src="../assets/logo.png" alt="logo">
 
     </a>
     seqforge
@@ -270,7 +270,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../.." class="md-nav__link">
+      <a href=".." class="md-nav__link">
         
   
   
@@ -294,17 +294,44 @@
       
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../../getting-started/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Example reports
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
   <span class="md-ellipsis">
     
   
-    Getting started
+    Example reports
   
 
     
@@ -313,6 +340,109 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#how-to-read-a-report" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How to read a report
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-three-studies" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The three studies
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="The three studies">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#gse112068-a-dose-and-time-course" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        GSE112068: a dose and time course
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gse272899-two-factors-and-a-chromatin-assay" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        GSE272899: two factors, and a chromatin assay
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gse329430-four-factors-left-unsettled" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        GSE329430: four factors, left unsettled
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#how-these-were-made" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How these were made
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#make-one-yourself" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Make one yourself
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -347,7 +477,7 @@
   <span class="md-ellipsis">
     
   
-    Tutorials
+    How it works
   
 
     
@@ -363,7 +493,7 @@
             <span class="md-nav__icon md-icon"></span>
             
   
-    Tutorials
+    How it works
   
 
           </label>
@@ -376,14 +506,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../../tutorials/with-claude/" class="md-nav__link">
+      <a href="../how-it-works/study/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    Compiling with Claude
+    Understanding a study
   
 
     
@@ -404,14 +534,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../../tutorials/step-by-step/" class="md-nav__link">
+      <a href="../how-it-works/compiler/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    Compiling Step-by-step
+    From FASTQ files to a pipeline
   
 
     
@@ -432,14 +562,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../../tutorials/adding-a-technology/" class="md-nav__link">
+      <a href="../how-it-works/trust/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    Adding a technology
+    Why you can trust the output
   
 
     
@@ -466,15 +596,67 @@
   
   
   
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Use it
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Use it
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
     <li class="md-nav__item">
-      <a href="../../study-workflow/" class="md-nav__link">
+      <a href="../getting-started/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    The study workflow
+    Getting started
   
 
     
@@ -486,22 +668,23 @@
     </li>
   
 
-    
-      
-      
+              
+            
+              
+                
   
   
   
   
     <li class="md-nav__item">
-      <a href="../../hand-work-files/" class="md-nav__link">
+      <a href="../guides/read-studies/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    Files from the hand work
+    Read your own studies
   
 
     
@@ -513,22 +696,23 @@
     </li>
   
 
-    
-      
-      
+              
+            
+              
+                
   
   
   
   
     <li class="md-nav__item">
-      <a href="../../passes/" class="md-nav__link">
+      <a href="../tutorials/with-claude/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    Passes
+    Compile with Claude
   
 
     
@@ -537,6 +721,70 @@
   
 
       </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tutorials/step-by-step/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Compile step by step
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tutorials/adding-a-technology/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Add a technology
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
     </li>
   
 
@@ -561,17 +809,17 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
         
           
-          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="">
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
             
   
   
   <span class="md-ellipsis">
     
   
-    File formats
+    Reference
   
 
     
@@ -582,12 +830,12 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_7">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
             <span class="md-nav__icon md-icon"></span>
             
   
-    File formats
+    Reference
   
 
           </label>
@@ -600,7 +848,91 @@
   
   
     <li class="md-nav__item">
-      <a href="../../formats/bounds/" class="md-nav__link">
+      <a href="../reference/commands/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Commands
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../passes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Passes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../study-workflow/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    The study workflow in detail
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../formats/bounds/" class="md-nav__link">
         
   
   
@@ -628,7 +960,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../formats/reading/" class="md-nav__link">
+      <a href="../formats/reading/" class="md-nav__link">
         
   
   
@@ -649,67 +981,6 @@
 
               
             
-          </ul>
-        </nav>
-      
-    </li>
-  
-
-    
-      
-      
-  
-  
-    
-  
-  
-  
-    
-    
-    
-    
-      
-        
-        
-      
-    
-    
-    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
-      
-        
-        
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8" checked>
-        
-          
-          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="">
-            
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Concepts
-  
-
-    
-  </span>
-  
-  
-
-            <span class="md-nav__icon md-icon"></span>
-          </label>
-        
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="true">
-          <label class="md-nav__title" for="__nav_8">
-            <span class="md-nav__icon md-icon"></span>
-            
-  
-    Concepts
-  
-
-          </label>
-          <ul class="md-nav__list" data-md-scrollfix>
-            
               
                 
   
@@ -717,14 +988,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../artifacts/" class="md-nav__link">
+      <a href="../hand-work-files/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    The two artifacts
+    Files from the hand work
   
 
     
@@ -744,167 +1015,21 @@
   
   
   
-    <li class="md-nav__item">
-      <a href="../identifying/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    How a dataset is identified
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-    
-  
-  
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    When it refuses
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    When it refuses
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#three-ways-it-can-end" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Three ways it can end
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#the-failures-worth-catching-are-the-quiet-ones" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        The failures worth catching are the quiet ones
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#never-ask-a-question-you-dont-need-answered" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Never ask a question you don't need answered
-      
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
-    </li>
-  
-
-              
-            
-          </ul>
-        </nav>
-      
-    </li>
-  
-
-    
-      
-      
-  
-  
-  
-  
     
     
     
     
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
       
         
         
-      
-    
-    
-    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
-      
-        
-        
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_9" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_7" >
         
           
-          <label class="md-nav__link" for="__nav_9" id="__nav_9_label" tabindex="">
+          <label class="md-nav__link" for="__nav_5_7" id="__nav_5_7_label" tabindex="0">
             
   
   
@@ -922,8 +1047,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_9_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_9">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5_7">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -940,7 +1065,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../kb/" class="md-nav__link">
+      <a href="../kb/" class="md-nav__link">
         
   
   
@@ -978,10 +1103,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_9_2" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_7_2" >
         
           
-          <label class="md-nav__link" for="__nav_9_2" id="__nav_9_2_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_5_7_2" id="__nav_5_7_2_label" tabindex="0">
             
   
   
@@ -999,8 +1124,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_9_2_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_9_2">
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_5_7_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5_7_2">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -1017,7 +1142,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../kb/10x-3p-gex-v3/" class="md-nav__link">
+      <a href="../kb/10x-3p-gex-v3/" class="md-nav__link">
         
   
   
@@ -1045,7 +1170,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../kb/10x-3p-gex-v2/" class="md-nav__link">
+      <a href="../kb/10x-3p-gex-v2/" class="md-nav__link">
         
   
   
@@ -1073,7 +1198,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../kb/bd-rhapsody-wta/" class="md-nav__link">
+      <a href="../kb/bd-rhapsody-wta/" class="md-nav__link">
         
   
   
@@ -1101,7 +1226,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../kb/splitseq/" class="md-nav__link">
+      <a href="../kb/splitseq/" class="md-nav__link">
         
   
   
@@ -1129,7 +1254,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../kb/bulk-rnaseq/" class="md-nav__link">
+      <a href="../kb/bulk-rnaseq/" class="md-nav__link">
         
   
   
@@ -1145,6 +1270,14 @@
   
 
       </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
     </li>
   
 
@@ -1192,10 +1325,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#three-ways-it-can-end" class="md-nav__link">
+  <a href="#how-to-read-a-report" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Three ways it can end
+        How to read a report
       
     </span>
   </a>
@@ -1203,10 +1336,60 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#the-failures-worth-catching-are-the-quiet-ones" class="md-nav__link">
+  <a href="#the-three-studies" class="md-nav__link">
     <span class="md-ellipsis">
       
-        The failures worth catching are the quiet ones
+        The three studies
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="The three studies">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#gse112068-a-dose-and-time-course" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        GSE112068: a dose and time course
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gse272899-two-factors-and-a-chromatin-assay" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        GSE272899: two factors, and a chromatin assay
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gse329430-four-factors-left-unsettled" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        GSE329430: four factors, left unsettled
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#how-these-were-made" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How these were made
       
     </span>
   </a>
@@ -1214,10 +1397,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#never-ask-a-question-you-dont-need-answered" class="md-nav__link">
+  <a href="#make-one-yourself" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Never ask a question you don't need answered
+        Make one yourself
       
     </span>
   </a>
@@ -1241,7 +1424,7 @@
 
 
   
-    <a href="https://github.com/liuhlab/seqforge/edit/main/docs/concepts/refusal.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+    <a href="https://github.com/liuhlab/seqforge/edit/main/docs/examples/index.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
       
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
     </a>
@@ -1249,65 +1432,113 @@
   
 
 
-<h1 id="when-it-refuses">When it refuses<a class="headerlink" href="#when-it-refuses" title="Permanent link">&para;</a></h1>
-<p>The most useful thing seqforge does is stop. A tool that always produces an answer is only
-trustworthy if you check the answer, and at ten thousand datasets nobody checks. So it is built to
-fail loudly where a normal pipeline fails silently.</p>
-<h2 id="three-ways-it-can-end">Three ways it can end<a class="headerlink" href="#three-ways-it-can-end" title="Permanent link">&para;</a></h2>
-<pre class="mermaid"><code>flowchart TD
-    START["a dataset"] --&gt; Q{"can code decide it?"}
-    Q --&gt;|yes| OK["&lt;span style='color:#fff'&gt;&lt;b&gt;manifest&lt;/b&gt;&lt;br/&gt;exit 0&lt;/span&gt;"]
-    Q --&gt;|"something is structurally wrong"| BLK["&lt;span style='color:#fff'&gt;&lt;b&gt;blocker&lt;/b&gt;&lt;br/&gt;exit 3&lt;br/&gt;&lt;i&gt;this cannot be processed&lt;/i&gt;&lt;/span&gt;"]
-    Q --&gt;|"a real question only&lt;br/&gt;a human can settle"| ASK["&lt;span style='color:#fff'&gt;&lt;b&gt;question&lt;/b&gt;&lt;br/&gt;exit 4&lt;br/&gt;&lt;i&gt;tell me, and I'll continue&lt;/i&gt;&lt;/span&gt;"]
-
-    %% The inline white &lt;span&gt; is required on dark fills — see the comment in docs/index.md.
-    classDef artifact fill:#00695c,stroke:#004d40
-    classDef blocked fill:#b71c1c,stroke:#7f0000
-    classDef ask fill:#bf360c,stroke:#7f2400
-    class OK artifact
-    class BLK blocked
-    class ASK ask</code></pre>
-<p>A refusal is an <strong>exit code</strong>, not a warning in a log. Code decides whether processing may proceed;
-the language model never gets a vote, and at most helps phrase the question.</p>
-<p>Every blocker carries a reason and a remedy you can act on. "Could not process" is not a remedy. "The
-barcode read is missing — re-fetch including technical reads, or pull the submitter's original files"
-is.</p>
-<h2 id="the-failures-worth-catching-are-the-quiet-ones">The failures worth catching are the quiet ones<a class="headerlink" href="#the-failures-worth-catching-are-the-quiet-ones" title="Permanent link">&para;</a></h2>
-<p>Loud failures take care of themselves: a corrupt file explodes and you notice. These do not.</p>
-<p><strong>The wrong strand.</strong> About half the reads land unassigned, and the matrix just looks like a thin
-dataset. Public metadata essentially never states the strand.</p>
-<p><strong>A trimmed barcode file.</strong> A trimming tool ran before upload. Most reads are still the right length,
-so the geometry checks pass — but some shifted, so the barcode is read from the wrong position and
-those cells are dropped.</p>
-<p><strong>The wrong genome.</strong> A worm dataset against the human genome barely maps: loud, therefore fine. The
-same mistake between two <em>similar</em> genomes is silent, and yields a plausible matrix in the wrong
-coordinate space.</p>
-<p><strong>Counting only exons on a nuclear sample.</strong> Nuclei are full of unspliced RNA sitting in introns;
-count only exons and you throw it away. We measured <strong>40.7%</strong> of a nuclear library, gone. The
-chemistry is byte-identical to the whole-cell version, so the reads cannot tell you which you have.</p>
-<p>Every one of them exits 0.</p>
-<h2 id="never-ask-a-question-you-dont-need-answered">Never ask a question you don't need answered<a class="headerlink" href="#never-ask-a-question-you-dont-need-answered" title="Permanent link">&para;</a></h2>
-<p>Refusing is expensive too: a system that questions you constantly is one you route around, and
-then it protects nobody.</p>
-<p><strong>Don't ask if the answer can't change anything.</strong> Two versions of the 10x chemistry may be
-indistinguishable from the reads. If they produce <em>identical</em> settings, record both names and move
-on. This is computed, not assumed: a check over every pair asserts that "indistinguishable" and
-"identical settings" agree.</p>
-<p><strong>Don't ask if you can afford every answer.</strong> Nuclear-versus-whole-cell is unanswerable from the
-reads — so count <strong>all five ways at once</strong>. One alignment, five counting rules, one pass. Download
-and alignment dominate the cost so completely that the extra counting is close to free.</p>
-<pre class="mermaid"><code>flowchart LR
-    Q["'is this cells or nuclei?'&lt;br/&gt;— unanswerable from the reads"]
-    Q --&gt; BAD["&lt;span style='color:#fff'&gt;ask the human&lt;br/&gt;&lt;i&gt;exit 4&lt;/i&gt;&lt;/span&gt;"]
-    Q --&gt; GOOD["&lt;span style='color:#fff'&gt;count all five ways&lt;br/&gt;&lt;i&gt;exit 0&lt;/i&gt;&lt;/span&gt;"]
-
-    %% The inline white &lt;span&gt; is required on dark fills — see the comment in docs/index.md.
-    classDef ask fill:#bf360c,stroke:#7f2400
-    classDef artifact fill:#00695c,stroke:#004d40
-    class BAD ask
-    class GOOD artifact</code></pre>
-<p>Save the interruptions for things that are genuinely exclusive — a genome, an aligner — where you
-really do have to choose one.</p>
+<h1 id="example-reports">Example reports<a class="headerlink" href="#example-reports" title="Permanent link">&para;</a></h1>
+<p>Three study reports, made by seqforge from public GEO records. Each one is a single web page that
+opens offline. Open one before you read anything else on this site: it shows what seqforge writes
+about a study, and how each claim points back to its source.</p>
+<p>The three studies come from the <strong>standard set</strong>, 50 GEO studies picked to cover many kinds of
+design. They were picked here because their designs differ, and because each reading quotes only
+public text: GEO records, and at most a paper's abstract on PubMed.</p>
+<table>
+<thead>
+<tr>
+<th>Study</th>
+<th>What it is</th>
+<th>Design the reading found</th>
+<th>Quotes from</th>
+<th>Job's ending</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="GSE112068/report.html">GSE112068</a></td>
+<td>Human lung cells exposed to a drug that damages DNA, sampled over 8 days</td>
+<td>3 factors: treatment, dose and time point (11 times). 23 samples</td>
+<td>GEO records only</td>
+<td>Settled</td>
+</tr>
+<tr>
+<td><a href="GSE272899/report.html">GSE272899</a></td>
+<td>Open chromatin in fat-tissue immune cells of young and old mice</td>
+<td>2 factors: age and genotype (4 genotypes). 9 samples</td>
+<td>GEO records and one abstract</td>
+<td>Settled</td>
+</tr>
+<tr>
+<td><a href="GSE329430/report.html">GSE329430</a></td>
+<td>Bone marrow and brain cells in a mouse model of Alzheimer's disease</td>
+<td>4 factors: genotype, disease, tissue and cell type. 20 samples</td>
+<td>GEO records and one abstract</td>
+<td><strong>Unsettled</strong></td>
+</tr>
+</tbody>
+</table>
+<h2 id="how-to-read-a-report">How to read a report<a class="headerlink" href="#how-to-read-a-report" title="Permanent link">&para;</a></h2>
+<p>A report has one tab, <strong>Study</strong>, in three parts.</p>
+<ul>
+<li><strong>Bounds.</strong> Which GEO Series and papers are one study. A solid box is a record kept in the study,
+  and a dashed, struck-through box is one left out. Point at a record to see why it was kept or
+  left out.</li>
+<li><strong>Design.</strong> The factors the study varied on purpose, and how many samples fall in each mix of
+  levels. A diamond (◆) marks a factor's baseline, the level the others are compared with. Each
+  factor carries a <code>p</code>: the model's confidence in that factor, from 0 to 1. Point at a count to
+  list its samples.</li>
+<li><strong>Samples.</strong> What each sample was, in one table per topic: assay, organism, material, and
+  treatment and time. Each value is either <strong>quoted</strong> (a passage backs it), <strong>inferred</strong> (no
+  passage states it), <strong>unknown</strong> or <strong>n/a</strong> (it does not apply). A paler cell has a lower <code>p</code>.
+  Click a cell to see the passages behind it, each with the record and field it came from.</li>
+</ul>
+<p>A report does not show how the job ended the study. The table above says it, and so does each
+section below.</p>
+<h2 id="the-three-studies">The three studies<a class="headerlink" href="#the-three-studies" title="Permanent link">&para;</a></h2>
+<h3 id="gse112068-a-dose-and-time-course">GSE112068: a dose and time course<a class="headerlink" href="#gse112068-a-dose-and-time-course" title="Permanent link">&para;</a></h3>
+<p>Human IMR-90 cells, a line of lung fibroblasts taken from a fetus at 16 weeks, were treated with
+bleomycin, a drug that breaks DNA. The reading found three factors: treatment (none or bleomycin),
+dose (0, 2 or 40 µg/ml) and time point (11 times, from the start to 8 days). Each factor has a
+baseline, and the levels of all three run in order. The study has no paper, so every quote comes
+from the GEO Series and Sample records.</p>
+<p>Both jobs settled it: each question asked twice got the same answer both times.</p>
+<p><a href="GSE112068/report.html">Open the GSE112068 report</a>.</p>
+<h3 id="gse272899-two-factors-and-a-chromatin-assay">GSE272899: two factors, and a chromatin assay<a class="headerlink" href="#gse272899-two-factors-and-a-chromatin-assay" title="Permanent link">&para;</a></h3>
+<p>ATAC-seq (a method that maps the open, readable parts of the genome) of macrophages sorted from
+mouse fat tissue. The mice were young or old, and carried one of four genotypes around the gene
+GDF3, among them a knockout in myeloid cells, the blood-cell family that macrophages belong to.
+Every mouse got the same dose of LPS, a bacterial toxin, for 4 hours. The reading records that dose as a shared label and not as a factor, since all
+samples got it. Quotes come from the GEO records and the paper's PubMed abstract.</p>
+<p>Both jobs settled it.</p>
+<p><a href="GSE272899/report.html">Open the GSE272899 report</a>.</p>
+<h3 id="gse329430-four-factors-left-unsettled">GSE329430: four factors, left unsettled<a class="headerlink" href="#gse329430-four-factors-left-unsettled" title="Permanent link">&para;</a></h3>
+<p>Bone marrow and brain cells from 12-month-old female mice, some carrying 5xFAD, a model of
+Alzheimer's disease. The reading found four factors: genotype, disease, tissue and cell type. Some
+of the 20 samples are not RNA at all. They are tag libraries read beside the RNA, which mark each
+cell's mouse or its surface proteins, and the reading lists them as assays of their own: CMO and
+HTO (tags that mark which mouse a cell came from) and ADT (antibody tags that count surface
+proteins). Quotes come from the GEO records and the paper's PubMed abstract.</p>
+<p>The reading job left it <strong>unsettled</strong>. Each question is asked twice, the second time with the
+options in reverse order. Here the two answers differed on two points: whether treatment was
+varied on purpose, and which cell type is the baseline. The file and the report still show the
+first answer, so treat those two points as open.</p>
+<p><a href="GSE329430/report.html">Open the GSE329430 report</a>.</p>
+<h2 id="how-these-were-made">How these were made<a class="headerlink" href="#how-these-were-made" title="Permanent link">&para;</a></h2>
+<p>All three were made on 2026-11-27, from a run over the whole standard set, with:</p>
+<ul>
+<li>seqforge at commit <code>9209509</code>, report version <code>2026.11.8</code>;</li>
+<li>the bounding job, version <code>2026.11.3</code>, and the reading job, version <code>2026.11.10</code>;</li>
+<li>Jev 1.14.0 from TypeSafe, a model that answers yes-or-no and choice questions with a
+  probability, in both jobs, and DeepSeek Flash as the reading job's writer;</li>
+<li>ontology terms from the dated snapshots each reading names in its <code>ontology_snapshot</code> field.</li>
+</ul>
+<p>The run cost nothing, because every answer was already in the model gateway's cache. The
+<a href="https://github.com/liuhlab/seqforge/blob/main/docs/research/study-chain-on-the-50-2026-11-27.md">dated note on that run</a> gives what a first run costs and how each of the 50 ended.</p>
+<h2 id="make-one-yourself">Make one yourself<a class="headerlink" href="#make-one-yourself" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>seqforge<span class="w"> </span>study<span class="w"> </span>run<span class="w"> </span>--studies<span class="w"> </span>&lt;folder&gt;<span class="w"> </span>--ceiling-usd<span class="w"> </span><span class="m">1</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>seqforge<span class="w"> </span>report<span class="w"> </span>--study<span class="w"> </span>&lt;folder&gt;/&lt;GSE<span class="w"> </span>id&gt;
+</code></pre></div>
+<p>The first command needs the lab's model gateway and its copy of the GEO and SRA records.
+<a href="../guides/read-studies/">Read your own studies</a> says how to set up the folder and what each
+step needs. The second command needs neither the gateway nor the records: it reads the two files
+the first one wrote, and writes <code>report.html</code> and <code>report.json</code> beside them. With the lab's
+ontology store set up, it also names each assay term.</p>
 
 
 
@@ -1361,10 +1592,10 @@ really do have to choose one.</p>
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.sections", "content.code.copy", "content.code.annotate", "content.action.edit", "content.tabs.link", "toc.follow"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.sections", "content.code.copy", "content.code.annotate", "content.action.edit", "content.tabs.link", "toc.follow"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
-      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
       
     
   </body>

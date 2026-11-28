@@ -1,0 +1,1847 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Reads sequencing studies and their files, and writes down what they are, from the bounds of a study to a pipeline you submit.">
+      
+      
+      
+        <link rel="canonical" href="https://liuhlab.github.io/seqforge/how-it-works/compiler/">
+      
+      
+        <link rel="prev" href="../study/">
+      
+      
+        <link rel="next" href="../trust/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>From FASTQ files to a pipeline - seqforge</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+  
+
+
+  
+  
+
+<script id="__analytics">function __md_analytics(){function e(){dataLayer.push(arguments)}window.dataLayer=window.dataLayer||[],e("js",new Date),e("config","G-6M1CJF9WXY"),document.addEventListener("DOMContentLoaded",(function(){document.forms.search&&document.forms.search.query.addEventListener("blur",(function(){this.value&&e("event","search",{search_term:this.value})}));document$.subscribe((function(){var t=document.forms.feedback;if(void 0!==t)for(var a of t.querySelectorAll("[type=submit]"))a.addEventListener("click",(function(a){a.preventDefault();var n=document.location.pathname,d=this.getAttribute("data-md-value");e("event","feedback",{page:n,data:d}),t.firstElementChild.disabled=!0;var r=t.querySelector(".md-feedback__note [data-md-value='"+d+"']");r&&(r.hidden=!1)})),t.hidden=!1})),location$.subscribe((function(t){e("config","G-6M1CJF9WXY",{page_path:t.pathname})}))}));var t=document.createElement("script");t.async=!0,t.src="https://www.googletagmanager.com/gtag/js?id=G-6M1CJF9WXY",document.getElementById("__analytics").insertAdjacentElement("afterEnd",t)}</script>
+  
+    <script>"undefined"!=typeof __md_analytics&&__md_analytics()</script>
+  
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="teal" data-md-color-accent="teal">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#from-fastq-files-to-a-pipeline" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="seqforge" class="md-header__button md-logo" aria-label="seqforge" data-md-component="logo">
+      
+  <img src="../../assets/logo.png" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            seqforge
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              From FASTQ files to a pipeline
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="teal" data-md-color-accent="teal"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="teal" data-md-color-accent="teal"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/liuhlab/seqforge" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    liuhlab/seqforge
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="seqforge" class="md-nav__button md-logo" aria-label="seqforge" data-md-component="logo">
+      
+  <img src="../../assets/logo.png" alt="logo">
+
+    </a>
+    seqforge
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/liuhlab/seqforge" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    liuhlab/seqforge
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../examples/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Example reports
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    How it works
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    How it works
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../study/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Understanding a study
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    From FASTQ files to a pipeline
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    From FASTQ files to a pipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#what-goes-in" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What goes in
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-comes-out" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What comes out
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#how-the-library-type-is-found-from-the-bytes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How the library type is found from the bytes
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="How the library type is found from the bytes">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#filenames-are-not-evidence" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Filenames are not evidence
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#it-reads-only-the-start-of-each-file" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        It reads only the start of each file
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#the-knowledge-base-says-what-each-technology-looks-like" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The knowledge base says what each technology looks like
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cheap-checks-come-first" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cheap checks come first
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#which-file-is-which-sample-comes-from-the-records" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Which file is which sample comes from the records
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-manifest-what-the-data-is" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The manifest: what the data is
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-recipe-what-to-do-with-it" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The recipe: what to do with it
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-pipeline-you-submit" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The pipeline you submit
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#joining-a-studys-reading" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Joining a study's reading
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-report" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The report
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../trust/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Why you can trust the output
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Use it
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Use it
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting started
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/read-studies/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Read your own studies
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tutorials/with-claude/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Compile with Claude
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tutorials/step-by-step/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Compile step by step
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tutorials/adding-a-technology/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Add a technology
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/commands/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Commands
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../passes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Passes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../study-workflow/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    The study workflow in detail
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../formats/bounds/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    The bounds file
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../formats/reading/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    The reading file
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../hand-work-files/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Files from the hand work
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_5_7" id="__nav_5_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Knowledge base
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Knowledge base
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../kb/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_7_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_5_7_2" id="__nav_5_7_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Supported assays
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_5_7_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5_7_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Supported assays
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../kb/10x-3p-gex-v3/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    10x Chromium 3' v3 & v3.1
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../kb/10x-3p-gex-v2/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    10x Chromium 3' v2
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../kb/bd-rhapsody-wta/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    BD Rhapsody WTA
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../kb/splitseq/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SPLiT-seq
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../kb/bulk-rnaseq/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Bulk RNA-seq
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#what-goes-in" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What goes in
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-comes-out" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What comes out
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#how-the-library-type-is-found-from-the-bytes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How the library type is found from the bytes
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="How the library type is found from the bytes">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#filenames-are-not-evidence" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Filenames are not evidence
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#it-reads-only-the-start-of-each-file" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        It reads only the start of each file
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#the-knowledge-base-says-what-each-technology-looks-like" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The knowledge base says what each technology looks like
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cheap-checks-come-first" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cheap checks come first
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#which-file-is-which-sample-comes-from-the-records" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Which file is which sample comes from the records
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-manifest-what-the-data-is" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The manifest: what the data is
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-recipe-what-to-do-with-it" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The recipe: what to do with it
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-pipeline-you-submit" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The pipeline you submit
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#joining-a-studys-reading" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Joining a study's reading
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-report" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The report
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+    <a href="https://github.com/liuhlab/seqforge/edit/main/docs/how-it-works/compiler.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
+    </a>
+  
+  
+
+
+<h1 id="from-fastq-files-to-a-pipeline">From FASTQ files to a pipeline<a class="headerlink" href="#from-fastq-files-to-a-pipeline" title="Permanent link">&para;</a></h1>
+<p>The compiler turns a set of FASTQ files into a pipeline you can run. It works like a compiler for
+code: you hand it source, it checks the source, and it writes a program. Here the source is your
+sequencing files and what you know about them, and the program is a Snakemake workflow (a
+<code>Snakefile</code> and its settings). seqforge writes the pipeline. You submit it. seqforge never submits
+a job.</p>
+<p>This page explains what happens on the way. To do it yourself, see
+<a href="../../tutorials/step-by-step/">Compile step by step</a> or <a href="../../tutorials/with-claude/">Compile with Claude</a>.
+Each command's options are in the <a href="../../reference/commands/">command reference</a>.</p>
+<h2 id="what-goes-in">What goes in<a class="headerlink" href="#what-goes-in" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Input</th>
+<th>Needed?</th>
+<th>What it is for</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>FASTQ files (<code>.fastq.gz</code>)</td>
+<td>Yes</td>
+<td>The bytes decide what kind of library this is.</td>
+</tr>
+<tr>
+<td>The genome</td>
+<td>Yes</td>
+<td>A genome assembly by its UCSC id (the assembly's name in the UCSC Genome Browser), such as <code>ce11</code>, and a named gene annotation. This is the one choice with no safe default, so seqforge asks for it.</td>
+</tr>
+<tr>
+<td>An archive accession</td>
+<td>No</td>
+<td>The archive's records for each sample, such as an SRA project. Most sequencing data never had one.</td>
+</tr>
+<tr>
+<td>Papers and notes</td>
+<td>No</td>
+<td>A paper (<code>.pdf</code>, <code>.txt</code> or <code>.md</code>) or a supplementary <code>.xlsx</code> table. A model reads it for claims about the library. You can skip this step and use no model at all.</td>
+</tr>
+<tr>
+<td>Instructions</td>
+<td>No</td>
+<td>A document written for seqforge, such as "count introns too". Only this kind of document can change what to do with the data.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="what-comes-out">What comes out<a class="headerlink" href="#what-comes-out" title="Permanent link">&para;</a></h2>
+<pre class="mermaid"><code>flowchart LR
+    F["FASTQ files"] --&gt; M["manifest.yaml&lt;br/&gt;what the data is"]
+    A["records and papers&lt;br/&gt;(optional)"] --&gt; M
+    M --&gt; C["compose"]
+    P["processing.yaml&lt;br/&gt;what to do with it"] --&gt; C
+    C --&gt; S["Snakefile&lt;br/&gt;you submit it"]</code></pre>
+<ul>
+<li><strong>The manifest</strong> (<code>manifest.yaml</code>) says what the data is: the library type, how each file's reads
+  are laid out, the organism and the samples. There is one per dataset.</li>
+<li><strong>The recipe</strong> (<code>processing.yaml</code>) says what to do with it: the genome, the aligner, what to count
+  and the computing environment. There can be many per dataset.</li>
+<li><strong>The pipeline</strong> is a folder that holds the <code>Snakefile</code>, its settings, and a table that says where
+  every FASTQ file is and which sample and read it belongs to.</li>
+<li><strong>The sample table</strong> (<code>sample_metadata.tsv</code>) has one row per sample.</li>
+</ul>
+<p>All of it goes into a <code>seqforge/</code> folder in your project. Only <code>seqforge/cache/</code> is safe to delete.</p>
+<h2 id="how-the-library-type-is-found-from-the-bytes">How the library type is found from the bytes<a class="headerlink" href="#how-the-library-type-is-found-from-the-bytes" title="Permanent link">&para;</a></h2>
+<h3 id="filenames-are-not-evidence">Filenames are not evidence<a class="headerlink" href="#filenames-are-not-evidence" title="Permanent link">&para;</a></h3>
+<p><code>_1</code> and <code>_2</code> in a file name come from whatever wrote the file: an archive's download tool, a
+sequencer's demultiplexer, or a script. <code>SRR123_1.fastq.gz</code> is not "read 1" in any biological
+sense. It might hold the cell barcodes, the RNA, or nothing useful. So seqforge opens the files and
+looks.</p>
+<h3 id="it-reads-only-the-start-of-each-file">It reads only the start of each file<a class="headerlink" href="#it-reads-only-the-start-of-each-file" title="Permanent link">&para;</a></h3>
+<p>Every look at a FASTQ file is bounded. By default seqforge reads the first 2,000 reads, and never
+more than 256 MB once decompressed, whichever comes first. You can raise the read count to sample
+more of a large file, but the limit always applies. Reading a whole multi-gigabyte file is treated
+as a bug, even when today's file is small. The limits are in reads and bytes, never in seconds,
+because time depends on the disk and on how busy the machine is.</p>
+<p>From that bounded start, the bytes tell a lot:</p>
+<ul>
+<li><strong>Which positions are fixed and which vary.</strong> The same base at one position in almost every read
+  is adapter sequence, not data. A long run of <code>T</code> is a poly-T tail.</li>
+<li><strong>Which stretches repeat.</strong> Cell barcodes recur, because each cell is sequenced many times. UMIs
+  (unique molecular identifiers) and RNA are nearly all distinct. This tells barcodes from UMIs
+  without any barcode list.</li>
+<li><strong>Whether someone trimmed the file before upload.</strong> A sequencing run writes its technical reads at
+  one fixed length. If most reads of such a read are another length, a trimming tool ran, and
+  trimming tools do not know a barcode from an adapter. seqforge refuses such a file instead of
+  reading barcodes from shifted positions.</li>
+</ul>
+<h3 id="the-knowledge-base-says-what-each-technology-looks-like">The knowledge base says what each technology looks like<a class="headerlink" href="#the-knowledge-base-says-what-each-technology-looks-like" title="Permanent link">&para;</a></h3>
+<p>The knowledge base holds one entry for each supported technology, such as 10x Chromium 3' v3 or
+SPLiT-seq. An entry states what the technology's files hold: for example, one 28-base read with a
+cell barcode and a UMI, and one read of RNA. It also states the strand and the barcode list. Each
+entry carries its own test, which proves that the entry finds its own technology again. The
+<a href="../../kb/">knowledge base</a> lists the supported assays.</p>
+<p>seqforge scores every entry against the bytes. For each one, it tries every way of matching your
+files to the entry's reads and keeps the best match. A swapped <code>_1</code> and <code>_2</code> gives the same answer.</p>
+<h3 id="cheap-checks-come-first">Cheap checks come first<a class="headerlink" href="#cheap-checks-come-first" title="Permanent link">&para;</a></h3>
+<p>Answers are tried in order of cost, and seqforge climbs only as far as it has to:</p>
+<table>
+<thead>
+<tr>
+<th>Step</th>
+<th>What it uses</th>
+<th>How much it counts</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0</td>
+<td>The prose: a paper or record that says "10x 3' v3"</td>
+<td>A hint that says which list to check first. Never a conclusion.</td>
+</tr>
+<tr>
+<td>1</td>
+<td>The filenames</td>
+<td>A weak hint, never decisive.</td>
+</tr>
+<tr>
+<td>2</td>
+<td>The shape of the reads: lengths, fixed and varying positions, repeats</td>
+<td>Strong. The bytes are being read anyway.</td>
+</tr>
+<tr>
+<td>3</td>
+<td>One barcode list: do these barcodes appear in the vendor's list of real barcodes?</td>
+<td>Strong.</td>
+</tr>
+<tr>
+<td>7</td>
+<td>A person</td>
+<td>Asked only when two technologies tie and would process the reads differently.</td>
+</tr>
+</tbody>
+</table>
+<p>A tie that survives step 3 and would change the output goes to a person as a question. A tie that would not change the output,
+such as 10x 3' v3 against v3.1, records both names and asks nothing.</p>
+<p>The prose sits at the bottom on purpose. A paper that says "10x v3" turns an open search into a
+yes-or-no check of one barcode list. It is trusted enough to skip the search, never enough to skip
+the check. When the prose and the bytes disagree, seqforge reports the disagreement, and the bytes
+win (see <a href="../trust/">why you can trust the output</a>).</p>
+<h3 id="which-file-is-which-sample-comes-from-the-records">Which file is which sample comes from the records<a class="headerlink" href="#which-file-is-which-sample-comes-from-the-records" title="Permanent link">&para;</a></h3>
+<p>Which sample each file belongs to comes from the archive records, not from the bytes. A
+disagreement there, such as a file whose size differs from what the archive says, is a warning and
+does not stop the compile.</p>
+<h2 id="the-manifest-what-the-data-is">The manifest: what the data is<a class="headerlink" href="#the-manifest-what-the-data-is" title="Permanent link">&para;</a></h2>
+<p>The manifest records facts about data that already exists. The molecules went through the
+sequencer and produced those bytes, and nothing you decide later changes that.</p>
+<ul>
+<li><strong>One per dataset.</strong> A dataset here means one technology. A project that mixes technologies, such
+  as 10x v2 and v3 libraries in one Series, splits into <strong>assays</strong>, one per technology, decided from
+  the bytes. Each assay gets its own manifest and pipeline under <code>seqforge/&lt;assay&gt;/</code>, and
+  <code>project.yaml</code> lists them. A sample whose files disagree on technology stops the compile.</li>
+<li><strong>Named by its hash.</strong> A hash is a short fingerprint computed from the content. The manifest's
+  hash is computed from what it says about the library and the experiment. The same data gives the
+  same hash, on any machine.</li>
+<li><strong>Written once.</strong> A finished manifest is never rewritten when you change your mind about
+  processing.</li>
+<li><strong>No machine paths.</strong> The genome is a UCSC id plus a registered annotation name, software is a
+  named environment, and data is a web or archive address. The manifest means the same thing on
+  any machine.</li>
+</ul>
+<h2 id="the-recipe-what-to-do-with-it">The recipe: what to do with it<a class="headerlink" href="#the-recipe-what-to-do-with-it" title="Permanent link">&para;</a></h2>
+<p>The recipe holds the choices: which genome build, which aligner, what to count. Someone else could
+choose differently, and you may choose differently next year. So the recipe is a separate file,
+and a dataset can have many recipes. Changing a recipe never changes the dataset's hash.</p>
+<p>The line between the two files is between parsing and counting:</p>
+<ul>
+<li><strong>How to parse the reads</strong> (where the barcode starts, how long the UMI is, which strand) is a fact
+  of the technology. The bytes and the knowledge base decide it. No instruction and no paper can
+  set it, because the recipe has no field for it.</li>
+<li><strong>What to count</strong> (genes only, or genes plus introns, against which genome) is a choice. It lives
+  in the recipe, and you can set it.</li>
+</ul>
+<p>When several sources set the same recipe value, a command-line option wins over an instruction
+document, and an instruction wins over seqforge's default. An empty recipe is valid: every value
+then takes its default.</p>
+<p>Some defaults avoid a question. Whether a 10x library came from whole cells or from nuclei cannot be
+read from the bytes, and it changes what to count. So for a droplet single-cell library the default
+recipe counts five ways in one pass: exons only, exons plus introns, two variants of that for reads
+that touch both, and spliced against unspliced reads. Alignment costs far more than counting, so the extra counts are
+close to free.</p>
+<h2 id="the-pipeline-you-submit">The pipeline you submit<a class="headerlink" href="#the-pipeline-you-submit" title="Permanent link">&para;</a></h2>
+<p><code>compose</code> pairs one manifest with one recipe and writes a pipeline folder,
+<code>seqforge/pipeline/&lt;recipe&gt;-&lt;id&gt;/</code>. The id is computed from the dataset, the recipe, the knowledge
+base entry that decided the settings, and the version of the workflow module. Two recipes over one
+dataset therefore never write into the same folder, and every pipeline traces back to what made
+it. The same inputs always give the same pipeline.</p>
+<p>The <code>Snakefile</code> uses hand-written, versioned Snakemake modules that ship with seqforge. No model
+writes pipeline code. You submit the <code>Snakefile</code> to your own machine or cluster. It ends in each
+sample's results, such as a count matrix per sample (<code>&lt;sample&gt;.h5ad</code>, the AnnData format) for
+single-cell RNA, or a fragments file for single-cell ATAC.</p>
+<p><code>seqforge run</code> does every step above in order and stops at the first refusal. Run it again and it
+resumes from what is already on disk.</p>
+<h2 id="joining-a-studys-reading">Joining a study's reading<a class="headerlink" href="#joining-a-studys-reading" title="Permanent link">&para;</a></h2>
+<p>The compiler knows which samples there are, their organism and their technology. It does not know
+what each sample was: its tissue, its treatment, its age. A study's reading holds that (see
+<a href="../study/">Understanding a study</a>).</p>
+<p>When you name a study folder with <code>--study</code>, the compile joins that folder's <code>reading.yaml</code> into
+<code>sample_metadata.tsv</code>. The two meet on the BioSample accession: the manifest sample's accession,
+and the <code>biosample_accession</code> that the reading's row copied from its GEO record. The table gains
+one column per factor and per label that varies across the samples, plus <code>reading_hash</code>, which
+names the reading it came from. A label that is the same for every sample tells no samples apart,
+so it gets no column.</p>
+<p>The join never changes the manifest or its hash, and it never stops a compile. Each mismatch is a
+warning:</p>
+<ul>
+<li>a compiled sample with no reading row, or one whose BioSample several rows link;</li>
+<li>a reading row with no compiled sample;</li>
+<li>a species that is not the manifest's organism;</li>
+<li>an assay term that does not match the manifest's assay.</li>
+</ul>
+<p>For a droplet library, the pipeline's last step copies these labels into each sample's <code>.h5ad</code>
+file. Without <code>--study</code>, nothing is joined.</p>
+<h2 id="the-report">The report<a class="headerlink" href="#the-report" title="Permanent link">&para;</a></h2>
+<p><code>seqforge report</code> writes one page, <code>report.html</code>, and its data, <code>report.json</code>, into the folder it
+starts from. For a compile, the page shows what seqforge decided and the evidence for it, and the
+pipeline's own results once it has run. With <code>--study</code>, it also shows the study's bounds, its
+design and its samples. The page opens in a browser with no network. The
+<a href="../../examples/">example reports</a> show three.</p>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.sections", "content.code.copy", "content.code.annotate", "content.action.edit", "content.tabs.link", "toc.follow"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>
