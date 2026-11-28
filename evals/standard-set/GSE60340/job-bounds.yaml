@@ -12,3 +12,6 @@ papers:
 left_out: []
 reason: Code kept GEO Series GSE60340; Jev judged each other record kept here to be from the same research.
 passages: {}
+titles:
+  GSE60340: Pathway Profiling of Replicative and Induced Senescence
+  pmid:25483067: Gene expression profiling of replicative and induced senescence.

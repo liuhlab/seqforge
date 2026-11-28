@@ -9,19 +9,28 @@
 <h1 align="center">seqforge</h1>
 <!-- markdownlint-enable MD033 MD041 -->
 
-Compile `(arbitrary FASTQ files) + (unstructured human/DB metadata)` into a validated,
-machine-independent **dataset manifest**, then into a runnable Snakemake config — for headless
-reprocessing of large collections of public sequencing datasets into a genomic-AI training corpus.
+seqforge reads public sequencing studies and their files, and writes down what they are, so that
+each dataset can be processed the right way. It reads a **study**: which GEO records and papers
+make it up, and what each sample was. It compiles a **dataset**: which technology made the FASTQ
+files, and a pipeline you submit to run them. One report shows both.
 
-**seqforge is a compiler, not a chatbot.** A model writes an answer only where code can check it,
-and code decides whether the answer stands. In the compiler a model parses prose into span-verified
-assertions and settles ambiguity the deterministic layer has *already flagged*. Everything else is a
-verifier.
+A model writes an answer only where code can check it, and code decides whether the answer stands.
 
-It produces two artifacts, and only the second is plural:
+```mermaid
+flowchart LR
+    GEO["GEO records, papers"] --> BY["bounds.yaml<br/>which records are one study"]
+    BY --> RY["reading.yaml<br/>what each sample was"]
+    FQ["FASTQ files"] --> MAN["manifest.yaml<br/>what the data is"]
+    MAN --> SNAKE["Snakefile<br/>you submit it"]
+    REC["processing.yaml<br/>what to do with it"] --> SNAKE
+    RY -. "joined by BioSample" .-> TSV["sample_metadata.tsv"]
+    MAN --> TSV
+    RY --> REPORT["report.html"]
+    SNAKE --> REPORT
+```
 
-- **`manifest.yaml`** — what the data **is**. One per dataset, immutable, named by a hash of its contents.
-- **`processing.yaml`** — what to **do** with it: genome, aligner, introns or not. Many per dataset.
+**See it first:** the [example reports](https://liuhlab.github.io/seqforge/examples/) on the docs
+site show three studies read from public GEO records.
 
 ## Install
 
@@ -29,40 +38,43 @@ It produces two artifacts, and only the second is plural:
 pip install seqforge
 ```
 
-That gives you the compiler and the `seqforge` CLI. The two lab-only stages — `compose` against a real
-genome and `kb e2e` — also need the lab's `liulab-genome` and `liulab-data`, which are not on
-PyPI:
+That gives you the `seqforge` command and the compiler. Two lab packages are not on PyPI, and some
+steps need them: `liulab-data` (the archive's records, papers and ontologies) for reading a study,
+and `liulab-genome` (genomes and annotations) for compiling against a real genome.
 
 ```bash
 pip install "liulab-genome @ git+https://github.com/liuhlab/liulab-genome.git" \
             "liulab-data   @ git+https://github.com/liuhlab/liulab-data.git"
 ```
 
-Inside the lab, `pixi install` already pulls both.
+Inside the lab, `pixi install` pulls both. Reading a study also needs the lab's model gateway:
+[Getting started](https://liuhlab.github.io/seqforge/getting-started/) says what each path needs.
 
 ## Develop
 
-Everything runs through [pixi](https://pixi.sh) (not `pip`/`conda`/`venv`):
+Everything runs through [pixi](https://pixi.sh), not `pip`, `conda` or `venv`:
 
 ```bash
-pixi install                     # build environments
-pixi run check                   # lint + fmt-check + typecheck + the three test lanes
+pixi install                     # build the environments
+pixi run check                   # lint, format check, type check and the three test lanes
 pixi run test                    # the unit lane only
-pixi run test-corpus             # the hermetic corpus only
-pixi run test-external           # the lane needing binaries we do not own
-pixi run -- pre-commit install   # once per clone — the fast hooks, not the suite
+pixi run test-corpus             # the corpus lane only
+pixi run test-external           # the lane that needs programs seqforge does not own
+pixi run docs-build              # build the docs site, strict
+pixi run -- pre-commit install   # once per clone: the fast hooks, not the suite
 ```
 
-Most of the non-negotiable rules are enforced by tests, so `pixi run check` is the mechanism rather
-than a formality — CI runs it on every push and PR.
+Tests enforce most of the project's rules, so `pixi run check` is where a rule fails. CI runs it on
+every pull request.
 
 ## Where to look
 
 | For | Read |
 | --- | --- |
-| Using it — the tour, the tutorials, the concepts | **<https://liuhlab.github.io/seqforge/>** |
-| Working on it — the rules, and where to read next | [`AGENTS.md`](AGENTS.md) (`CLAUDE.md` symlinks to it) |
-| One decision per file, one paragraph | [`docs/adr/`](docs/adr/), and beside the code each governs |
-| What a term means | [`GLOSSARY-MAP.md`](GLOSSARY-MAP.md), and one `GLOSSARY.md` per context |
+| Using it: examples, how it works, guides, reference | **<https://liuhlab.github.io/seqforge/>** |
+| Working on it: the rules, and where to read next | [`AGENTS.md`](AGENTS.md) (`CLAUDE.md` links to it) |
+| Why it is built this way, one decision per file | [`docs/adr/`](docs/adr/), and beside the code each one governs |
+| What a term means | [`GLOSSARY-MAP.md`](GLOSSARY-MAP.md), and one `GLOSSARY.md` per part |
+| Measurements, dated | [`docs/research/`](docs/research/) |
 | What changed, and when | [`CHANGELOG.md`](CHANGELOG.md) |
-| What is *not* yet built | the [open issues](https://github.com/liuhlab/seqforge/issues) |
+| What is not built yet | the [open issues](https://github.com/liuhlab/seqforge/issues) |

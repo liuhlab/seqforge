@@ -12,3 +12,8 @@ papers:
 left_out: []
 reason: Code kept GEO Series GSE222631; Jev judged each other record kept here to be from the same research.
 passages: {}
+titles:
+  GSE222631: Cellular and molecular evidence that synaptic Schwann cells contribute to aging of mouse
+    neuromuscular junctions
+  pmid:37771191: Cellular and molecular evidence that synaptic Schwann cells contribute to aging of mouse
+    neuromuscular junctions.

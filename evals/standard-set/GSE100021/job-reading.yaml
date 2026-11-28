@@ -10,7 +10,7 @@ read:
 read_detail: The records of GSE100021 and their 8 sequenced samples; the full text of pmid:28645186.
 ontology_snapshot:
   source: 'liulab-data ontology store: efo-3.96.0, ncbitaxon-2026-11-26, pato-2026-10-01'
-  date: 2026-11-26
+  date: 2026-11-28
 passages:
   1:
     record: GSE100021
@@ -156,6 +156,7 @@ shared:
     p: 0.79
 samples:
   GSM2668015:
+    biosample_accession: SAMN07237041
     biosample:
       id: B1
       inferred: no text read ties this library's material to another's
@@ -171,6 +172,7 @@ samples:
       - 2
       p: 0.99
   GSM2668016:
+    biosample_accession: SAMN07237057
     biosample:
       id: B2
       inferred: no text read ties this library's material to another's
@@ -186,6 +188,7 @@ samples:
       - 2
       p: 0.99
   GSM2668017:
+    biosample_accession: SAMN07237056
     biosample:
       id: B3
       inferred: no text read ties this library's material to another's
@@ -201,6 +204,7 @@ samples:
       - 2
       p: 0.97
   GSM2668018:
+    biosample_accession: SAMN07237055
     biosample:
       id: B4
       inferred: no text read ties this library's material to another's
@@ -216,6 +220,7 @@ samples:
       - 2
       p: 0.97
   GSM2668019:
+    biosample_accession: SAMN07237054
     biosample:
       id: B5
       inferred: no text read ties this library's material to another's
@@ -231,6 +236,7 @@ samples:
       - 3
       p: 0.98
   GSM2668020:
+    biosample_accession: SAMN07237053
     biosample:
       id: B6
       inferred: no text read ties this library's material to another's
@@ -246,6 +252,7 @@ samples:
       - 3
       p: 1.0
   GSM2668021:
+    biosample_accession: SAMN07237052
     biosample:
       id: B7
       inferred: no text read ties this library's material to another's
@@ -261,6 +268,7 @@ samples:
       - 3
       p: 0.99
   GSM2668022:
+    biosample_accession: SAMN07237051
     biosample:
       id: B8
       inferred: no text read ties this library's material to another's

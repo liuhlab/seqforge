@@ -12,3 +12,6 @@ papers:
 left_out: []
 reason: Code kept GEO Series GSE196554; Jev judged each other record kept here to be from the same research.
 passages: {}
+titles:
+  GSE196554: Single cell RNA sequencing of human muscle stem cells in aging
+  pmid:37192223: Loss of transcriptional heterogeneity in aged human muscle stem cells.

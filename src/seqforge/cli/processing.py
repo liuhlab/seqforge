@@ -72,7 +72,7 @@ def processing_new(
     assertions: Path | None = typer.Option(
         None,
         "--assertions",
-        help="Span-verified assertions from `harvest extract` (seqforge/assertions.json). "
+        help="Span-verified assertions from `harvest extract` (seqforge/logs/assertions.json). "
         "Instructions in them fill what no flag supplied.",
     ),
     quantify: str | None = typer.Option(

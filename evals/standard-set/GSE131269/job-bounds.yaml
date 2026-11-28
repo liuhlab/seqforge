@@ -16,3 +16,9 @@ left_out:
   p: 0.9
 reason: Code kept GEO Series GSE131269; Jev judged each other record kept here to be from the same research.
 passages: {}
+titles:
+  GSE131269: Identification of the m6Am Methyltransferase PCIF1 Reveals the Location and Functions of
+    m6Am in the Transcriptome.
+  pmid:31279658: Identification of the m6Am Methyltransferase PCIF1 Reveals the Location and Functions
+    of m6Am in the Transcriptome.
+  pmid:32494643: N6-adenosine methylation of ribosomal RNA affects lipid oxidation and stress resistance.

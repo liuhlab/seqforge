@@ -12,3 +12,8 @@ papers:
 left_out: []
 reason: Code kept GEO Series GSE129928; Jev judged each other record kept here to be from the same research.
 passages: {}
+titles:
+  GSE129928: H3K9me2 protects lifespan against the transgenerational burden of germline transcription
+    in C. elegans
+  pmid:31815663: Repressive H3K9me2 protects lifespan against the transgenerational burden of COMPASS
+    activity in C. elegans.

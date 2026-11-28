@@ -12,3 +12,8 @@ papers:
 left_out: []
 reason: Code kept GEO Series GSE165978; Jev judged each other record kept here to be from the same research.
 passages: {}
+titles:
+  GSE165978: Muscle Stem Cell Response to Perturbations of the Neuromuscular Junction Are Attenuated With
+    Aging
+  pmid:34323217: Murine muscle stem cell response to perturbations of the neuromuscular junction are attenuated
+    with aging.

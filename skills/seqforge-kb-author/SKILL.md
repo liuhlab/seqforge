@@ -129,8 +129,7 @@ A spec that names the onlist decisive lands only with its whitelist shipped; the
 `test_a_spec_that_calls_onlists_decisive_can_actually_reach_one` stays red until it ships. Without
 the list `kb roundtrip` still passes, but on real reads the chemistry scores 0.3300 against
 `bulk-rnaseq`'s 0.7800, far outside the tie band, so nothing asks and the deposit compiles to a bulk
-gene-count matrix at exit 0. SPLiT-seq names three lists and ships none, so its three most important
-tests ABSTAIN.
+gene-count matrix at exit 0.
 
 ```bash
 seqforge io onlist pack cls1.txt --name bd-rhapsody-cls1 \

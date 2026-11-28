@@ -1,39 +1,47 @@
 # Bulk Illumina RNA-seq
 
-Standard bulk RNA-seq on an Illumina sequencer: cDNA reads with **no cell barcode and no UMI**. Every
-base is transcript sequence — there's nothing to demultiplex into cells. seqforge aligns these with
-plain STAR and counts genes, rather than STARsolo.
+Standard bulk RNA-seq on an Illumina sequencer: cDNA reads with no cell barcode and no UMI. Every
+base is transcript sequence, and there are no cells to separate. seqforge aligns these reads with
+plain STAR and counts reads per gene, instead of using STARsolo, STAR's single-cell mode.
 
 ## How it's read
 
-- **R1** and **R2** are the two ends of the same cDNA fragment (a mate pair). Both are transcript
-  sequence, typically 75–150 bp.
-- No barcode, no UMI, no whitelist.
+- **R1 and R2** are the two ends of the same cDNA fragment, a mate pair. Both are transcript
+  sequence, usually 75 to 150 bp. seqforge accepts 40 to 300 bp.
+- There is no barcode, no UMI and no barcode list.
 
-**Paired-end and single-end are one entry, not two.** They are the same chemistry run two ways, so
-this entry declares the paired layout and names R1 alone as its single-end configuration; the bytes
-choose between them, and a deposit of one file is explained rather than refused. Nothing about the
-reads is written down twice, so the two configurations cannot drift apart.
+**Paired-end and single-end are one entry.** They are the same chemistry, sequenced two ways. The
+entry declares the paired layout and names R1 alone as its single-end form, and the bytes choose
+between them. A deposit with one file per run is read as single-end, not refused. The reads are
+described once, so the two forms cannot drift apart.
 
-## How seqforge tells it apart from single-cell
+## How seqforge tells it from single-cell data
 
-It's the **absence** of a barcode that identifies bulk. seqforge looks for a short, low-diversity
-technical read — the tell-tale of a cell barcode — and finds none, just two long, near-unique cDNA
-mates. A single-cell barcode read is short (26–28 bp) and repeats the same 16 bp prefix across reads;
-a bulk mate is long and near-unique from the first base, so a barcode read can never be mistaken for
-bulk cDNA.
+The absence of a barcode read identifies bulk. seqforge looks for a short technical read whose
+first bases repeat across many reads, which is what a cell barcode looks like. In bulk data it finds
+none: only two long cDNA mates whose reads are almost all different from the first base. A 10x
+barcode read is 26 or 28 bp and repeats the same 16 bp barcodes, so it is never mistaken for bulk
+cDNA.
 
-Because this entry demands so little, it also serves as the **fallback** for any paired-end data.
-That's deliberate: when a real single-cell library (BD Rhapsody, SPLiT-seq) happens to share this
-loose shape, seqforge falls back to the barcode-list check to make sure it never quietly treats a
-single-cell library as bulk.
+Because this entry demands so little, it also accepts almost any pair of reads. That is on purpose:
+it is the fallback for paired-end data. It also means some single-cell kits look like bulk on the
+first, cheap checks. seqforge then settles each case on firmer evidence:
+
+| Kit that can look like bulk | What settles it |
+| --- | --- |
+| BD Rhapsody (both beads), SPLiT-seq | Their barcode lists. Bulk has no list to match |
+| 10x Multiome, chromatin (ATAC) arm | Its barcode read matches the Multiome ATAC list |
+| Smart-seq3 | The paper or archive record. Neither kit has a barcode list, so if the record does not say, seqforge asks you |
+
+So seqforge never quietly treats a single-cell library as bulk.
 
 ## Coverage note
 
-This is the poly-A branch. Explicit strand-protocol handling isn't modeled yet.
+This entry is for poly(A)-selected libraries. seqforge does not model a strand protocol for bulk
+data yet.
 
 ## References
 
-The exact, machine-readable definition seqforge uses lives in this entry's `spec.yaml`.
-(scg_lib_structs documents single-cell library structures; plain bulk RNA-seq isn't one of them, so
-there's no page to link.)
+The exact definition seqforge runs is this entry's `spec.yaml`. scg_lib_structs documents
+single-cell library structures, and plain bulk RNA-seq is not one of them, so there is no page to
+link.

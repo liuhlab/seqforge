@@ -12,3 +12,7 @@ papers:
 left_out: []
 reason: Code kept GEO Series GSE329430; Jev judged each other record kept here to be from the same research.
 passages: {}
+titles:
+  GSE329430: Bone marrow myelopoiesis dysfunction in Alzheimer’s disease
+  pmid:42711429: Bone marrow myelopoiesis dysfunction in Alzheimer's disease limits monocyte homing to
+    the brain and drives disease progression.

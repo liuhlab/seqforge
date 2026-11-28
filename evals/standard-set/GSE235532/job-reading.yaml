@@ -11,7 +11,7 @@ read_detail: The records of GSE235532 and their 24 sequenced samples; the full t
 ontology_snapshot:
   source: 'liulab-data ontology store: efo-3.96.0, fbdv-2026-11-02, ncbitaxon-2026-11-26, pato-2026-10-01,
     uberon-2026-11-05'
-  date: 2026-11-26
+  date: 2026-11-28
 passages:
   1:
     record: GSE235532
@@ -289,6 +289,7 @@ shared:
     p: 0.88
 samples:
   GSM7504787:
+    biosample_accession: SAMN34509223
     biosample:
       id: B1
       inferred: Jev judged the tie the writer listed between this library and another
@@ -323,6 +324,7 @@ samples:
       - 12
       p: 0.98
   GSM7504788:
+    biosample_accession: SAMN34509224
     biosample:
       id: B2
       inferred: Jev judged the tie the writer listed between this library and another
@@ -357,6 +359,7 @@ samples:
       - 13
       p: 1.0
   GSM7504789:
+    biosample_accession: SAMN34509225
     biosample:
       id: B3
       inferred: Jev judged the tie the writer listed between this library and another
@@ -391,6 +394,7 @@ samples:
       - 12
       p: 0.71
   GSM7504790:
+    biosample_accession: SAMN34509226
     biosample:
       id: B4
       inferred: no text read ties this library's material to another's
@@ -423,6 +427,7 @@ samples:
       - 13
       p: 0.86
   GSM7504791:
+    biosample_accession: SAMN34509227
     biosample:
       id: B5
       inferred: Jev judged the tie the writer listed between this library and another
@@ -455,6 +460,7 @@ samples:
       unknown: what was read does not say its replicate
       p: 0.46
   GSM7504792:
+    biosample_accession: SAMN34509228
     biosample:
       id: B6
       inferred: Jev judged the tie the writer listed between this library and another
@@ -489,6 +495,7 @@ samples:
       - 13
       p: 0.97
   GSM7504793:
+    biosample_accession: SAMN34509229
     biosample:
       id: B7
       inferred: Jev judged the tie the writer listed between this library and another
@@ -523,6 +530,7 @@ samples:
       - 12
       p: 0.91
   GSM7504794:
+    biosample_accession: SAMN34509230
     biosample:
       id: B8
       inferred: Jev judged the tie the writer listed between this library and another
@@ -557,6 +565,7 @@ samples:
       - 13
       p: 0.95
   GSM7504795:
+    biosample_accession: SAMN34509231
     biosample:
       id: B1
       inferred: Jev judged the tie the writer listed between this library and another
@@ -591,6 +600,7 @@ samples:
       - 12
       p: 0.67
   GSM7504796:
+    biosample_accession: SAMN34509232
     biosample:
       id: B9
       inferred: no text read ties this library's material to another's
@@ -623,6 +633,7 @@ samples:
       - 13
       p: 0.89
   GSM7504797:
+    biosample_accession: SAMN34509233
     biosample:
       id: B3
       inferred: Jev judged the tie the writer listed between this library and another
@@ -655,6 +666,7 @@ samples:
       unknown: what was read does not say its replicate
       p: 0.48
   GSM7504798:
+    biosample_accession: SAMN34509234
     biosample:
       id: B10
       inferred: no text read ties this library's material to another's
@@ -685,6 +697,7 @@ samples:
       unknown: what was read does not say its replicate
       p: 0.82
   GSM7504799:
+    biosample_accession: SAMN34509235
     biosample:
       id: B5
       inferred: Jev judged the tie the writer listed between this library and another
@@ -717,6 +730,7 @@ samples:
       unknown: what was read does not say its replicate
       p: 0.59
   GSM7504800:
+    biosample_accession: SAMN34509236
     biosample:
       id: B6
       inferred: Jev judged the tie the writer listed between this library and another
@@ -751,6 +765,7 @@ samples:
       - 13
       p: 0.8
   GSM7504801:
+    biosample_accession: SAMN34509237
     biosample:
       id: B7
       inferred: Jev judged the tie the writer listed between this library and another
@@ -785,6 +800,7 @@ samples:
       - 12
       p: 0.65
   GSM7504802:
+    biosample_accession: SAMN34509238
     biosample:
       id: B8
       inferred: Jev judged the tie the writer listed between this library and another
@@ -819,6 +835,7 @@ samples:
       - 13
       p: 0.54
   GSM7504803:
+    biosample_accession: SAMN34509239
     biosample:
       id: B1
       inferred: Jev judged the tie the writer listed between this library and another
@@ -853,6 +870,7 @@ samples:
       - 12
       p: 0.84
   GSM7504804:
+    biosample_accession: SAMN34509240
     biosample:
       id: B2
       inferred: Jev judged the tie the writer listed between this library and another
@@ -887,6 +905,7 @@ samples:
       - 13
       p: 0.97
   GSM7504805:
+    biosample_accession: SAMN34509241
     biosample:
       id: B3
       inferred: Jev judged the tie the writer listed between this library and another
@@ -921,6 +940,7 @@ samples:
       - 12
       p: 0.56
   GSM7504806:
+    biosample_accession: SAMN34509242
     biosample:
       id: B11
       inferred: no text read ties this library's material to another's
@@ -951,6 +971,7 @@ samples:
       unknown: what was read does not say its replicate
       p: 0.48
   GSM7504807:
+    biosample_accession: SAMN34509243
     biosample:
       id: B5
       inferred: Jev judged the tie the writer listed between this library and another
@@ -985,6 +1006,7 @@ samples:
       - 12
       p: 0.48
   GSM7504808:
+    biosample_accession: SAMN34509244
     biosample:
       id: B6
       inferred: Jev judged the tie the writer listed between this library and another
@@ -1019,6 +1041,7 @@ samples:
       - 13
       p: 0.72
   GSM7504809:
+    biosample_accession: SAMN34509245
     biosample:
       id: B12
       inferred: no text read ties this library's material to another's
@@ -1051,6 +1074,7 @@ samples:
       - 12
       p: 0.55
   GSM7504810:
+    biosample_accession: SAMN34509246
     biosample:
       id: B8
       inferred: Jev judged the tie the writer listed between this library and another

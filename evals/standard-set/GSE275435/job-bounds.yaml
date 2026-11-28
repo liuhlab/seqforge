@@ -12,3 +12,7 @@ papers:
 left_out: []
 reason: Code kept GEO Series GSE275435; Jev judged each other record kept here to be from the same research.
 passages: {}
+titles:
+  GSE275435: KChIP3 promotes Alzheimer's disease by impairing long-term potentiation and memory
+  pmid:40537787: KChIP3 fosters neuroinflammation and synaptic dysfunction in the 5XFAD mouse model of
+    Alzheimer's disease.

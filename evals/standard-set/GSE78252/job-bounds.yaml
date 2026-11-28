@@ -12,3 +12,6 @@ papers:
 left_out: []
 reason: Code kept GEO Series GSE78252; Jev judged each other record kept here to be from the same research.
 passages: {}
+titles:
+  GSE78252: Mitochondrial stress induces chromatin reorganization to promote longevity and UPRmt
+  pmid:27133166: Mitochondrial Stress Induces Chromatin Reorganization to Promote Longevity and UPR(mt).

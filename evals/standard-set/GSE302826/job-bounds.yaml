@@ -12,3 +12,6 @@ papers:
 left_out: []
 reason: Code kept GEO Series GSE302826; Jev judged each other record kept here to be from the same research.
 passages: {}
+titles:
+  GSE302826: 'The Neurolipid Atlas: a lipidomics resource for neurodegenerative diseases'
+  pmid:40983680: 'The Neurolipid Atlas: a lipidomics resource for neurodegenerative diseases.'

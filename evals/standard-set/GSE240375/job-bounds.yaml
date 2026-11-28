@@ -18,3 +18,7 @@ left_out:
 reason: Code kept the Series under SuperSeries GSE240375; the linked group holds no other record to ask
   about.
 passages: {}
+titles:
+  GSE240373: Aging and senescence-associated signatures of aged kidney glomerular cells [bulk RNA-seq]
+  GSE240374: Aging and senescence-associated signatures of aged kidney glomerular cells [scRNA-seq]
+  GSE240375: Aging and senescence-associated signatures of aged kidney glomerular cells

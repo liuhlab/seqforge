@@ -12,3 +12,6 @@ papers:
 left_out: []
 reason: Code kept GEO Series GSE314221; Jev judged each other record kept here to be from the same research.
 passages: {}
+titles:
+  GSE314221: Reducing CETP activity prevents memory decline in an Alzheimer’s disease mouse model.
+  pmid:42547584: Reducing CETP activity prevents memory decline in an Alzheimer's disease mouse model.

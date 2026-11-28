@@ -1,59 +1,59 @@
 # 10x Chromium Single Cell 3' Gene Expression v2
 
-Droplet single-cell RNA-seq — the generation before v3. Every droplet holds one gel bead, which tags
-all of a cell's transcripts with the same **cell barcode** and each individual mRNA molecule with a
-unique **UMI**. That lets you count molecules per gene per cell.
+Droplet single-cell RNA-seq with 10x Genomics' second-generation 3' kit, the one before v3. Each
+droplet holds one gel bead. The bead tags every transcript of its cell with the same **cell
+barcode**, and each mRNA molecule with its own **UMI** (unique molecular identifier, a random tag).
+Together they let you count molecules per gene per cell.
 
 ## How it's read
 
-Two reads come off the sequencer:
-
-| read | length | what it holds |
+| Read | Length | What it holds |
 | --- | --- | --- |
-| **R1** | 26 bp | a 16 bp **cell barcode** + a 10 bp **UMI** |
-| **R2** | open-ended | the **cDNA** (the transcript itself), read sense to the mRNA |
+| **R1** | 26 bp | a 16 bp cell barcode, then a 10 bp UMI |
+| **R2** | any length | the cDNA (the transcript itself), read in the same direction as the mRNA |
 
-The cell barcode is drawn from 10x's published `737K-august-2016` list (~737,000 barcodes).
+The cell barcodes come from 10x's `737K-august-2016` list, about 737,000 barcodes.
 
-## How seqforge tells v2 apart from v3
+## How seqforge tells v2 from v3
 
-The only difference visible in the reads is **R1 length**: v2 is 16 + **10** = **26 bp**; v3 is
-16 + **12** = **28 bp**. That 2 bp gap is decisive on its own, so seqforge separates v2 from v3 by
-read geometry alone — before it ever consults a barcode list. The two are never confused. (Their
-whitelists differ too — `737K-august-2016` vs `3M-february-2018` — but length settles it first.)
+v2's R1 is 16 + 10 = 26 bp. v3's is 16 + 12 = 28 bp. When R1 is the canonical length, that 2 bp
+difference settles it before any barcode list is checked.
 
-If a paper or database says "v2" while the reads are actually 28 bp, seqforge does **not** quietly
-pick one. It surfaces the disagreement (metadata says 26 bp, the bytes say 28 bp) and hands it to a
-human — the bytes decide what the data is.
+Some runs sequence R1 long, to 100 bp or more. Then both kits accept the read, and the barcode list
+decides: v2 uses `737K-august-2016` and v3 uses `3M-february-2018`.
 
-## The one neighbour the reads cannot decide
+If a paper or record says "v2" while the reads say v3, seqforge does not quietly pick one. It
+reports the disagreement and asks you. The bytes decide what the data is.
 
-**5' v1/v2 is this entry's twin in every byte.** It has the same 26 bp R1 (16 bp barcode + 10 bp UMI),
-the same open-ended cDNA R2, and — the part that closes every cheap route — the **same
-`737K-august-2016` whitelist**. Both entries point at the same file, so the barcode list cannot break
-the tie either. The backends differ in exactly one parameter, `soloStrand`, and no probe can observe
-it: 5' reads the transcript from the other end.
+## The one neighbour the reads cannot settle
 
-That makes it the **only** read-undecidable pair in this knowledge base, and worth knowing because the
-resolver's behaviour changes here. Rather than pick, it reaches for metadata (papers say "5'" or "3'"
-reliably even when they are vague about the version) or a trial alignment, and asks a human if neither
-answers. Before the 5' entry existed a 5' library resolved silently to this spec and compiled
-`soloStrand Forward` — a measured 0.5–0.6 gene-expression correlation against >0.98 for the right
-orientation, at exit 0, with nothing red.
+10x **5' v1 and v2** match this kit in every byte. They have the same 26 bp R1 (16 bp barcode and
+10 bp UMI), the same cDNA R2, and the same `737K-august-2016` barcode list. So neither the read
+layout nor the list can tell them apart.
 
-None of this is true of v3: at 28 bp its geometry-mates each carry their own list, so the barcode
-list settles them.
+The two are aligned differently in one setting: the strand. 5' kits read the transcript from the
+other end. No check on the reads can see that.
 
-## Gotchas
+So this is the only pair in the knowledge base that the reads cannot settle. seqforge turns to the
+paper or the archive record, which name "5'" or "3'" reliably even when they are vague about the
+version. A trial alignment can also settle it. If neither does, seqforge asks you.
 
-- **The barcode read can go missing on SRA.** `fasterq-dump` without `--include-technical` drops R1
-  entirely; seqforge blocks rather than guessing which file is which. Re-fetch with
-  `--include-technical`, or pull the submitter's original files.
-- SRA rewrites read-name headers, so seqforge never trusts them when grouping files into samples.
+The risk is real. Before the 5' entry existed, a 5' library was read as this kit and aligned on the
+wrong strand. Its gene expression correlated with the right answer at only 0.5 to 0.6 (more than
+0.98 on the right strand), and the run still exited with no error.
+
+v3 has no such twin: each kit that shares its 28 bp layout has its own barcode list.
+
+## What goes wrong
+
+- **The barcode read can go missing on SRA.** `fasterq-dump` without `--include-technical` drops R1.
+  seqforge then stops rather than guessing which file is which. Fetch the data again with
+  `--include-technical`, or download the submitter's original files.
+- **SRA rewrites read names**, so seqforge never uses them to group files into samples.
 
 ## References
 
-Read structure cross-checked against
-**[scg_lib_structs — 10x Chromium 3'](https://teichlab.github.io/scg_lib_structs/methods_html/10xChromium3.html)**
-(Teichmann Lab, CC-BY), which lays out the v2–v4 kits side by side. The exact, machine-readable
-definition seqforge uses lives in this entry's `spec.yaml`.
+The read structure is checked against
+[scg_lib_structs: 10x Chromium 3'](https://teichlab.github.io/scg_lib_structs/methods_html/10xChromium3.html)
+(Teichmann Lab, CC-BY), which shows the v2 to v4 kits side by side. The exact definition seqforge
+runs is this entry's `spec.yaml`.

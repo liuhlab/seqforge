@@ -12,3 +12,8 @@ papers:
 left_out: []
 reason: Code kept GEO Series GSE137213; Jev judged each other record kept here to be from the same research.
 passages: {}
+titles:
+  GSE137213: Enriched environmental conditions modify the gut microbiome composition and fecal markers
+    of inflammation in Parkinson’s disease
+  pmid:31749671: Enriched Environmental Conditions Modify the Gut Microbiome Composition and Fecal Markers
+    of Inflammation in Parkinson's Disease.

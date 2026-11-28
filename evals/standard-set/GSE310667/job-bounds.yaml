@@ -12,3 +12,6 @@ papers:
 left_out: []
 reason: Code kept GEO Series GSE310667; Jev judged each other record kept here to be from the same research.
 passages: {}
+titles:
+  GSE310667: A gene expression atlas of a juvenile nervous system.
+  pmid:41332732: A gene expression atlas of a juvenile nervous system.

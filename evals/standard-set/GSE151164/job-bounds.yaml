@@ -12,3 +12,7 @@ papers:
 left_out: []
 reason: Code kept GEO Series GSE151164; Jev judged each other record kept here to be from the same research.
 passages: {}
+titles:
+  GSE151164: Caenorhabditis elegans AF4/FMR2 family homolog affl-2 regulates heat shock induced gene expression
+  pmid:32518061: Caenorhabditis elegans AF4/FMR2 Family Homolog affl-2 Regulates Heat-Shock-Induced Gene
+    Expression.

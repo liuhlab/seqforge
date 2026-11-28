@@ -11,7 +11,7 @@ read_detail: The records of GSE256266 and their 4 sequenced samples; the full te
 ontology_snapshot:
   source: 'liulab-data ontology store: efo-3.96.0, ncbitaxon-2026-11-26, pato-2026-10-01, wbbt-2025-08-19,
     wbls-2026-04-16'
-  date: 2026-11-26
+  date: 2026-11-28
 passages:
   1:
     record: GSE256266
@@ -153,6 +153,7 @@ shared:
     p: 0.99
 samples:
   GSM8092237:
+    biosample_accession: SAMN40022217
     biosample:
       id: B1
       inferred: no text read ties this library's material to another's
@@ -186,6 +187,7 @@ samples:
       - 10
       p: 1.0
   GSM8092238:
+    biosample_accession: SAMN40022216
     biosample:
       id: B2
       inferred: no text read ties this library's material to another's
@@ -219,6 +221,7 @@ samples:
       - 11
       p: 1.0
   GSM8092239:
+    biosample_accession: SAMN40022215
     biosample:
       id: B3
       inferred: no text read ties this library's material to another's
@@ -251,6 +254,7 @@ samples:
       - 10
       p: 0.99
   GSM8092240:
+    biosample_accession: SAMN40022214
     biosample:
       id: B4
       inferred: no text read ties this library's material to another's

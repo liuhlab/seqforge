@@ -12,3 +12,6 @@ papers:
 left_out: []
 reason: Code kept GEO Series GSE100021; Jev judged each other record kept here to be from the same research.
 passages: {}
+titles:
+  GSE100021: IGF-1 gene therapy in aging rats modulates hippocampal genes relevant to memory function
+  pmid:28645186: IGF-I Gene Therapy in Aging Rats Modulates Hippocampal Genes Relevant to Memory Function.

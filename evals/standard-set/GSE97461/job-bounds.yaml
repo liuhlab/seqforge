@@ -12,3 +12,8 @@ papers:
 left_out: []
 reason: Code kept GEO Series GSE97461; Jev judged each other record kept here to be from the same research.
 passages: {}
+titles:
+  GSE97461: TRAP sequencing of D1 and D2 spiny projection neurons from young and old mice and ribosome
+    profiling in NIH-3T3 cells
+  pmid:30485811: Widespread Accumulation of Ribosome-Associated Isolated 3' UTRs in Neuronal Cell Populations
+    of the Aging Brain.

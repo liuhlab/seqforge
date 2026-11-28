@@ -12,3 +12,7 @@ papers:
 left_out: []
 reason: Code kept GEO Series GSE135532; Jev judged each other record kept here to be from the same research.
 passages: {}
+titles:
+  GSE135532: Role of diet in cardiac aging and fibrosis
+  pmid:31415241: Effect of dietary fat and sucrose consumption on cardiac fibrosis in mice and rhesus
+    monkeys.

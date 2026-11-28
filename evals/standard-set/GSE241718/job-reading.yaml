@@ -11,7 +11,7 @@ read_detail: The records of GSE241718, GSE241275 and their 8 sequenced samples; 
 ontology_snapshot:
   source: 'liulab-data ontology store: cl-2026-11-13, mmusdv-2025-01-23, ncbitaxon-2026-11-26, pato-2026-10-01,
     uberon-2026-11-05'
-  date: 2026-11-26
+  date: 2026-11-28
 passages:
   1:
     paper: pmid:38997312
@@ -199,6 +199,7 @@ shared:
     p: 0.98
 samples:
   GSM7720368:
+    biosample_accession: SAMN37094565
     biosample:
       id: B1
       inferred: no text read ties this library's material to another's
@@ -224,6 +225,7 @@ samples:
       - 15
       p: 0.96
   GSM7720369:
+    biosample_accession: SAMN37094564
     biosample:
       id: B2
       inferred: no text read ties this library's material to another's
@@ -249,6 +251,7 @@ samples:
       - 15
       p: 0.96
   GSM7734325:
+    biosample_accession: SAMN37150595
     biosample:
       id: B3
       inferred: no text read ties this library's material to another's
@@ -274,6 +277,7 @@ samples:
       - 16
       p: 0.75
   GSM7734326:
+    biosample_accession: SAMN37150594
     biosample:
       id: B4
       inferred: no text read ties this library's material to another's
@@ -299,6 +303,7 @@ samples:
       - 16
       p: 0.73
   GSM7734327:
+    biosample_accession: SAMN37150593
     biosample:
       id: B5
       inferred: no text read ties this library's material to another's
@@ -324,6 +329,7 @@ samples:
       - 16
       p: 0.7
   GSM7734328:
+    biosample_accession: SAMN37150592
     biosample:
       id: B6
       inferred: no text read ties this library's material to another's
@@ -349,6 +355,7 @@ samples:
       - 16
       p: 0.71
   GSM7734329:
+    biosample_accession: SAMN37150591
     biosample:
       id: B7
       inferred: no text read ties this library's material to another's
@@ -374,6 +381,7 @@ samples:
       - 16
       p: 0.74
   GSM7734330:
+    biosample_accession: SAMN37150590
     biosample:
       id: B8
       inferred: no text read ties this library's material to another's

@@ -12,3 +12,8 @@ papers:
 left_out: []
 reason: Code kept GEO Series GSE235532; Jev judged each other record kept here to be from the same research.
 passages: {}
+titles:
+  GSE235532: LKRSDH-dependent histone modifications of insulin-like peptide sites contribute to age-related
+    circadian rhythm changes
+  pmid:38637528: LKRSDH-dependent histone modifications of insulin-like peptide sites contribute to age-related
+    circadian rhythm changes.

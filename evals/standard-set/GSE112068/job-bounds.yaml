@@ -11,3 +11,6 @@ papers: []
 left_out: []
 reason: Code kept GEO Series GSE112068; the linked group holds no other record to ask about.
 passages: {}
+titles:
+  GSE112068: Study of dynamic transcriptome profiling in DNA damage-induced cellular senescence and transient
+    cell-cycle arrest

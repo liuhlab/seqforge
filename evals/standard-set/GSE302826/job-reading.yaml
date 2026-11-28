@@ -11,7 +11,7 @@ read_detail: The records of GSE302826 and their 18 sequenced samples; the full t
 ontology_snapshot:
   source: 'liulab-data ontology store: cellosaurus-57.0, cl-2026-11-13, efo-3.96.0, hsapdv-2025-01-23,
     ncbitaxon-2026-11-26, pato-2026-10-01'
-  date: 2026-11-26
+  date: 2026-11-28
 passages:
   1:
     record:
@@ -245,6 +245,7 @@ shared:
     p: 0.99
 samples:
   GSM9111824:
+    biosample_accession: SAMN49996114
     biosample:
       id: B1
       inferred: no text read ties this library's material to another's
@@ -300,6 +301,7 @@ samples:
       - 14
       p: 1.0
   GSM9111825:
+    biosample_accession: SAMN49996113
     biosample:
       id: B2
       inferred: no text read ties this library's material to another's
@@ -355,6 +357,7 @@ samples:
       - 14
       p: 1.0
   GSM9111826:
+    biosample_accession: SAMN49996112
     biosample:
       id: B3
       inferred: no text read ties this library's material to another's
@@ -410,6 +413,7 @@ samples:
       - 14
       p: 1.0
   GSM9111827:
+    biosample_accession: SAMN49996111
     biosample:
       id: B4
       inferred: no text read ties this library's material to another's
@@ -463,6 +467,7 @@ samples:
       - 14
       p: 1.0
   GSM9111828:
+    biosample_accession: SAMN49996110
     biosample:
       id: B5
       inferred: no text read ties this library's material to another's
@@ -516,6 +521,7 @@ samples:
       - 14
       p: 1.0
   GSM9111829:
+    biosample_accession: SAMN49996109
     biosample:
       id: B6
       inferred: no text read ties this library's material to another's
@@ -569,6 +575,7 @@ samples:
       - 14
       p: 1.0
   GSM9111830:
+    biosample_accession: SAMN49996108
     biosample:
       id: B7
       inferred: no text read ties this library's material to another's
@@ -638,6 +645,7 @@ samples:
       - 19
       p: 1.0
   GSM9111831:
+    biosample_accession: SAMN49996107
     biosample:
       id: B8
       inferred: no text read ties this library's material to another's
@@ -707,6 +715,7 @@ samples:
       - 19
       p: 1.0
   GSM9111832:
+    biosample_accession: SAMN49996106
     biosample:
       id: B9
       inferred: no text read ties this library's material to another's
@@ -776,6 +785,7 @@ samples:
       - 19
       p: 1.0
   GSM9111833:
+    biosample_accession: SAMN49996105
     biosample:
       id: B10
       inferred: no text read ties this library's material to another's
@@ -843,6 +853,7 @@ samples:
       - 19
       p: 1.0
   GSM9111834:
+    biosample_accession: SAMN49996104
     biosample:
       id: B11
       inferred: no text read ties this library's material to another's
@@ -910,6 +921,7 @@ samples:
       - 19
       p: 1.0
   GSM9111835:
+    biosample_accession: SAMN49996103
     biosample:
       id: B12
       inferred: no text read ties this library's material to another's
@@ -977,6 +989,7 @@ samples:
       - 19
       p: 1.0
   GSM9111836:
+    biosample_accession: SAMN49996102
     biosample:
       id: B13
       inferred: no text read ties this library's material to another's
@@ -1045,6 +1058,7 @@ samples:
       - 19
       p: 1.0
   GSM9111837:
+    biosample_accession: SAMN49996101
     biosample:
       id: B14
       inferred: no text read ties this library's material to another's
@@ -1113,6 +1127,7 @@ samples:
       - 19
       p: 1.0
   GSM9111838:
+    biosample_accession: SAMN49996100
     biosample:
       id: B15
       inferred: no text read ties this library's material to another's
@@ -1181,6 +1196,7 @@ samples:
       - 19
       p: 1.0
   GSM9111839:
+    biosample_accession: SAMN49996099
     biosample:
       id: B16
       inferred: no text read ties this library's material to another's
@@ -1247,6 +1263,7 @@ samples:
       - 19
       p: 1.0
   GSM9111840:
+    biosample_accession: SAMN49996098
     biosample:
       id: B17
       inferred: no text read ties this library's material to another's
@@ -1313,6 +1330,7 @@ samples:
       - 19
       p: 1.0
   GSM9111841:
+    biosample_accession: SAMN49996097
     biosample:
       id: B18
       inferred: no text read ties this library's material to another's

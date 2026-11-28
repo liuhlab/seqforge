@@ -1,128 +1,189 @@
-# Compiling a dataset with Claude
+# Compile a dataset with Claude
 
-The easiest way to use seqforge is to not run it yourself. You describe your data to
-[Claude Code](https://claude.com/claude-code) in plain words, and Claude drives seqforge for you —
-figuring out the technology, which file is which read, and how to compile it into a pipeline you can
-run.
+You can let [Claude Code](https://claude.com/claude-code), Anthropic's coding assistant, run
+seqforge for you. You tell it in plain words where your sequencing files are and which genome to
+use. It runs the seqforge commands in order and hands back three things:
 
-You don't need to know what chemistry your data is, which file holds the barcodes, or what any of the
-flags mean. That is exactly the knowledge seqforge exists to recover from the files themselves. Your
-job is to point at the data and say what you want.
+- a **manifest**, `manifest.yaml`: what your data is (the technology, the samples, which file is
+  which read);
+- a **recipe**, `processing.yaml`: what to do with it (the genome, what to count);
+- a **Snakefile**: the pipeline you run to get one count matrix per sample.
 
-This page is the short, friendly path. When you want to see every step and inspect it, the
-[step-by-step tutorial](step-by-step.md) walks the same pipeline one command at a time.
+Claude does not decide what your data is. seqforge's code decides that from the bytes of the files
+and from the archive's records. Claude's job is to call the commands, read their exit codes, and
+stop when the code says stop. If you want to see each command yourself, the
+[step-by-step tutorial](step-by-step.md) runs the same pipeline one command at a time.
 
-## One-time setup
+## Set up once
 
-1. **Install seqforge** — see [Getting started](../getting-started.md). One `pixi install`.
-2. **Install the Claude skills.** seqforge ships a set of skills that teach Claude how to drive it
-   safely. Install them once:
+1. Install seqforge. See [Getting started](../getting-started.md).
+2. Make the seqforge skills visible to Claude. A skill is a page of instructions that tells Claude
+   how to use a tool. Inside a clone of the seqforge repository, Claude finds them already. To use
+   them from any folder, link them into your home folder once:
 
     ```bash
     pixi run install-skills
     ```
 
-3. **Reach the model gateway for reading prose.** One stage — reading a paper or a sample sheet —
-   uses a language model, through the lab's model gateway. Open a tunnel to it and set
-   `LABLLM_GATEWAY` to its local address
-   ([Reach the lab gateway](https://liuhlab.github.io/liulab-llms/reach-the-gateway/));
-   you need no provider key. If you have no paper to read, you can skip this and stay fully offline.
+3. Optional: add the guard hooks to the folder that holds your data. A hook is a check that Claude
+   Code runs around each of Claude's actions.
 
-That's it. From here on you just talk to Claude.
+    ```bash
+    seqforge hook install -C <data-folder>
+    ```
 
-## Compile a dataset
+    It writes three hooks into `<data-folder>/.claude/settings.json`. The first refuses a command
+    that would read a whole FASTQ file or write an absolute path into a manifest. The second checks
+    a manifest again after each edit. The third stops Claude from ending its turn while
+    `seqforge/questions.md` holds an open question for you.
 
-Open Claude Code in the folder with your data and describe what you have. A good request names three
-things: **where the files are**, **any extra context** (an accession, a paper, a sample sheet), and
-**the genome to align against**.
+4. Only if you have papers or sample sheets for Claude to read: set up access to the lab's model
+   gateway. Reading prose is the one compile step that uses a language model, and it goes through
+   that gateway. Open the tunnel and set `$LABLLM_GATEWAY` to its local address, as
+   [Reach the lab gateway](https://github.com/liuhlab/liulab-llms/blob/main/docs/reach-the-gateway.md) describes. You
+   need no model provider key. With no documents to read, skip this step.
+
+## The skills Claude uses
+
+One skill drives a compile, and it calls on the others for single steps.
+
+| Skill | What it does |
+| --- | --- |
+| `seqforge-orchestrate` | Runs a whole compile: the order of the commands, and what each exit code means |
+| `seqforge-exam` | Looks at a bounded head of each FASTQ file: read lengths, barcodes, file health |
+| `seqforge-harvest` | Turns a paper or sample sheet into claims, each with a quote that code finds again |
+| `seqforge-resolve` | Scores the bytes against the knowledge base to name the technology |
+| `seqforge-manifest` | Builds and checks the manifest and the recipe |
+| `seqforge-compose` | Writes the Snakefile and its config, and runs the compile checks |
+| `seqforge-io` | Fetches archive records, reads the head of a remote file, and manages the barcode lists |
+| `seqforge-study` | Bounds and reads a GEO study (separate from a compile; see below) |
+| `seqforge-kb-author` | Adds a new technology to the knowledge base |
+
+## Ask for a compile
+
+Open Claude Code in the folder that holds your data. Name three things: where the files are, any
+extra context (an accession, a paper, a sample sheet), and the genome.
 
 > Compile the single-cell RNA-seq data in `./data` with seqforge. It's accession PRJNA1027859, and
 > the paper is `./info/paper.pdf`. Align against the ce11 genome, annotation WS298.
 
-Claude takes it from there. Behind the scenes it runs the seqforge compiler — reading the bytes,
-pulling what the archive declares, mining the paper for anything useful — and hands you back two
-things: a **manifest** (what your data actually is) and a **Snakefile** (the pipeline that processes
-it). A minute or two, paper included.
+Claude runs `seqforge run` over the files. That one command fetches the archive records, reads the
+paper, writes the manifest and the recipe, and writes the Snakefile. It stops at the first refusal.
+A run takes a minute or two, paper included.
 
-You don't have to give it all three inputs. The files alone are enough:
+The files alone are enough:
 
 > Compile the FASTQ files in `./reads` with seqforge, against the hg38 genome with the GENCODE
 > annotation.
 
-The accession and the paper each make the answer richer — the archive's own sample for each file, the
-organism, a hint about the kit — but plenty of data never had either, and that's a normal, fully
-supported case.
+An accession adds the archive's sample for each file and the organism. A paper can add a hint about
+the kit. Plenty of data never had either, and seqforge compiles it all the same.
 
-## The one thing you have to decide
+## Decide the genome
 
-There is exactly one choice seqforge will not make for you: **the genome.** A wrong genome still aligns
-cleanly and still produces a count matrix — it's just quietly wrong, and nothing downstream ever
-notices. So seqforge refuses to guess, and Claude will ask you for it if you didn't say. Everything
-else — the technology, which read is the barcode, how long the barcodes are, which strand — is read
-from the files and never guessed.
+seqforge makes one choice only you can make: the genome. A wrong genome still aligns, still writes a
+count matrix, and exits with no error, so nothing downstream catches it. seqforge has no default,
+and Claude asks you if you did not say. Give two names:
+
+- the **assembly**, a UCSC genome id (the assembly's name in the UCSC Genome Browser) such as `ce11` or `hg38` (`--assembly`);
+- the **annotation**, the name of a gene annotation (GTF file) registered with the lab's genome
+  package, such as `WS298` (`--annotation`).
+
+Everything else is read from the files: the technology, which read holds the barcode, how long the
+barcodes are, and the strand.
 
 ## When Claude stops and asks
 
-seqforge is built to **refuse rather than guess.** If something is genuinely ambiguous, or the files
-don't match the accession you gave, Claude will stop and tell you exactly what's wrong — it won't
-paper over it with a plausible-looking answer. That pause is the tool working. A refusal is cheap; a
-confidently wrong count matrix is not, because you may not find out for months.
+seqforge refuses rather than guesses. Each command ends with an exit code, and two of them, `3`
+and `4`, mean "stop". [Commands](../reference/commands.md#exit-codes) says what each code means.
+This is what Claude does on each:
 
-So if Claude comes back with a question instead of a Snakefile, read it — it's naming a real decision
-only you can make.
+| Exit code | What Claude does |
+| --- | --- |
+| 0 | Goes on to the next step |
+| 1 | Reports the error |
+| 2 | Fixes the command, or asks you for what is missing |
+| 3 | Stops and shows you the remedy seqforge printed |
+| 4 | Stops and asks you |
 
-## Run it in a script (headless)
+For codes 3 and 4, Claude reports seqforge's own words and does not work around them. Retrying with
+other options would turn a correct refusal into a wrong manifest. An open question is also written
+to `seqforge/questions.md`, so you can read it after the session ends.
 
-The same thing works without opening an interactive session, which is how you'd batch many datasets:
+So if Claude comes back with a question instead of a Snakefile, read it. It names a real decision.
+
+## Run it without a session
+
+`claude -p` runs one request with no interactive session. This is how you compile many datasets in
+a loop:
 
 ```bash
 claude -p "Compile the data in $(pwd)/data with seqforge. Accession PRJNA1027859, paper in
 info/paper.pdf, align against ce11 / WS298. Use this directory as the workspace."
 ```
 
-Point it at each dataset in a loop and you have a headless pipeline that turns a folder of FASTQ files
-into a runnable Snakefile, one dataset at a time.
+Each call ends with seqforge's JSON summary of the run, or with the refusal that stopped it.
 
-## What you get: a look inside `seqforge/`
+## What lands in `seqforge/`
 
-Everything Claude produces lands in a `seqforge/` folder next to your data. The top level holds the
-things you actually reach for; the rest is tidied into named subfolders:
+Everything goes into a `seqforge/` folder in the workspace, next to your data. The top level holds
+the files you open. The rest is sorted into subfolders.
 
 ```text
 seqforge/
-  manifest.yaml         what your data IS — the technology, the samples, their metadata
-  processing.yaml       what to DO with it — the genome and the flags
-  project.yaml          a one-glance index of the whole project
-  sample_metadata.tsv   every sample, one row each
+  manifest.yaml         what your data is: the technology, the samples, which file is which read
+  processing.yaml       what to do with it: the genome and what to count
+  sample_metadata.tsv   one row per sample
+  project.yaml          an index of the project's assays
+  questions.md          open questions for you, present only when there are some
 
-  pipeline/             the Snakefile you submit, and its config
-  records/              what the archive declared, and any papers you handed in
-  logs/                 what the paper-reading cost, and the claims it found
-  cache/                working files, safe to delete
+  pipeline/             one folder per compiled recipe, holding the Snakefile you run
+  records/              what the archive declared, and the text of each document read
+  logs/                 the claims taken from the documents, and what reading them cost
+  cache/                working files; safe to delete
 ```
 
-Two files are the heart of it. **`manifest.yaml`** is what your data *is* — settled once, never
-rewritten. **`processing.yaml`** is what to *do* with it — the genome, the recipe — and you can have
-several. Want to align the same data to a different genome? That's a new `processing.yaml`, never an
-edit to the manifest. (Why they're split, and why it matters, is in
-[the two artifacts](../concepts/artifacts.md).)
+The manifest is written once per dataset and does not change. To process the same data another
+way, for example against another genome, you make another recipe and keep the manifest.
+[From FASTQ files to a pipeline](../how-it-works/compiler.md) explains why the two are separate
+files.
 
-The thing you submit lives under **`pipeline/`**: a `Snakefile`, ready to run. seqforge stops there on
-purpose — it does not submit jobs, has no opinion about your scheduler, and won't grow one. The last
-artifact is a file you run:
+If the files hold more than one technology, for example 10x v2 and v3 libraries in one series, each
+technology gets its own subfolder, `seqforge/<assay>/`, with its own manifest and Snakefile. The
+bytes decide the split. `sample_metadata.tsv` and `project.yaml` stay at the top and cover every
+assay.
+
+## Add what each sample was
+
+A compile records which sample each file is. It does not record what each sample was: its tissue,
+its genotype, its treatment. That comes from a study reading, which the separate study chain writes
+into a study folder. [Read your own studies](../guides/read-studies.md) shows how to make one, and
+Claude uses the `seqforge-study` skill for it.
+
+If you already have a study folder, name it in your request. Claude passes it as `--study`, and
+seqforge joins the reading into `sample_metadata.tsv` by each sample's BioSample accession. Each
+factor and each label that differs between samples gets a column. A sample the reading does not
+cover, or a reading row with no compiled sample, gives a warning and nothing more. The manifest does
+not change. A compile never starts the study chain.
+
+## Run the pipeline
+
+seqforge does not submit jobs. The last thing it writes is the Snakefile, and you run it:
 
 ```bash
-cd seqforge/pipeline/<the-directory-Claude-made>
+cd seqforge/pipeline/<the-folder-seqforge-named>
 snakemake --software-deployment-method apptainer
 ```
 
-That produces one `.h5ad` count matrix per sample. The
-[step-by-step tutorial](step-by-step.md#7-submit-it) explains that command, including why the
-`--software-deployment-method apptainer` flag matters and why a pipeline runs on one machine.
+Run it on one machine. You get one `.h5ad` count matrix per sample. If you joined a reading, each
+matrix carries the sample's labels. The step-by-step tutorial explains
+[the run command](step-by-step.md#run-the-snakefile), including why the pipeline wants one machine.
 
-## What to read next
+To see the whole compile on one page, ask Claude for a report. It runs `seqforge report`, which
+writes `seqforge/report.html` and the data behind it, `seqforge/report.json`.
 
-- [Step-by-step tutorial](step-by-step.md) — the same pipeline, one command at a time, when you want
-  to inspect each stage.
-- [The two artifacts](../concepts/artifacts.md) — why the manifest and the recipe are separate files.
-- [When it refuses](../concepts/refusal.md) — what the refusals mean, and why they're a feature.
+## Read next
+
+- [Compile step by step](step-by-step.md): the same pipeline, one command at a time.
+- [Why you can trust the output](../how-it-works/trust.md): what a refusal means, and why it is
+  cheaper than a wrong answer.

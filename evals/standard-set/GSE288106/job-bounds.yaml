@@ -12,3 +12,8 @@ papers:
 left_out: []
 reason: Code kept GEO Series GSE288106; Jev judged each other record kept here to be from the same research.
 passages: {}
+titles:
+  GSE288106: Alterations in single-cell transcriptomic levels and cellular localisation of hnRNP proteins
+    in Frontotemporal Lobar Degeneration
+  pmid:42327368: Transcriptomic and pathological analysis of the hnRNP network reveals glial involvement
+    in frontotemporal lobar degeneration pathological subtypes.

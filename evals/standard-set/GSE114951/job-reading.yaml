@@ -10,7 +10,7 @@ read:
 read_detail: The records of GSE114951 and their 12 sequenced samples; the full text of pmid:33473112.
 ontology_snapshot:
   source: 'liulab-data ontology store: efo-3.96.0, ncbitaxon-2026-11-26, pato-2026-10-01, wbls-2026-04-16'
-  date: 2026-11-26
+  date: 2026-11-28
 passages:
   1:
     record: GSE114951
@@ -145,6 +145,7 @@ shared:
     p: 1.0
 samples:
   GSM3160728:
+    biosample_accession: SAMN09267116
     biosample:
       id: B1
       inferred: no text read ties this library's material to another's
@@ -159,6 +160,7 @@ samples:
       unknown: what was read does not say its experiment
       p: 0.81
   GSM3160729:
+    biosample_accession: SAMN09267115
     biosample:
       id: B2
       inferred: no text read ties this library's material to another's
@@ -173,6 +175,7 @@ samples:
       unknown: what was read does not say its experiment
       p: 0.87
   GSM3160730:
+    biosample_accession: SAMN09267120
     biosample:
       id: B3
       inferred: no text read ties this library's material to another's
@@ -187,6 +190,7 @@ samples:
       unknown: what was read does not say its experiment
       p: 0.83
   GSM3160731:
+    biosample_accession: SAMN09267119
     biosample:
       id: B4
       inferred: no text read ties this library's material to another's
@@ -203,6 +207,7 @@ samples:
       - 9
       p: 0.98
   GSM3160732:
+    biosample_accession: SAMN09267118
     biosample:
       id: B5
       inferred: no text read ties this library's material to another's
@@ -219,6 +224,7 @@ samples:
       - 9
       p: 0.92
   GSM3160733:
+    biosample_accession: SAMN09267117
     biosample:
       id: B6
       inferred: no text read ties this library's material to another's
@@ -235,6 +241,7 @@ samples:
       - 9
       p: 0.96
   GSM4964731:
+    biosample_accession: SAMN17032671
     biosample:
       id: B7
       inferred: no text read ties this library's material to another's
@@ -249,6 +256,7 @@ samples:
       unknown: what was read does not say its experiment
       p: 0.81
   GSM4964732:
+    biosample_accession: SAMN17032670
     biosample:
       id: B8
       inferred: no text read ties this library's material to another's
@@ -263,6 +271,7 @@ samples:
       unknown: what was read does not say its experiment
       p: 0.78
   GSM4964733:
+    biosample_accession: SAMN17032669
     biosample:
       id: B9
       inferred: no text read ties this library's material to another's
@@ -277,6 +286,7 @@ samples:
       unknown: what was read does not say its experiment
       p: 0.82
   GSM4964734:
+    biosample_accession: SAMN17032668
     biosample:
       id: B10
       inferred: no text read ties this library's material to another's
@@ -293,6 +303,7 @@ samples:
       - 10
       p: 0.98
   GSM4964735:
+    biosample_accession: SAMN17032667
     biosample:
       id: B11
       inferred: no text read ties this library's material to another's
@@ -309,6 +320,7 @@ samples:
       - 10
       p: 0.98
   GSM4964736:
+    biosample_accession: SAMN17032666
     biosample:
       id: B12
       inferred: no text read ties this library's material to another's

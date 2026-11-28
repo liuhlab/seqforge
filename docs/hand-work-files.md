@@ -1,11 +1,10 @@
 # Files from the hand work
 
-This page lists every file that the hand work on the standard set produced. It is written for
-someone outside the project who builds an evaluation on these files. For each kind of file it
-gives the path, the count, the format, who or which model made the file and how, and a few lines
-of Python that load it.
+This page lists every file in the standard set's folder. It is for someone outside the project who
+builds an evaluation on these files. For each kind of file, it gives the path, the count, the
+format, who made the file and how, and a few lines of Python that load it.
 
-This page uses five words:
+## Five words this page uses
 
 - A **study** is one piece of research: the experiments one paper reports, or one project that has
   no paper yet.
@@ -24,16 +23,16 @@ checked any of them.
 
 All files are under `evals/standard-set/` in the
 [seqforge repository](https://github.com/liuhlab/seqforge/tree/main/evals/standard-set). `<ID>` is
-the Series that a study was picked by, and it is also the name of the study's folder. The counts
-were measured on 2026-11-26.
+the Series that a study was picked by. It is also the name of the study's folder. The counts were
+measured on 2026-11-27.
 
 | File | Path | Count | Made by | Format |
 | --- | --- | --- | --- | --- |
 | The pick | `pick.yaml` | 1 | A model session, 2026-11-19 | [On this page](#pickyaml-the-50-picked-the-spares-and-the-replaced) |
 | The study file | `<ID>/study.yaml` | 50 | The `judge` command | [On this page](#studyyaml-the-facts-about-one-pick) |
 | The bounds | `<ID>/bounds.yaml` | 50 | Code, from the two models' answers | [The bounds file](formats/bounds.md) |
-| The job's bounds | `<ID>/job-bounds.yaml` | 50 | The bounding job, `typesafe/jev-1.14.0`, 2026-11-26 | [The bounds file](formats/bounds.md) |
-| The job's reading | `<ID>/job-reading.yaml` | 50 | The reading job, `deepseek/deepseek-flash` and `typesafe/jev-1.14.0`, 2026-11-26 | [The reading file](formats/reading.md) |
+| The job's bounds | `<ID>/job-bounds.yaml` | 50 | The bounding job, `typesafe/jev-1.14.0`, 2026-11-27 | [The bounds file](formats/bounds.md) |
+| The job's reading | `<ID>/job-reading.yaml` | 50 | The reading job, `deepseek/deepseek-flash` and `typesafe/jev-1.14.0`, 2026-11-27 | [The reading file](formats/reading.md) |
 | The draft | `<ID>/draft.yaml` | 50 | `deepseek/deepseek-v4-flash` | [On this page](#draftyaml-what-the-small-model-answered) |
 | The verdict | `<ID>/verdict.yaml` | 50 | `claude-fable-5-2` | [On this page](#verdictyaml-what-the-judge-answered) |
 | The reading | `<ID>/reading.yaml` | 5 | `claude-fable-5-2` | [The reading file](formats/reading.md) |
@@ -57,18 +56,110 @@ print(len([p for p in root.iterdir() if p.is_dir()]))  # 50
 print(sorted(collections.Counter(p.name for p in root.glob("*/*")).items()))
 ```
 
-The files hold identifiers and the models' own words. The only text of a record or of a paper in
-them is short quotes, most of them under `passages` in a reading. The records are public at GEO,
-and PubMed lists each paper by its number.
+The files hold identifiers and the models' own words. They hold two kinds of text copied from a
+record or a paper:
+
+- short quotes, most of them under `passages` in a reading;
+- titles, in the `titles` map of each `job-bounds.yaml`.
+
+The records are public at GEO, and PubMed lists each paper by its number.
+
+## The jobs' files
+
+The two jobs of [the study workflow](study-workflow.md) wrote one file each in every study folder.
+They sit beside the set's own `bounds.yaml` and `reading.yaml`, under other names, so neither job
+writes over the set's own files.
+
+All 100 files were deleted and written again on 2026-11-27, by one run of both jobs over the 50
+studies. The run used seqforge at commit `9209509`, the bounding job's version `2026.11.3`, and the
+reading job's version `2026.11.10`. The
+[note on that run](https://github.com/liuhlab/seqforge/blob/main/docs/research/study-chain-on-the-50-2026-11-27.md)
+gives its cost and how each study ended. No study's ending and no claim moved since the run of
+2026-11-26.
+
+A file does not say how its study ended: settled, unsettled or refused. That is kept in the pass's
+task, and the note lists it.
+
+### `job-bounds.yaml`: the bounding job's bounds
+
+**Path:** `evals/standard-set/<ID>/job-bounds.yaml`. 50 files.
+
+**Format:** [The bounds file](formats/bounds.md) describes every field. All 50 files say
+`format: 1`.
+
+**Made by:** the bounding job. A pass of `seqforge pass start study-bounds` answered each study, and
+this command wrote the files:
+
+```bash
+seqforge study write-bounds --out evals/standard-set --name job-bounds.yaml
+```
+
+`models` names `typesafe/jev-1.14.0` in 46 files. In the other 4 it is `null`, because the study's
+linked group held no record for Jev to place: GSE112068, GSE142633, GSE208154 and GSE240375.
+
+What these files hold that the set's own bounds do not:
+
+- **A probability.** Each claim that Jev answered has a `p`, and its text gives Jev's two answers.
+  A claim that code made, such as the starting Series, has `p: null`.
+- **`titles`**, new on 2026-11-27. It maps each record the bounds place, kept or left out, to its
+  title, copied from the Series record or the paper. A record with no title has no entry.
+
+```python
+import yaml
+
+with open("evals/standard-set/GSE241718/job-bounds.yaml", encoding="utf-8") as handle:
+    bounds = yaml.safe_load(handle)
+print(bounds["models"], [(claim["id"], claim["p"]) for claim in bounds["series"]])
+print(bounds["titles"])
+```
+
+### `job-reading.yaml`: the reading job's reading
+
+**Path:** `evals/standard-set/<ID>/job-reading.yaml`. 50 files.
+
+**Format:** [The reading file](formats/reading.md) describes every field. All 50 files say
+`format: 2`.
+
+**Made by:** the reading job, from each study's own `bounds.yaml`. A pass of
+`seqforge pass start study-reading` answered each study, and this command wrote the files:
+
+```bash
+seqforge study write-reading --out evals/standard-set --name job-reading.yaml
+```
+
+`models.reading` is `deepseek/deepseek-flash`, and `models.probabilities` is `typesafe/jev-1.14.0`.
+
+The run was on the evening of 2026-11-27 in Boston, but each file's `ontology_snapshot.date` says
+`2026-11-28`. That date is the day in UTC (Coordinated Universal Time) when the pass opened the
+ontology store, because the store names its snapshots by UTC day.
+
+What these files hold that they did not before:
+
+- **`biosample_accession`**, new on 2026-11-27. A sample's row carries it when the sample's GEO
+  record links exactly one BioSample. It is the BioSample's `SAMN` id, copied from the record. It
+  is an id, not a claim. 785 of the 787 rows carry one. The two rows without one are in GSE254687.
+
+```python
+import yaml
+
+with open("evals/standard-set/GSE241718/job-reading.yaml", encoding="utf-8") as handle:
+    reading = yaml.safe_load(handle)
+print(reading["ontology_snapshot"])
+for sample, row in reading["samples"].items():
+    print(sample, row.get("biosample_accession"))
+```
 
 ## The standard set
 
 The 50 studies were picked on 2026-11-19. A small model then drafted each study's bounds, and a
-large model judged each draft once. Three commands did that work, and all three are now retired: a
-pass of the `standard-set-bounds` kind asked the small model about each study, the
-`standard-set draft` command wrote `draft.yaml` from the answers, and the `standard-set judge`
-command asked the large model about one study and wrote `verdict.yaml`, `bounds.yaml` and
-`study.yaml`. The bounding job now draws a study:
+large model judged each draft once. Three commands did that work, and all three are now retired:
+
+1. A pass of the `standard-set-bounds` kind asked the small model about each study.
+2. The `standard-set draft` command wrote `draft.yaml` from the answers.
+3. The `standard-set judge` command asked the large model about one study. It wrote
+   `verdict.yaml`, `bounds.yaml` and `study.yaml`.
+
+The bounding job now draws a study:
 [the study workflow](study-workflow.md#1-bound-the-study) says how. You can load every file here
 without liulab-data, the lab's package that stores the GEO records and the papers.
 
@@ -79,10 +170,10 @@ about none.
 
 **Path:** `evals/standard-set/pick.yaml`. One file.
 
-**Made by:** a model session on 2026-11-19. The file names no model. Its header says that the
-picker judged each study's direction, shape and design from the Series' public GEO record and the
-PubMed abstract of its paper. The picker read 302 Series records and 263 abstracts, a count taken
-from the
+**Made by:** a model session on 2026-11-19. The file names no model, and its first line marks it
+`PROVISIONAL`. Its header says that the picker judged each study's direction, shape and design from
+the Series' public GEO record and the PubMed abstract of its paper. The picker read 302 Series
+records and 263 abstracts, a count taken from the
 [note on record links](https://github.com/liuhlab/seqforge/blob/main/docs/research/standard-set-record-links-2026-11-19.md).
 
 The file has six top-level fields:
@@ -91,7 +182,7 @@ The file has six top-level fields:
 | --- | --- |
 | `store_build` | The build of liulab-data's store that the counts and the links were read from: `20261107T163933Z`. |
 | `picked_on` | The date of the pick: `2026-11-19`. |
-| `limits` | The size limits a study had to fit: the most samples, experiments and linked Series. The `hard_shape_` limits are wider and apply to a study picked for a hard shape. |
+| `limits` | The size limits a study had to fit: the most samples, experiments and linked Series, and the fewest sequenced runs (`min_sequenced_runs`). The `hard_shape_` limits are wider and apply to a study picked for a hard shape. |
 | `studies` | The 50 picked studies: 17 on aging, 17 on neurodegeneration and 16 on *C. elegans*. |
 | `spares` | 14 studies held back to take the place of a picked study that fails. |
 | `replaced` | The studies taken out after the pick, each with the spare that took its place and the reason it failed. The list is empty: no study has been replaced. |
@@ -110,7 +201,7 @@ Each entry of `studies` and of `spares` has these fields:
 | `compiles_today` | The library chemistry that the record's protocol text points to, by the name seqforge gives it. A list when the study has two, and `null` when seqforge supports none. No sequencing read was looked at. |
 | `compiles_fully` | `true` when every library of the study is in a chemistry that `compiles_today` names. |
 | `known_dataset` | `true` for a study that seqforge had already worked on before the pick. 5 of the 50. |
-| `n_samples`, `n_experiments` | The GEO samples and the SRA experiments of all the linked Series together. |
+| `n_samples`, `n_experiments` | The GEO samples and the SRA experiments of all the linked Series together. SRA is the Sequence Read Archive, which holds the reads. |
 | `design` | The design, in the picker's short words. |
 | `reason_picked` | One or two sentences. |
 | `status` | `settled`, `shape_to_confirm` or `shape_not_found`. The last one marks a study picked as possibly two studies in one Series that turned out to be one study. 3 of the 50. |
@@ -222,8 +313,8 @@ print(draft["bounds"]["series"], draft["bounds"]["papers"], draft["bounds"]["lef
 **Path:** `evals/standard-set/<ID>/verdict.yaml`. 50 files.
 
 **Made by:** `claude-fable-5-2`, through the `judge` command, once for each study. The judge got
-the draft and what the drafting model saw, and it could open the full records and the full text of
-the papers. The verdicts are dated from 2026-11-19 23:38 to 2026-11-20 00:10 (UTC).
+the draft and what the drafting model saw. It could also open the full records and the full text
+of the papers. The verdicts are dated from 2026-11-19 23:38 to 2026-11-20 00:10 (UTC).
 
 | Field | Holds |
 | --- | --- |
@@ -253,10 +344,10 @@ for folder in sorted(pathlib.Path("evals/standard-set").glob("GSE*")):
 
 ## The five worked readings
 
-Five of the 50 studies have a reading, one for each kind of design. **A model wrote each reading.
-A second model pass checked each reading against the records and the paper. No person has checked
-any of them.** Where the second pass disagrees with a reading, the reading is left as written, and
-the disagreement is in the verdict.
+Five of the 50 studies have a reading of their own, one for each kind of design. **A model wrote
+each reading. A second model pass checked each reading against the records and the paper. No
+person has checked any of them.** Where the second pass disagrees with a reading, the reading is
+left as written, and the disagreement is in the verdict.
 
 | Study | Kind of design | Samples | Passages | Second pass agrees | Disagreements |
 | --- | --- | --- | --- | --- | --- |
@@ -268,12 +359,12 @@ the disagreement is in the verdict.
 
 No command made these files. The process was:
 
-1. A large model read the records of the study's Series and its paper, and wrote `reading.yaml`
+1. A large model read the records of the study's Series and its paper. It wrote `reading.yaml`
    and `reading.notes.md`. For four studies it read the records, the abstract and the full text.
    GSE112068 has no paper, so the model read the records only.
-2. A second pass read the same sources again and checked the reading. It looked for every
-   quote in the field or the paper section that the reading names, and it compared the samples
-   with the study's bounds. It wrote `reading.verdict.yaml`.
+2. A second pass read the same sources again and checked the reading. It looked for every quote
+   in the field or the paper section that the reading names. It compared the samples with the
+   study's bounds. It wrote `reading.verdict.yaml`.
 3. The second pass changed a reading only to make it pass the format check. Each such change is
    listed under `format_fixes` in the verdict: 7 changes over the five readings.
 
@@ -290,7 +381,11 @@ added the assay's ontology id, the source of the ids, and the passages that spea
 No claim's text, number, level or `p` changed. Each `reading.notes.md` ends with what changed in it.
 
 **Made by:** `claude-fable-5-2`, named in `models.reading` and in `models.probabilities`. The
-files hold no date. They were added to the repository on 2026-11-20 (UTC).
+files do not say when they were written. They were added to the repository on 2026-11-20 (UTC).
+Their `ontology_snapshot.date` is `2026-11-21`, the day of the rewrite to format 2.
+
+These five files carry no `biosample_accession` on any row. The job's `job-reading.yaml` beside
+each one does.
 
 A sample has every claim under `shared`, except a label that its own row writes. The snippet
 applies that rule:
@@ -306,8 +401,8 @@ for sample, row in reading["samples"].items():
 print(reading["passages"][14]["quote"])  # a passage number loads as a whole number
 ```
 
-The relations between the samples are not stored. `seqforge study relations <file>` derives them,
-and [the reading file](formats/reading.md#the-relations) describes its output.
+The relations between the samples are not stored. `seqforge study relations <file>` works them
+out, and [the reading file](formats/reading.md) describes its output.
 
 ### `reading.verdict.yaml`: what the second pass found
 
@@ -357,8 +452,8 @@ for path in sorted(pathlib.Path("evals/standard-set").glob("*/reading.verdict.ya
 **Path:** `evals/standard-set/<ID>/reading.notes.md`. 5 files.
 
 **Made by:** the model that wrote the reading, at the same time. Each file is free Markdown text
-with no fixed fields. It says what the model read and what the reading format could not hold for
-this study, or held badly.
+with no fixed fields. It says what the model read. It also says what the reading format could not
+hold for this study, or held badly.
 
 ```python
 import pathlib
@@ -391,9 +486,9 @@ seqforge study check-bounds evals/standard-set/<ID>/bounds.yaml
 seqforge study check-reading evals/standard-set/<ID>/reading.yaml
 ```
 
-All 50 bounds files pass their check (measured on 2026-11-19), and all five readings pass theirs
-(measured on 2026-11-21). All 50 `job-bounds.yaml` files pass the bounds check, and all 50
-`job-reading.yaml` files pass the reading check (measured on 2026-11-26).
+The reading check needs liulab-data installed, because liulab-data's vocabularies judge each
+ontology id. On 2026-11-27, every file that has a check passed it: the 50 `bounds.yaml`, the 50
+`job-bounds.yaml`, the five `reading.yaml` and the 50 `job-reading.yaml`.
 
 The other files have no format number, and their fields are the ones this page lists. The drafts
 and the verdicts are kept as the models wrote them, so they hold fields from before the bounds
@@ -412,7 +507,8 @@ format:
 
 ## Known wrong or stale facts in the files
 
-Do not build on these lines without reading this list.
+Do not build on these lines without reading this list. Each one was checked against the files on
+2026-11-27.
 
 1. **`GSE241718/study.yaml` describes the two Series wrongly.** Its `reason_picked` says that one
    Series holds whole cells and one holds nuclei. The protocol on every sample record, the summary
@@ -424,11 +520,13 @@ Do not build on these lines without reading this list.
    "the seven embryo samples are its own data". The judge had drawn the study as seven of the
    eight samples. A study is whole Series, so the bounds are now the whole Series of eight. The
    eighth sample is a re-deposited sample of an older study. Telling it apart is left to the
-   study's reading, and this study has none yet.
-3. **The bounds carry no probability and no quote.** All 74 claims in the 50 bounds files are
-   marked `inferred`, with the model's reason as the text. Every `p` is `null`,
-   `models.probabilities` is `null`, and `passages` is empty. `null` means that no model has given
-   a probability, not that the claim is in doubt.
+   study's reading. The set has no worked reading of this study. The job's `job-reading.yaml`
+   reads all eight samples, and no one has checked it.
+3. **The set's own bounds carry no probability and no quote.** All 74 claims in the 50
+   `bounds.yaml` files are marked `inferred`, with the model's reason as the text. Every `p` is
+   `null`, `models.probabilities` is `null`, and `passages` is empty. `null` means that no model
+   has given a probability, not that the claim is in doubt. The job's `job-bounds.yaml` files do
+   carry a `p` on each claim that Jev answered.
 4. **One `when` is later than its file.** `GSE100021/reading.verdict.yaml` says
    `2026-11-20T02:05:00Z`. The commit that added the file is dated 23 minutes earlier. The model
    wrote the time itself.

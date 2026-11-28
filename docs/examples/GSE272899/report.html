@@ -1,0 +1,659 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>seqforge report — study GSE272899</title>
+<style>/*! tailwindcss v4.3.3 | MIT License | https://tailwindcss.com */
+@layer properties{@supports (((-webkit-hyphens:none)) and (not (margin-trim:inline))) or ((-moz-orient:inline) and (not (color:rgb(from red r g b)))){*,:before,:after,::backdrop{--tw-rotate-x:initial;--tw-rotate-y:initial;--tw-rotate-z:initial;--tw-skew-x:initial;--tw-skew-y:initial;--tw-border-style:solid;--tw-leading:initial;--tw-font-weight:initial;--tw-tracking:initial;--tw-ordinal:initial;--tw-slashed-zero:initial;--tw-numeric-figure:initial;--tw-numeric-spacing:initial;--tw-numeric-fraction:initial;--tw-shadow:0 0 #0000;--tw-shadow-color:initial;--tw-shadow-alpha:100%;--tw-inset-shadow:0 0 #0000;--tw-inset-shadow-color:initial;--tw-inset-shadow-alpha:100%;--tw-ring-color:initial;--tw-ring-shadow:0 0 #0000;--tw-inset-ring-color:initial;--tw-inset-ring-shadow:0 0 #0000;--tw-ring-inset:initial;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-offset-shadow:0 0 #0000;--tw-backdrop-blur:initial;--tw-backdrop-brightness:initial;--tw-backdrop-contrast:initial;--tw-backdrop-grayscale:initial;--tw-backdrop-hue-rotate:initial;--tw-backdrop-invert:initial;--tw-backdrop-opacity:initial;--tw-backdrop-saturate:initial;--tw-backdrop-sepia:initial}}}@layer theme{:root,:host{--font-sans:ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;--font-mono:ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;--spacing:.25rem;--container-6xl:72rem;--text-xs:.75rem;--text-xs--line-height:calc(1 / .75);--text-sm:.875rem;--text-sm--line-height:calc(1.25 / .875);--text-base:1rem;--text-base--line-height:calc(1.5 / 1);--text-lg:1.125rem;--text-lg--line-height:calc(1.75 / 1.125);--text-2xl:1.5rem;--text-2xl--line-height:calc(2 / 1.5);--font-weight-normal:400;--font-weight-semibold:600;--font-weight-bold:700;--tracking-tight:-.025em;--radius-lg:.5rem;--radius-xl:.75rem;--blur-sm:8px;--default-font-family:var(--font-sans);--default-mono-font-family:var(--font-mono);--color-ink:var(--sf-ink);--color-dim:var(--sf-dim);--color-faint:var(--sf-faint);--color-line:var(--sf-line);--color-surface:var(--sf-surface);--color-sunk:var(--sf-sunk);--color-accent:var(--sf-accent)}}@layer base{*,:after,:before,::backdrop{box-sizing:border-box;border:0 solid;margin:0;padding:0}::file-selector-button{box-sizing:border-box;border:0 solid;margin:0;padding:0}html,:host{-webkit-text-size-adjust:100%;tab-size:4;line-height:1.5;font-family:var(--default-font-family,-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", "Noto Sans", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji");font-feature-settings:var(--default-font-feature-settings,normal);font-variation-settings:var(--default-font-variation-settings,normal);-webkit-tap-highlight-color:transparent}hr{height:0;color:inherit;border-top-width:1px}abbr:where([title]){-webkit-text-decoration:underline dotted;text-decoration:underline dotted}h1,h2,h3,h4,h5,h6{font-size:inherit;font-weight:inherit}a{color:inherit;-webkit-text-decoration:inherit;-webkit-text-decoration:inherit;-webkit-text-decoration:inherit;text-decoration:inherit}b,strong{font-weight:bolder}code,kbd,samp,pre{font-family:var(--default-mono-font-family,ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace);font-feature-settings:var(--default-mono-font-feature-settings,normal);font-variation-settings:var(--default-mono-font-variation-settings,normal);font-size:1em}small{font-size:80%}sub,sup{vertical-align:baseline;font-size:75%;line-height:0;position:relative}sub{bottom:-.25em}sup{top:-.5em}table{text-indent:0;border-color:inherit;border-collapse:collapse}:-moz-focusring:where(:not(iframe)){outline:auto}progress{vertical-align:baseline}summary{display:list-item}ol,ul,menu{list-style:none}img,svg,video,canvas,audio,iframe,embed,object{vertical-align:middle;display:block}img,video{max-width:100%;height:auto}button,input,select,optgroup,textarea{font:inherit;font-feature-settings:inherit;font-variation-settings:inherit;letter-spacing:inherit;color:inherit;opacity:1;background-color:#0000;border-radius:0}::file-selector-button{font:inherit;font-feature-settings:inherit;font-variation-settings:inherit;letter-spacing:inherit;color:inherit;opacity:1;background-color:#0000;border-radius:0}:where(select:is([multiple],[size])) optgroup{font-weight:bolder}:where(select:is([multiple],[size])) optgroup option{padding-inline-start:20px}::file-selector-button{margin-inline-end:4px}::placeholder{opacity:1}@supports (not ((-webkit-appearance:-apple-pay-button))) or (contain-intrinsic-size:1px){::placeholder{color:currentColor}@supports (color:color-mix(in lab, red, red)){::placeholder{color:color-mix(in oklab, currentcolor 50%, transparent)}}}textarea{resize:vertical}::-webkit-search-decoration{-webkit-appearance:none}::-webkit-date-and-time-value{min-height:1lh;text-align:inherit}::-webkit-datetime-edit{display:inline-flex}::-webkit-datetime-edit-fields-wrapper{padding:0}::-webkit-datetime-edit{padding-block:0}::-webkit-datetime-edit-year-field{padding-block:0}::-webkit-datetime-edit-month-field{padding-block:0}::-webkit-datetime-edit-day-field{padding-block:0}::-webkit-datetime-edit-hour-field{padding-block:0}::-webkit-datetime-edit-minute-field{padding-block:0}::-webkit-datetime-edit-second-field{padding-block:0}::-webkit-datetime-edit-millisecond-field{padding-block:0}::-webkit-datetime-edit-meridiem-field{padding-block:0}::-webkit-calendar-picker-indicator{line-height:1}:-moz-ui-invalid{box-shadow:none}button,input:where([type=button],[type=reset],[type=submit]){appearance:button}::file-selector-button{appearance:button}::-webkit-inner-spin-button{height:auto}::-webkit-outer-spin-button{height:auto}[hidden]:where(:not([hidden=until-found])){display:none!important}:root{color-scheme:light dark;--sf-bg:#f6f8fb;--sf-surface:#fff;--sf-surface-2:#f1f4f8;--sf-sunk:#f8fafc;--sf-ink:#14181f;--sf-dim:#59626f;--sf-faint:#8a93a0;--sf-line:#e2e6ec;--sf-line-strong:#cbd2db;--sf-accent:#4338ca;--sf-accent-weak:#eef0fe;--sf-ok:#167a4b;--sf-ok-weak:#e7f5ee;--sf-warn:#a97a00;--sf-warn-weak:#fdf3e2;--sf-crit:#b42318;--sf-crit-weak:#fdecea;--sf-neutral:#5b6472;--sf-neutral-weak:#eef0f4;--sf-poison-bg:#b42318;--sf-poison-fg:#fff;--sf-shadow:0 1px 2px #101e2d0d, 0 1px 3px #101e2d0f}:root[data-theme=dark]{--sf-bg:#0f1319;--sf-surface:#161c24;--sf-surface-2:#1e2630;--sf-sunk:#121821;--sf-ink:#e7edf3;--sf-dim:#98a3b1;--sf-faint:#6b7783;--sf-line:#28323d;--sf-line-strong:#3a4650;--sf-accent:#a5b4fc;--sf-accent-weak:#1c2140;--sf-ok:#3fb950;--sf-ok-weak:#102619;--sf-warn:#e8b14a;--sf-warn-weak:#2b2010;--sf-crit:#f85149;--sf-crit-weak:#33191a;--sf-neutral:#98a3b1;--sf-neutral-weak:#1e242c;--sf-poison-bg:#f85149;--sf-poison-fg:#17191c;--sf-shadow:0 1px 2px #0006, 0 1px 3px #0000004d}@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--sf-bg:#0f1319;--sf-surface:#161c24;--sf-surface-2:#1e2630;--sf-sunk:#121821;--sf-ink:#e7edf3;--sf-dim:#98a3b1;--sf-faint:#6b7783;--sf-line:#28323d;--sf-line-strong:#3a4650;--sf-accent:#a5b4fc;--sf-accent-weak:#1c2140;--sf-ok:#3fb950;--sf-ok-weak:#102619;--sf-warn:#e8b14a;--sf-warn-weak:#2b2010;--sf-crit:#f85149;--sf-crit-weak:#33191a;--sf-neutral:#98a3b1;--sf-neutral-weak:#1e242c;--sf-poison-bg:#f85149;--sf-poison-fg:#17191c;--sf-shadow:0 1px 2px #0006, 0 1px 3px #0000004d}}html{overflow-x:hidden}body{background:var(--sf-bg);color:var(--sf-ink);font-family:var(--font-sans);-webkit-font-smoothing:antialiased;font-size:15px;line-height:1.58}code{font-family:var(--font-mono);font-variant-ligatures:none;overflow-wrap:anywhere}summary{cursor:pointer;list-style:none}summary::-webkit-details-marker{display:none}:focus-visible{outline:2px solid var(--sf-accent);outline-offset:2px;border-radius:6px}}@layer components{.sf-page{width:100%;max-width:var(--container-6xl);padding-inline:calc(var(--spacing) * 5);margin-inline:auto}.sf-card{border-radius:var(--radius-xl);border-style:var(--tw-border-style);border-width:1px;border-color:var(--sf-line);background:var(--sf-surface)}.sf-panel{margin-bottom:calc(var(--spacing) * 5);border-radius:var(--radius-xl);border-style:var(--tw-border-style);padding:calc(var(--spacing) * 5);border-width:1px;border-color:var(--sf-line);background:var(--sf-surface);box-shadow:var(--sf-shadow)}.sf-panel-h{margin-bottom:var(--spacing);font-size:var(--text-lg);line-height:var(--tw-leading,var(--text-lg--line-height));--tw-font-weight:var(--font-weight-bold);font-weight:var(--font-weight-bold);letter-spacing:-.01em}.sf-panel-sub{margin-bottom:calc(var(--spacing) * 4);font-size:var(--text-sm);line-height:var(--tw-leading,var(--text-sm--line-height));color:var(--sf-dim);max-width:82ch}.sf-sub-h{font-size:var(--text-xs);line-height:var(--tw-leading,var(--text-xs--line-height));--tw-font-weight:var(--font-weight-bold);font-weight:var(--font-weight-bold);text-transform:uppercase;letter-spacing:.07em;color:var(--sf-faint);margin:0}.sf-notice{border-radius:var(--radius-lg);border-style:var(--tw-border-style);padding:calc(var(--spacing) * 4);font-size:var(--text-sm);line-height:var(--tw-leading,var(--text-sm--line-height));border-width:1px;border-color:var(--sf-line);color:var(--sf-dim);margin:0}.sf-empty{padding-block:calc(var(--spacing) * 2);font-size:var(--text-sm);line-height:var(--tw-leading,var(--text-sm--line-height));color:var(--sf-dim);margin:0;font-style:italic}.sf-scroll-x{border-radius:var(--radius-lg);border-style:var(--tw-border-style);border-width:1px;border-color:var(--sf-line);background:var(--sf-surface);overscroll-behavior-x:contain;overflow-x:auto}.sf-scroll-x table{border-collapse:collapse;width:100%}.sf-scroll-x th,.sf-scroll-x td{padding-inline:calc(var(--spacing) * 3);padding-block:calc(var(--spacing) * 2);text-align:left;border-bottom:1px solid var(--sf-line)}.sf-scroll-x td{vertical-align:top}.sf-scroll-x thead th{font-size:var(--text-xs);line-height:var(--tw-leading,var(--text-xs--line-height));--tw-font-weight:var(--font-weight-bold);font-weight:var(--font-weight-bold);text-transform:uppercase;letter-spacing:.05em;color:var(--sf-faint);background:var(--sf-surface-2);white-space:nowrap}.sf-scroll-x tbody th{vertical-align:top;--tw-font-weight:var(--font-weight-semibold);font-weight:var(--font-weight-semibold);color:var(--sf-ink)}.sf-scroll-x tbody tr:last-child th,.sf-scroll-x tbody tr:last-child td{border-bottom:0}.sf-col-sticky{z-index:2;background:var(--sf-surface);border-right:1px solid var(--sf-line);position:sticky;left:0}.sf-scroll-x thead .sf-col-sticky{z-index:3;background:var(--sf-surface-2)}.sf-icon-btn,.sf-select{cursor:pointer;border-radius:var(--radius-lg);border-style:var(--tw-border-style);font-size:var(--text-sm);line-height:var(--tw-leading,var(--text-sm--line-height));border-width:1px;border-color:var(--sf-line);background:var(--sf-surface-2);color:var(--sf-ink);font-family:inherit}.sf-icon-btn{width:calc(var(--spacing) * 9);height:calc(var(--spacing) * 9);flex-shrink:0;place-items:center;display:grid}.sf-select{padding-inline:calc(var(--spacing) * 2);padding-block:var(--spacing)}.sf-icon-btn:hover,.sf-select:hover{border-color:var(--sf-line-strong)}.sf-verdict{align-items:center;gap:calc(var(--spacing) * 2);border-style:var(--tw-border-style);padding-inline:calc(var(--spacing) * 3);padding-block:var(--spacing);font-size:var(--text-xs);line-height:var(--tw-leading,var(--text-xs--line-height));--tw-font-weight:var(--font-weight-bold);font-weight:var(--font-weight-bold);color:var(--sf-v-fg);border-width:1px;border-color:var(--sf-v-fg);background:var(--sf-v-bg);border-radius:3.40282e38px;flex-shrink:0;display:inline-flex}.sf-v-compiled{--sf-v-fg:var(--sf-ok);--sf-v-bg:transparent}.sf-v-ir_ready{--sf-v-fg:var(--sf-neutral);--sf-v-bg:transparent}.sf-v-blocker{--sf-v-fg:var(--sf-crit);--sf-v-bg:var(--sf-crit-weak)}.sf-v-question{--sf-v-fg:var(--sf-warn);--sf-v-bg:var(--sf-warn-weak)}.flow-guess,.flow-measured,.flow-done,.flow-blocked,.flow-ask{border-radius:var(--radius-lg);border-style:var(--tw-border-style);padding:calc(var(--spacing) * 4);border-width:1px;border-color:var(--flow-line);background:var(--flow-bg)}.flow-guess,.flow-measured,.flow-done{--flow-line:var(--sf-line);--flow-bg:transparent}.flow-blocked{--flow-line:var(--sf-crit);--flow-bg:var(--sf-crit-weak)}.flow-ask{--flow-line:var(--sf-warn);--flow-bg:var(--sf-warn-weak)}.tab{cursor:pointer;padding-inline:calc(var(--spacing) * 4);padding-block:calc(var(--spacing) * 3);font-size:var(--text-sm);line-height:var(--tw-leading,var(--text-sm--line-height));--tw-font-weight:var(--font-weight-semibold);font-weight:var(--font-weight-semibold);color:var(--sf-dim);white-space:nowrap;background:0 0;border:0;border-bottom:2px solid #0000;font-family:inherit}.tab:hover{color:var(--sf-ink)}.tab.active{color:var(--sf-accent);border-bottom-color:var(--sf-accent)}.pane{display:none}.pane.active{display:block}.prov-pop{z-index:50;border-radius:var(--radius-lg);border-style:var(--tw-border-style);padding-inline:calc(var(--spacing) * 4);padding-block:calc(var(--spacing) * 3);font-size:var(--text-sm);line-height:var(--tw-leading,var(--text-sm--line-height));border-width:1px;border-color:var(--sf-line-strong);background:var(--sf-surface);min-width:200px;max-width:360px;color:var(--sf-ink);-webkit-user-select:text;user-select:text;line-height:1.5;position:fixed;box-shadow:0 8px 24px #101e2d29,0 2px 8px #101e2d1a}.pp-head{--tw-font-weight:var(--font-weight-bold);font-weight:var(--font-weight-bold);margin:0 0 2px}.pp-basis{font-size:var(--text-xs);line-height:var(--tw-leading,var(--text-xs--line-height));color:var(--sf-dim)}.pp-quote{padding-left:calc(var(--spacing) * 3);border-left:2px solid var(--sf-line-strong);color:var(--sf-ink);margin:8px 0 0;font-style:italic}.pp-bar{margin-top:calc(var(--spacing) * 3);justify-content:flex-end;display:flex}.pp-copy{cursor:pointer;border-style:var(--tw-border-style);padding-inline:calc(var(--spacing) * 3);padding-block:calc(var(--spacing) * .5);font-size:var(--text-xs);line-height:var(--tw-leading,var(--text-xs--line-height));border-width:1px;border-color:var(--sf-line-strong);background:var(--sf-surface-2);color:var(--sf-accent);border-radius:.25rem;font-family:inherit}.pp-copy:hover{border-color:var(--sf-accent)}.lvl-ok,.lvl-none{--lv-ink:var(--sf-dim);--lv-bg:transparent}.lvl-warn{--lv-ink:var(--sf-warn);--lv-bg:var(--sf-warn-weak)}.lvl-bad{--lv-ink:var(--sf-crit);--lv-bg:var(--sf-crit-weak)}.lvl-cell{background:var(--lv-bg)}.lvl-flag{color:var(--lv-ink);font-weight:700}.lvl-state{background:var(--lv-bg);border-left:3px solid var(--lv-ink)}.lvl-chip{height:calc(var(--spacing) * 5);min-width:calc(var(--spacing) * 5);font-size:var(--text-xs);line-height:var(--tw-leading,var(--text-xs--line-height));--tw-font-weight:var(--font-weight-bold);font-weight:var(--font-weight-bold);background:var(--lv-bg);color:var(--lv-ink);border:1px solid var(--sf-line);border-radius:.25rem;place-items:center;display:inline-grid}.grp-scope:not(:has(.grp-fold:checked)) .grp-extra,.grp-scope:has(.grp-fold:checked) .grp-folded{display:none}.grp-btn:has(.grp-fold:focus-visible){outline:2px solid var(--sf-accent);outline-offset:3px;border-radius:4px}.metric-head{cursor:pointer;text-underline-offset:3px;-webkit-text-decoration:underline dotted;text-decoration:underline dotted;-webkit-text-decoration-color:var(--sf-line-strong);-webkit-text-decoration-color:var(--sf-line-strong);text-decoration-color:var(--sf-line-strong)}.metric-head:hover,.metric-head[aria-expanded=true]{color:var(--sf-accent);-webkit-text-decoration-color:var(--sf-accent);-webkit-text-decoration-color:var(--sf-accent);text-decoration-color:var(--sf-accent)}.sf-sort{margin-left:var(--spacing);cursor:pointer;vertical-align:middle;font-family:var(--font-mono);font-size:var(--text-xs);line-height:var(--tw-leading,var(--text-xs--line-height));--tw-leading:1;color:var(--sf-faint);line-height:1}.sf-sort:hover,th[aria-sort=ascending] .sf-sort,th[aria-sort=descending] .sf-sort{color:var(--sf-accent)}:root{--basis-ink:#0e7490;--basis-quiet:var(--sf-dim);--mx-heat:#7cc4d8}:root[data-theme=dark]{--basis-ink:#2fa0bd;--mx-heat:#2b6b80}@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--basis-ink:#2fa0bd;--mx-heat:#2b6b80}}.basis-mark{vertical-align:middle;flex-shrink:0;width:10px;height:10px;display:inline-block;position:relative}.basis-observed{background:var(--basis-ink);border-radius:50%}.basis-asserted{border:2px solid var(--basis-ink);border-radius:50%}.basis-user_confirmed{background:var(--basis-ink);border-radius:2px}.basis-inferred:before{content:"";background:var(--basis-quiet);border-radius:1px;height:2px;position:absolute;inset:4px 0 auto}.basis-cell{vertical-align:top;min-width:9.5rem;max-width:15rem}.basis-v{-webkit-line-clamp:2;line-clamp:2;overflow-wrap:anywhere;-webkit-box-orient:vertical;min-width:0;display:-webkit-box;overflow:hidden}.basis-withheld{color:var(--sf-warn);font-style:italic}.basis-cell[role=button]{cursor:pointer}.basis-cell[role=button]:hover .basis-v{text-underline-offset:2px;-webkit-text-decoration:underline dotted;text-decoration:underline dotted}.basis-cell[aria-expanded=true]{background:var(--sf-accent-weak)}.smp-toggle{cursor:pointer}.smp-caret{margin-right:var(--spacing);width:calc(var(--spacing) * 5);height:calc(var(--spacing) * 5);vertical-align:middle;font-family:var(--font-mono);font-size:var(--text-xs);line-height:var(--tw-leading,var(--text-xs--line-height));color:var(--sf-faint);border-radius:.25rem;place-items:center;display:inline-grid}.smp-toggle:hover .smp-caret{color:var(--sf-accent);background:var(--sf-accent-weak)}.smp-toggle:hover .smp-sid{text-underline-offset:2px;text-decoration:underline}.smp-off{display:none}.mx-cell{text-align:center;font-size:var(--text-xs);line-height:var(--tw-leading,var(--text-xs--line-height));--tw-numeric-spacing:tabular-nums;font-variant-numeric:var(--tw-ordinal,) var(--tw-slashed-zero,) var(--tw-numeric-figure,) var(--tw-numeric-spacing,) var(--tw-numeric-fraction,)}.mx-scored{color:var(--sf-ink)}.mx-forbidden,.mx-absent{cursor:pointer;color:var(--sf-faint)}.mx-forbidden:hover,.mx-absent:hover{color:var(--sf-ink)}.mx-bar{height:calc(var(--spacing) * 1.5);background:var(--sf-surface-2);border-radius:3.40282e38px;flex:1;min-width:3.75rem;position:relative;overflow:hidden}.mx-bar:after{content:"";width:var(--mx-w);background:var(--mx-heat);position:absolute;inset:0 auto 0 0}.mx-sib{margin-bottom:calc(var(--spacing) * 2);border-radius:var(--radius-lg);border-style:var(--tw-border-style);border-width:1px;border-color:var(--sf-line);background:var(--sf-surface)}.mx-sib[open]>summary{border-bottom:1px solid var(--sf-line)}.st-cell{cursor:pointer;padding-inline:calc(var(--spacing) * 1.5);padding-block:calc(var(--spacing) * .5);white-space:nowrap;text-overflow:ellipsis;max-width:16rem;color:var(--sf-ink);background:var(--st-c);border-radius:.25rem;overflow:hidden}@supports (color:color-mix(in lab, red, red)){.st-cell{background:color-mix(in srgb, var(--st-c) var(--st-a,34%), transparent)}}span.st-cell{vertical-align:middle;display:inline-block}.st-quoted{--st-c:var(--sf-ok)}.st-inferred{--st-c:var(--sf-accent)}.st-unknown{--st-c:var(--sf-crit)}.st-na{--st-c:var(--sf-neutral);background-image:repeating-linear-gradient(45deg, var(--sf-neutral) 0 2px, transparent 2px 6px)}@supports (color:color-mix(in lab, red, red)){.st-na{background-image:repeating-linear-gradient(45deg, color-mix(in srgb, var(--sf-neutral) 30%, transparent) 0 2px, transparent 2px 6px)}}.st-inh{font-style:italic}.st-fcell{cursor:pointer}.st-cell[aria-expanded=true],.st-fcell[aria-expanded=true]{outline:2px solid var(--sf-ink)}.st-lvl{padding-inline:calc(var(--spacing) * 1.5);padding-block:calc(var(--spacing) * .5);font-size:var(--text-xs);line-height:var(--tw-leading,var(--text-xs--line-height));--tw-font-weight:var(--font-weight-semibold);font-weight:var(--font-weight-semibold);white-space:nowrap;text-transform:none;letter-spacing:normal;border-radius:.25rem;display:inline-block}.st-nolvl{--tw-font-weight:var(--font-weight-normal);font-weight:var(--font-weight-normal);color:var(--sf-dim);border:1px dashed var(--sf-line-strong);font-style:italic}.st-subtab{cursor:pointer;padding-inline:calc(var(--spacing) * 3);padding-block:calc(var(--spacing) * 2);font-size:var(--text-sm);line-height:var(--tw-leading,var(--text-sm--line-height));--tw-font-weight:var(--font-weight-semibold);font-weight:var(--font-weight-semibold);color:var(--sf-dim);white-space:nowrap;background:0 0;border:0;border-bottom:2px solid #0000;font-family:inherit}.st-subtab:hover{color:var(--sf-ink)}.st-subtab.active{color:var(--sf-accent);border-bottom-color:var(--sf-accent)}}@layer utilities{.invisible{visibility:hidden}.visible{visibility:visible}.sr-only{clip-path:inset(50%);white-space:nowrap;border-width:0;width:1px;height:1px;margin:-1px;padding:0;position:absolute;overflow:hidden}.fixed{position:fixed}.relative{position:relative}.static{position:static}.sticky{position:sticky}.top-0{top:0}.z-30{z-index:30}.m-0{margin:0}.mx-auto{margin-inline:auto}.ms-0{margin-inline-start:0}.ms-auto{margin-inline-start:auto}.mt-0{margin-top:0}.mt-1{margin-top:var(--spacing)}.mt-2{margin-top:calc(var(--spacing) * 2)}.mt-3{margin-top:calc(var(--spacing) * 3)}.mt-4{margin-top:calc(var(--spacing) * 4)}.mt-6{margin-top:calc(var(--spacing) * 6)}.mb-0{margin-bottom:0}.mb-1{margin-bottom:var(--spacing)}.mb-2{margin-bottom:calc(var(--spacing) * 2)}.mb-3{margin-bottom:calc(var(--spacing) * 3)}.mb-4{margin-bottom:calc(var(--spacing) * 4)}.mb-5{margin-bottom:calc(var(--spacing) * 5)}.mb-6{margin-bottom:calc(var(--spacing) * 6)}.ml-1{margin-left:var(--spacing)}.ml-2{margin-left:calc(var(--spacing) * 2)}.ml-auto{margin-left:auto}.block{display:block}.contents{display:contents}.flex{display:flex}.grid{display:grid}.hidden{display:none}.inline{display:inline}.inline-block{display:inline-block}.inline-flex{display:inline-flex}.inline-grid{display:inline-grid}.table{display:table}.size-2{width:calc(var(--spacing) * 2);height:calc(var(--spacing) * 2)}.size-5{width:calc(var(--spacing) * 5);height:calc(var(--spacing) * 5)}.h-1\.5{height:calc(var(--spacing) * 1.5)}.h-auto{height:auto}.h-full{height:100%}.max-h-96{max-height:calc(var(--spacing) * 96)}.w-12{width:calc(var(--spacing) * 12)}.w-auto{width:auto}.w-full{width:100%}.max-w-\[70ch\]{max-width:70ch}.min-w-0{min-width:0}.min-w-32{min-width:calc(var(--spacing) * 32)}.min-w-full{min-width:100%}.flex-1{flex:1}.shrink-0{flex-shrink:0}.basis-48{flex-basis:calc(var(--spacing) * 48)}.basis-80{flex-basis:calc(var(--spacing) * 80)}.transform{transform:var(--tw-rotate-x,) var(--tw-rotate-y,) var(--tw-rotate-z,) var(--tw-skew-x,) var(--tw-skew-y,)}.cursor-help{cursor:help}.cursor-pointer{cursor:pointer}.resize{resize:both}.list-disc{list-style-type:disc}.list-none{list-style-type:none}.grid-cols-2{grid-template-columns:repeat(2,minmax(0,1fr))}.grid-cols-\[repeat\(auto-fill\,minmax\(240px\,1fr\)\)\]{grid-template-columns:repeat(auto-fill,minmax(240px,1fr))}.flex-wrap{flex-wrap:wrap}.place-items-center{place-items:center}.items-baseline{align-items:baseline}.items-center{align-items:center}.items-start{align-items:flex-start}.gap-1{gap:var(--spacing)}.gap-2{gap:calc(var(--spacing) * 2)}.gap-3{gap:calc(var(--spacing) * 3)}.gap-4{gap:calc(var(--spacing) * 4)}.gap-6{gap:calc(var(--spacing) * 6)}.gap-x-3{column-gap:calc(var(--spacing) * 3)}.gap-x-5{column-gap:calc(var(--spacing) * 5)}.gap-y-1{row-gap:var(--spacing)}.gap-y-2{row-gap:calc(var(--spacing) * 2)}.truncate{text-overflow:ellipsis;white-space:nowrap;overflow:hidden}.overflow-auto{overflow:auto}.overflow-hidden{overflow:hidden}.overflow-x-auto{overflow-x:auto}.rounded{border-radius:.25rem}.rounded-full{border-radius:3.40282e38px}.rounded-lg{border-radius:var(--radius-lg)}.rounded-none{border-radius:0}.border{border-style:var(--tw-border-style);border-width:1px}.border-0{border-style:var(--tw-border-style);border-width:0}.border-t{border-top-style:var(--tw-border-style);border-top-width:1px}.border-b{border-bottom-style:var(--tw-border-style);border-bottom-width:1px}.border-l{border-left-style:var(--tw-border-style);border-left-width:1px}.border-l-2{border-left-style:var(--tw-border-style);border-left-width:2px}.border-line{border-color:var(--color-line)}.bg-current{background-color:currentColor}.bg-dim{background-color:var(--color-dim)}.bg-line{background-color:var(--color-line)}.bg-sunk{background-color:var(--color-sunk)}.bg-surface\/90{background-color:var(--color-surface)}@supports (color:color-mix(in lab, red, red)){.bg-surface\/90{background-color:color-mix(in oklab, var(--color-surface) 90%, transparent)}}.fill-dim{fill:var(--color-dim)}.fill-faint{fill:var(--color-faint)}.fill-ink{fill:var(--color-ink)}.fill-none{fill:none}.fill-surface{fill:var(--color-surface)}.stroke-accent{stroke:var(--color-accent)}.stroke-dim{stroke:var(--color-dim)}.stroke-faint{stroke:var(--color-faint)}.stroke-line{stroke:var(--color-line)}.p-0{padding:0}.p-2{padding:calc(var(--spacing) * 2)}.p-3{padding:calc(var(--spacing) * 3)}.p-4{padding:calc(var(--spacing) * 4)}.px-2{padding-inline:calc(var(--spacing) * 2)}.px-3{padding-inline:calc(var(--spacing) * 3)}.px-4{padding-inline:calc(var(--spacing) * 4)}.py-0\.5{padding-block:calc(var(--spacing) * .5)}.py-1{padding-block:var(--spacing)}.py-2{padding-block:calc(var(--spacing) * 2)}.py-3{padding-block:calc(var(--spacing) * 3)}.py-6{padding-block:calc(var(--spacing) * 6)}.pt-2{padding-top:calc(var(--spacing) * 2)}.pt-5{padding-top:calc(var(--spacing) * 5)}.pt-6{padding-top:calc(var(--spacing) * 6)}.pr-4{padding-right:calc(var(--spacing) * 4)}.pb-10{padding-bottom:calc(var(--spacing) * 10)}.pl-3{padding-left:calc(var(--spacing) * 3)}.pl-4{padding-left:calc(var(--spacing) * 4)}.pl-5{padding-left:calc(var(--spacing) * 5)}.text-center{text-align:center}.text-right{text-align:right}.align-bottom{vertical-align:bottom}.font-mono{font-family:var(--font-mono)}.font-sans{font-family:var(--font-sans)}.text-2xl{font-size:var(--text-2xl);line-height:var(--tw-leading,var(--text-2xl--line-height))}.text-base{font-size:var(--text-base);line-height:var(--tw-leading,var(--text-base--line-height))}.text-lg{font-size:var(--text-lg);line-height:var(--tw-leading,var(--text-lg--line-height))}.text-sm{font-size:var(--text-sm);line-height:var(--tw-leading,var(--text-sm--line-height))}.text-xs{font-size:var(--text-xs);line-height:var(--tw-leading,var(--text-xs--line-height))}.leading-5{--tw-leading:calc(var(--spacing) * 5);line-height:calc(var(--spacing) * 5)}.font-bold{--tw-font-weight:var(--font-weight-bold);font-weight:var(--font-weight-bold)}.font-normal{--tw-font-weight:var(--font-weight-normal);font-weight:var(--font-weight-normal)}.font-semibold{--tw-font-weight:var(--font-weight-semibold);font-weight:var(--font-weight-semibold)}.tracking-\[0\.07em\]{--tw-tracking:.07em;letter-spacing:.07em}.tracking-tight{--tw-tracking:var(--tracking-tight);letter-spacing:var(--tracking-tight)}.break-words{overflow-wrap:break-word}.whitespace-nowrap{white-space:nowrap}.text-accent{color:var(--color-accent)}.text-dim{color:var(--color-dim)}.text-faint{color:var(--color-faint)}.uppercase{text-transform:uppercase}.italic{font-style:italic}.not-italic{font-style:normal}.ordinal{--tw-ordinal:ordinal;font-variant-numeric:var(--tw-ordinal,) var(--tw-slashed-zero,) var(--tw-numeric-figure,) var(--tw-numeric-spacing,) var(--tw-numeric-fraction,)}.tabular-nums{--tw-numeric-spacing:tabular-nums;font-variant-numeric:var(--tw-ordinal,) var(--tw-slashed-zero,) var(--tw-numeric-figure,) var(--tw-numeric-spacing,) var(--tw-numeric-fraction,)}.shadow{--tw-shadow:0 1px 3px 0 var(--tw-shadow-color,#0000001a), 0 1px 2px -1px var(--tw-shadow-color,#0000001a);box-shadow:var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)}.backdrop-blur-sm{--tw-backdrop-blur:blur(var(--blur-sm));-webkit-backdrop-filter:var(--tw-backdrop-blur,) var(--tw-backdrop-brightness,) var(--tw-backdrop-contrast,) var(--tw-backdrop-grayscale,) var(--tw-backdrop-hue-rotate,) var(--tw-backdrop-invert,) var(--tw-backdrop-opacity,) var(--tw-backdrop-saturate,) var(--tw-backdrop-sepia,);backdrop-filter:var(--tw-backdrop-blur,) var(--tw-backdrop-brightness,) var(--tw-backdrop-contrast,) var(--tw-backdrop-grayscale,) var(--tw-backdrop-hue-rotate,) var(--tw-backdrop-invert,) var(--tw-backdrop-opacity,) var(--tw-backdrop-saturate,) var(--tw-backdrop-sepia,)}.backdrop-saturate-150{--tw-backdrop-saturate:saturate(150%);-webkit-backdrop-filter:var(--tw-backdrop-blur,) var(--tw-backdrop-brightness,) var(--tw-backdrop-contrast,) var(--tw-backdrop-grayscale,) var(--tw-backdrop-hue-rotate,) var(--tw-backdrop-invert,) var(--tw-backdrop-opacity,) var(--tw-backdrop-saturate,) var(--tw-backdrop-sepia,);backdrop-filter:var(--tw-backdrop-blur,) var(--tw-backdrop-brightness,) var(--tw-backdrop-contrast,) var(--tw-backdrop-grayscale,) var(--tw-backdrop-hue-rotate,) var(--tw-backdrop-invert,) var(--tw-backdrop-opacity,) var(--tw-backdrop-saturate,) var(--tw-backdrop-sepia,)}.last\:mb-0:last-child{margin-bottom:0}.last\:border-b-0:last-child{border-bottom-style:var(--tw-border-style);border-bottom-width:0}.disabled\:cursor-default:disabled{cursor:default}.disabled\:opacity-40:disabled{opacity:.4}@media (min-width:40rem){.sm\:w-72{width:calc(var(--spacing) * 72)}.sm\:grid-cols-2{grid-template-columns:repeat(2,minmax(0,1fr))}.sm\:grid-cols-3{grid-template-columns:repeat(3,minmax(0,1fr))}}@media (min-width:64rem){.lg\:grid-cols-3{grid-template-columns:repeat(3,minmax(0,1fr))}.lg\:grid-cols-5{grid-template-columns:repeat(5,minmax(0,1fr))}}}@property --tw-rotate-x{syntax:"*";inherits:false}@property --tw-rotate-y{syntax:"*";inherits:false}@property --tw-rotate-z{syntax:"*";inherits:false}@property --tw-skew-x{syntax:"*";inherits:false}@property --tw-skew-y{syntax:"*";inherits:false}@property --tw-border-style{syntax:"*";inherits:false;initial-value:solid}@property --tw-leading{syntax:"*";inherits:false}@property --tw-font-weight{syntax:"*";inherits:false}@property --tw-tracking{syntax:"*";inherits:false}@property --tw-ordinal{syntax:"*";inherits:false}@property --tw-slashed-zero{syntax:"*";inherits:false}@property --tw-numeric-figure{syntax:"*";inherits:false}@property --tw-numeric-spacing{syntax:"*";inherits:false}@property --tw-numeric-fraction{syntax:"*";inherits:false}@property --tw-shadow{syntax:"*";inherits:false;initial-value:0 0 #0000}@property --tw-shadow-color{syntax:"*";inherits:false}@property --tw-shadow-alpha{syntax:"<percentage>";inherits:false;initial-value:100%}@property --tw-inset-shadow{syntax:"*";inherits:false;initial-value:0 0 #0000}@property --tw-inset-shadow-color{syntax:"*";inherits:false}@property --tw-inset-shadow-alpha{syntax:"<percentage>";inherits:false;initial-value:100%}@property --tw-ring-color{syntax:"*";inherits:false}@property --tw-ring-shadow{syntax:"*";inherits:false;initial-value:0 0 #0000}@property --tw-inset-ring-color{syntax:"*";inherits:false}@property --tw-inset-ring-shadow{syntax:"*";inherits:false;initial-value:0 0 #0000}@property --tw-ring-inset{syntax:"*";inherits:false}@property --tw-ring-offset-width{syntax:"<length>";inherits:false;initial-value:0}@property --tw-ring-offset-color{syntax:"*";inherits:false;initial-value:#fff}@property --tw-ring-offset-shadow{syntax:"*";inherits:false;initial-value:0 0 #0000}@property --tw-backdrop-blur{syntax:"*";inherits:false}@property --tw-backdrop-brightness{syntax:"*";inherits:false}@property --tw-backdrop-contrast{syntax:"*";inherits:false}@property --tw-backdrop-grayscale{syntax:"*";inherits:false}@property --tw-backdrop-hue-rotate{syntax:"*";inherits:false}@property --tw-backdrop-invert{syntax:"*";inherits:false}@property --tw-backdrop-opacity{syntax:"*";inherits:false}@property --tw-backdrop-saturate{syntax:"*";inherits:false}@property --tw-backdrop-sepia{syntax:"*";inherits:false}</style>
+</head>
+<body>
+<div data-sticky-band class="sticky top-0 z-30 border-b border-line bg-surface/90 backdrop-blur-sm backdrop-saturate-150"><header class="border-b border-line"><div class="sf-page flex flex-wrap items-center gap-3 py-3"><span class="text-base font-bold tracking-tight">seqforge<span class="text-accent"> ⚡ </span>report</span><span class="min-w-0 truncate font-mono text-sm text-dim">study GSE272899</span><span class="flex-1"></span><button id="theme-toggle" class="sf-icon-btn" title="Toggle light / dark" aria-label="Toggle theme">☽</button></div></header>
+<nav><div class="sf-page flex gap-1 overflow-x-auto"><button class="tab active" data-tab="study">Study</button></div></nav></div>
+<main class="sf-page pt-6 pb-10"><section data-study><div class="pane active" data-tab="study"><section class="sf-panel"><h2 class="sf-panel-h">Bounds</h2><p class="sf-panel-sub">The GEO Series and papers that make up study GSE272899, and the records left out.</p><p class="m-0 mb-3 text-xs text-dim">Solid: kept. Dashed and struck through: left out. Hover a record for why.</p><div class="sf-scroll-x p-2"><svg class="mx-auto block" width="760" height="84" viewBox="0 0 760 84" role="img"><title>The records of study GSE272899, kept and left out</title><text class="fill-faint font-sans" font-size="10" letter-spacing="1" x="120" y="14" text-anchor="middle">GEO SERIES</text><text class="fill-faint font-sans" font-size="10" letter-spacing="1" x="640" y="14" text-anchor="middle">PAPERS</text><path class="fill-none stroke-accent" stroke-width="2" d="M186.0,56.0 C260.0,56.0 260.0,56.0 320.0,56.0"/><path class="fill-none stroke-accent" stroke-width="2" d="M574.0,56.0 C500.0,56.0 500.0,56.0 440.0,56.0"/><rect class="fill-surface stroke-accent" stroke-width="2" x="320.0" y="34.0" width="120" height="44" rx="22"/><text class="fill-ink font-sans" font-size="12" font-weight="700" x="380.0" y="54.0" text-anchor="middle">study</text><text class="fill-dim font-mono" font-size="11" x="380.0" y="69.0" text-anchor="middle">GSE272899</text><g data-bounds-node="bounds-tip-0" tabindex="0" aria-label="GSE272899, kept"><rect class="fill-surface stroke-accent" stroke-width="1.5" x="54.0" y="41.0" width="132" height="30" rx="8"/><text class="fill-ink font-mono" font-size="12" x="120.0" y="60.0" text-anchor="middle">GSE272899</text></g><g data-bounds-node="bounds-tip-1" tabindex="0" aria-label="pmid:39386655, kept"><rect class="fill-surface stroke-accent" stroke-width="1.5" x="574.0" y="41.0" width="132" height="30" rx="8"/><text class="fill-ink font-mono" font-size="12" x="640.0" y="60.0" text-anchor="middle">pmid:39386655</text></g></svg></div><div class="prov-pop" id="bounds-tip-0" role="tooltip" hidden><div class="pp-head font-mono">GSE272899</div><div class="text-sm font-bold">GDF3 promotes adipose tissue macrophage-mediated inflammation via altered chromatin accessibility during aging</div><div class="pp-basis">kept · Series · inferred</div><p class="m-0 mt-2">code: the study starts from GSE272899</p><div class="sf-sub-h mt-3">Quoted in the reading (1)</div><blockquote class="pp-quote"><div class="text-xs not-italic text-faint">[2] GSE272899 · Series_summary</div>young control, old control and old mKO mice</blockquote></div><div class="prov-pop" id="bounds-tip-1" role="tooltip" hidden><div class="pp-head font-mono">pmid:39386655</div><div class="text-sm font-bold">GDF3 promotes adipose tissue macrophage-mediated inflammation via altered chromatin accessibility during aging.</div><div class="pp-basis">kept · paper</div><div class="sf-sub-h mt-3">Quoted in the reading (1)</div><blockquote class="pp-quote"><div class="text-xs not-italic text-faint">[10] pmid:39386655 · abstract</div>during endotoxemia</blockquote></div><p class="m-0 mt-3 max-w-[70ch] text-sm text-dim"><b>Why these are one study:</b> Code kept GEO Series GSE272899; Jev judged each other record kept here to be from the same research.</p></section><section class="sf-panel"><h2 class="sf-panel-h">Design</h2><p class="sf-panel-sub">How many samples are in each group of the factors. Hover a count for its samples.</p><div class="sf-scroll-x" id="design-list"><table><thead><tr><th class="text-xs">age ↓ · genotype →</th><th><span class="st-lvl" style="background:#1d4ed8;color:#ffffff">LysMcre_cre ◆</span></th><th><span class="st-lvl" style="background:#b45309;color:#ffffff">GDF3_fl_fl</span></th><th><span class="st-lvl" style="background:#047857;color:#ffffff">LysMcre_cre_GDF3_fl_fl</span></th><th><span class="st-lvl" style="background:#be185d;color:#ffffff">GDF3_fl_minus</span></th><th class="text-xs">total</th></tr></thead><tbody><tr><th><span class="st-lvl" style="background:#1d4ed8;color:#ffffff">young ◆</span></th><td class="text-center text-faint">·</td><td class="text-center text-faint">·</td><td class="text-center text-faint">·</td><td class="text-center font-bold tabular-nums" data-hover-card="design-tip-0" tabindex="0">3</td><td class="text-center tabular-nums text-dim">3</td></tr><tr><th><span class="st-lvl" style="background:#b45309;color:#ffffff">old</span></th><td class="text-center font-bold tabular-nums" data-hover-card="design-tip-1" tabindex="0">2</td><td class="text-center font-bold tabular-nums" data-hover-card="design-tip-2" tabindex="0">1</td><td class="text-center font-bold tabular-nums" data-hover-card="design-tip-3" tabindex="0">3</td><td class="text-center text-faint">·</td><td class="text-center tabular-nums text-dim">6</td></tr></tbody></table></div><p class="m-0 mt-2 text-xs text-dim">9 samples · age p 0.98 · genotype p 0.95 · ◆ baseline</p><div class="prov-pop" id="design-tip-0" role="tooltip" hidden><div class="pp-head">young · GDF3_fl_minus</div><div class="pp-basis">3 sample(s)</div><p class="m-0 mt-2 font-mono text-xs">GSM8414378, GSM8414379, GSM8414380</p></div><div class="prov-pop" id="design-tip-1" role="tooltip" hidden><div class="pp-head">old · LysMcre_cre</div><div class="pp-basis">2 sample(s)</div><p class="m-0 mt-2 font-mono text-xs">GSM8414372, GSM8414373</p></div><div class="prov-pop" id="design-tip-2" role="tooltip" hidden><div class="pp-head">old · GDF3_fl_fl</div><div class="pp-basis">1 sample(s)</div><p class="m-0 mt-2 font-mono text-xs">GSM8414374</p></div><div class="prov-pop" id="design-tip-3" role="tooltip" hidden><div class="pp-head">old · LysMcre_cre_GDF3_fl_fl</div><div class="pp-basis">3 sample(s)</div><p class="m-0 mt-2 font-mono text-xs">GSM8414375, GSM8414376, GSM8414377</p></div></section><section class="sf-panel"><h2 class="sf-panel-h">Samples</h2><p class="sf-panel-sub">What each sample was, one table per topic. A count on a tab is how many of its labels vary between samples.</p><p class="m-0 mb-3 flex flex-wrap items-center gap-3 text-xs text-dim"><span class="st-cell st-quoted" style="--st-a:34%">quoted</span><span class="st-cell st-inferred" style="--st-a:34%">inferred</span><span class="st-cell st-unknown" style="--st-a:34%">unknown</span><span class="st-cell st-na" style="--st-a:34%">na</span><span>Paler: lower p. <i>Italic</i>: from shared. ★ a factor. Click a cell for the passages behind it.</span></p><nav class="mb-3 flex gap-1 overflow-x-auto border-b border-line" hidden data-topic-tabs aria-label="Sample tables by topic"><button type="button" class="st-subtab active" data-topic-tab="0">Assay <span class="text-faint">0/3</span></button><button type="button" class="st-subtab" data-topic-tab="1">Organism <span class="text-faint">0/4</span></button><button type="button" class="st-subtab" data-topic-tab="2">Material <span class="text-faint">2/6</span></button><button type="button" class="st-subtab" data-topic-tab="3">Treatment &amp; time <span class="text-faint">0/3</span></button></nav><div data-topic-pane="0"><h3 class="sf-sub-h">Assay: 0 of 3 labels vary</h3><p class="m-0 mb-2 flex flex-wrap items-center gap-1 text-sm"><span class="text-faint">Same for all 9:</span><span class="st-cell st-quoted st-inh" style="--st-a:34%" role="button" tabindex="0" data-key="assay" data-value="ATAC-seq (EFO:0007045)" data-basis="quoted · p 1 · from shared" data-source="all 9 samples" data-note="" data-passages="7" data-passages-title="quoted from" data-against=""><b>assay</b> ATAC-seq</span><span class="st-cell st-na st-inh" style="--st-a:34%" role="button" tabindex="0" data-key="target" data-value="n/a" data-basis="na · p 1 · from shared" data-source="all 9 samples" data-note="ATAC-seq has no antibody pull-down." data-passages="" data-passages-title="rests on" data-against=""><b>target</b> n/a</span><span class="st-cell st-na st-inh" style="--st-a:33%" role="button" tabindex="0" data-key="control_type" data-value="n/a" data-basis="na · p 0.98 · from shared" data-source="all 9 samples" data-note="All libraries are ATAC-seq, not background controls." data-passages="" data-passages-title="rests on" data-against=""><b>control_type</b> n/a</span></p><p class="sf-empty">No label in this topic varies between samples.</p></div><div data-topic-pane="1"><h3 class="sf-sub-h">Organism: 0 of 4 labels vary</h3><p class="m-0 mb-2 flex flex-wrap items-center gap-1 text-sm"><span class="text-faint">Same for all 9:</span><span class="st-cell st-quoted st-inh" style="--st-a:34%" role="button" tabindex="0" data-key="species" data-value="Mus musculus (NCBITaxon:10090)" data-basis="quoted · from shared" data-source="all 9 samples" data-note="" data-passages="12" data-passages-title="quoted from" data-against=""><b>species</b> Mus musculus</span><span class="st-cell st-unknown st-inh" style="--st-a:33%" role="button" tabindex="0" data-key="sex" data-value="?" data-basis="unknown · p 0.98 · from shared" data-source="all 9 samples" data-note="No sample record or paper states sex." data-passages="" data-passages-title="rests on" data-against=""><b>sex</b> ?</span><span class="st-cell st-inferred st-inh" style="--st-a:34%" role="button" tabindex="0" data-key="development_stage" data-value="adult (MmusDv:0000110)" data-basis="inferred · p 1 · from shared" data-source="all 9 samples" data-note="Mice aged 4 to 24 months are adult." data-passages="1" data-passages-title="rests on" data-against=""><b>development_stage</b> adult</span><span class="st-cell st-unknown st-inh" style="--st-a:33%" role="button" tabindex="0" data-key="strain" data-value="?" data-basis="unknown · p 0.99 · from shared" data-source="all 9 samples" data-note="No record states the mouse strain." data-passages="" data-passages-title="rests on" data-against=""><b>strain</b> ?</span></p><p class="sf-empty">No label in this topic varies between samples.</p></div><div data-topic-pane="2"><h3 class="sf-sub-h">Material: 2 of 6 labels vary</h3><p class="m-0 mb-2 flex flex-wrap items-center gap-1 text-sm"><span class="text-faint">Same for all 9:</span><span class="st-cell st-quoted st-inh" style="--st-a:34%" role="button" tabindex="0" data-key="tissue" data-value="Visceral white adipose tissue" data-basis="quoted · p 1 · from shared" data-source="all 9 samples" data-note="" data-passages="8" data-passages-title="quoted from" data-against=""><b>tissue</b> Visceral white adipose tissue</span><span class="st-cell st-quoted st-inh" style="--st-a:34%" role="button" tabindex="0" data-key="cell_type" data-value="Sorted adipose tissue macrophages (CL:0002477)" data-basis="quoted · p 1 · from shared" data-source="all 9 samples" data-note="" data-passages="9" data-passages-title="quoted from" data-against=""><b>cell_type</b> Sorted adipose tissue macrophages</span><span class="st-cell st-na st-inh" style="--st-a:34%" role="button" tabindex="0" data-key="cell_line" data-value="n/a" data-basis="na · p 1 · from shared" data-source="all 9 samples" data-note="Primary sorted macrophages, not a cell line." data-passages="" data-passages-title="rests on" data-against=""><b>cell_line</b> n/a</span><span class="st-cell st-quoted st-inh" style="--st-a:33%" role="button" tabindex="0" data-key="disease" data-value="endotoxemia (MONDO:1014849)" data-basis="quoted · p 0.98 · from shared" data-source="all 9 samples" data-note="" data-passages="10" data-passages-title="quoted from" data-against=""><b>disease</b> endotoxemia</span></p><div class="sf-scroll-x"><table><thead><tr><th>sample</th><th>age ★</th><th>genotype ★</th><th>biosample</th><th>donor</th></tr></thead><tbody id="topic-rows-2"><tr data-smp><th class="font-mono">GSM8414378</th><td class="st-fcell" role="button" tabindex="0" data-key="age" data-value="Young · level young" data-basis="inferred · p 1" data-source="GSM8414378" data-note="Jev picked it from the values the writer listed" data-passages="1" data-passages-title="rests on" data-against=""><span class="st-lvl" style="background:#1d4ed8;color:#ffffff">young ◆</span></td><td class="st-fcell" role="button" tabindex="0" data-key="genotype" data-value="GDF3 fl/- · level GDF3_fl_minus" data-basis="quoted · p 1" data-source="GSM8414378" data-note="" data-passages="6" data-passages-title="quoted from" data-against=""><span class="st-lvl" style="background:#be185d;color:#ffffff">GDF3_fl_minus</span></td><td class="st-cell st-inferred" style="--st-a:34%" role="button" tabindex="0" data-key="biosample" data-value="B7" data-basis="inferred" data-source="GSM8414378" data-note="no text read ties this library&#x27;s material to another&#x27;s" data-passages="" data-passages-title="rests on" data-against="">B7</td><td class="st-cell st-inferred" style="--st-a:23%" role="button" tabindex="0" data-key="donor" data-value="D7" data-basis="inferred · p 0.79" data-source="GSM8414378" data-note="Jev judged each library to come from its own individual" data-passages="" data-passages-title="rests on" data-against="">D7</td></tr><tr data-smp><th class="font-mono">GSM8414379</th><td class="st-fcell" role="button" tabindex="0" data-key="age" data-value="Young · level young" data-basis="inferred · p 1" data-source="GSM8414379" data-note="Jev picked it from the values the writer listed" data-passages="1" data-passages-title="rests on" data-against=""><span class="st-lvl" style="background:#1d4ed8;color:#ffffff">young ◆</span></td><td class="st-fcell" role="button" tabindex="0" data-key="genotype" data-value="GDF3 fl/- · level GDF3_fl_minus" data-basis="quoted · p 1" data-source="GSM8414379" data-note="" data-passages="6" data-passages-title="quoted from" data-against=""><span class="st-lvl" style="background:#be185d;color:#ffffff">GDF3_fl_minus</span></td><td class="st-cell st-inferred" style="--st-a:34%" role="button" tabindex="0" data-key="biosample" data-value="B8" data-basis="inferred" data-source="GSM8414379" data-note="no text read ties this library&#x27;s material to another&#x27;s" data-passages="" data-passages-title="rests on" data-against="">B8</td><td class="st-cell st-inferred" style="--st-a:23%" role="button" tabindex="0" data-key="donor" data-value="D8" data-basis="inferred · p 0.79" data-source="GSM8414379" data-note="Jev judged each library to come from its own individual" data-passages="" data-passages-title="rests on" data-against="">D8</td></tr><tr data-smp><th class="font-mono">GSM8414380</th><td class="st-fcell" role="button" tabindex="0" data-key="age" data-value="Young · level young" data-basis="inferred · p 1" data-source="GSM8414380" data-note="Jev picked it from the values the writer listed" data-passages="1" data-passages-title="rests on" data-against=""><span class="st-lvl" style="background:#1d4ed8;color:#ffffff">young ◆</span></td><td class="st-fcell" role="button" tabindex="0" data-key="genotype" data-value="GDF3 fl/- · level GDF3_fl_minus" data-basis="quoted · p 1" data-source="GSM8414380" data-note="" data-passages="6" data-passages-title="quoted from" data-against=""><span class="st-lvl" style="background:#be185d;color:#ffffff">GDF3_fl_minus</span></td><td class="st-cell st-inferred" style="--st-a:34%" role="button" tabindex="0" data-key="biosample" data-value="B9" data-basis="inferred" data-source="GSM8414380" data-note="no text read ties this library&#x27;s material to another&#x27;s" data-passages="" data-passages-title="rests on" data-against="">B9</td><td class="st-cell st-inferred" style="--st-a:23%" role="button" tabindex="0" data-key="donor" data-value="D9" data-basis="inferred · p 0.79" data-source="GSM8414380" data-note="Jev judged each library to come from its own individual" data-passages="" data-passages-title="rests on" data-against="">D9</td></tr><tr data-smp><th class="font-mono">GSM8414372</th><td class="st-fcell" role="button" tabindex="0" data-key="age" data-value="Old · level old" data-basis="inferred · p 1" data-source="GSM8414372" data-note="Jev picked it from the values the writer listed" data-passages="1" data-passages-title="rests on" data-against=""><span class="st-lvl" style="background:#b45309;color:#ffffff">old</span></td><td class="st-fcell" role="button" tabindex="0" data-key="genotype" data-value="LysMcre/cre · level LysMcre_cre" data-basis="inferred · p 1" data-source="GSM8414372" data-note="Jev picked it from the values the writer listed" data-passages="3" data-passages-title="rests on" data-against=""><span class="st-lvl" style="background:#1d4ed8;color:#ffffff">LysMcre_cre ◆</span></td><td class="st-cell st-inferred" style="--st-a:34%" role="button" tabindex="0" data-key="biosample" data-value="B1" data-basis="inferred" data-source="GSM8414372" data-note="no text read ties this library&#x27;s material to another&#x27;s" data-passages="" data-passages-title="rests on" data-against="">B1</td><td class="st-cell st-inferred" style="--st-a:23%" role="button" tabindex="0" data-key="donor" data-value="D1" data-basis="inferred · p 0.79" data-source="GSM8414372" data-note="Jev judged each library to come from its own individual" data-passages="" data-passages-title="rests on" data-against="">D1</td></tr><tr data-smp><th class="font-mono">GSM8414373</th><td class="st-fcell" role="button" tabindex="0" data-key="age" data-value="Old · level old" data-basis="inferred · p 1" data-source="GSM8414373" data-note="Jev picked it from the values the writer listed" data-passages="1" data-passages-title="rests on" data-against=""><span class="st-lvl" style="background:#b45309;color:#ffffff">old</span></td><td class="st-fcell" role="button" tabindex="0" data-key="genotype" data-value="LysMcre/cre · level LysMcre_cre" data-basis="inferred · p 1" data-source="GSM8414373" data-note="Jev picked it from the values the writer listed" data-passages="3" data-passages-title="rests on" data-against=""><span class="st-lvl" style="background:#1d4ed8;color:#ffffff">LysMcre_cre ◆</span></td><td class="st-cell st-inferred" style="--st-a:34%" role="button" tabindex="0" data-key="biosample" data-value="B2" data-basis="inferred" data-source="GSM8414373" data-note="no text read ties this library&#x27;s material to another&#x27;s" data-passages="" data-passages-title="rests on" data-against="">B2</td><td class="st-cell st-inferred" style="--st-a:23%" role="button" tabindex="0" data-key="donor" data-value="D2" data-basis="inferred · p 0.79" data-source="GSM8414373" data-note="Jev judged each library to come from its own individual" data-passages="" data-passages-title="rests on" data-against="">D2</td></tr><tr data-smp><th class="font-mono">GSM8414374</th><td class="st-fcell" role="button" tabindex="0" data-key="age" data-value="Old · level old" data-basis="inferred · p 1" data-source="GSM8414374" data-note="Jev picked it from the values the writer listed" data-passages="1" data-passages-title="rests on" data-against=""><span class="st-lvl" style="background:#b45309;color:#ffffff">old</span></td><td class="st-fcell" role="button" tabindex="0" data-key="genotype" data-value="GDF3 fl/fl · level GDF3_fl_fl" data-basis="quoted · p 1" data-source="GSM8414374" data-note="" data-passages="4" data-passages-title="quoted from" data-against=""><span class="st-lvl" style="background:#b45309;color:#ffffff">GDF3_fl_fl</span></td><td class="st-cell st-inferred" style="--st-a:34%" role="button" tabindex="0" data-key="biosample" data-value="B3" data-basis="inferred" data-source="GSM8414374" data-note="no text read ties this library&#x27;s material to another&#x27;s" data-passages="" data-passages-title="rests on" data-against="">B3</td><td class="st-cell st-inferred" style="--st-a:23%" role="button" tabindex="0" data-key="donor" data-value="D3" data-basis="inferred · p 0.79" data-source="GSM8414374" data-note="Jev judged each library to come from its own individual" data-passages="" data-passages-title="rests on" data-against="">D3</td></tr><tr data-smp><th class="font-mono">GSM8414375</th><td class="st-fcell" role="button" tabindex="0" data-key="age" data-value="Old · level old" data-basis="inferred · p 1" data-source="GSM8414375" data-note="Jev picked it from the values the writer listed" data-passages="1" data-passages-title="rests on" data-against=""><span class="st-lvl" style="background:#b45309;color:#ffffff">old</span></td><td class="st-fcell" role="button" tabindex="0" data-key="genotype" data-value="LysMcre/cre; GDF3 fl/fl · level LysMcre_cre_GDF3_fl_fl" data-basis="quoted · p 1" data-source="GSM8414375" data-note="" data-passages="5" data-passages-title="quoted from" data-against=""><span class="st-lvl" style="background:#047857;color:#ffffff">LysMcre_cre_GDF3_fl_fl</span></td><td class="st-cell st-inferred" style="--st-a:34%" role="button" tabindex="0" data-key="biosample" data-value="B4" data-basis="inferred" data-source="GSM8414375" data-note="no text read ties this library&#x27;s material to another&#x27;s" data-passages="" data-passages-title="rests on" data-against="">B4</td><td class="st-cell st-inferred" style="--st-a:23%" role="button" tabindex="0" data-key="donor" data-value="D4" data-basis="inferred · p 0.79" data-source="GSM8414375" data-note="Jev judged each library to come from its own individual" data-passages="" data-passages-title="rests on" data-against="">D4</td></tr><tr data-smp><th class="font-mono">GSM8414376</th><td class="st-fcell" role="button" tabindex="0" data-key="age" data-value="Old · level old" data-basis="inferred · p 1" data-source="GSM8414376" data-note="Jev picked it from the values the writer listed" data-passages="1" data-passages-title="rests on" data-against=""><span class="st-lvl" style="background:#b45309;color:#ffffff">old</span></td><td class="st-fcell" role="button" tabindex="0" data-key="genotype" data-value="LysMcre/cre; GDF3 fl/fl · level LysMcre_cre_GDF3_fl_fl" data-basis="quoted · p 1" data-source="GSM8414376" data-note="" data-passages="5" data-passages-title="quoted from" data-against=""><span class="st-lvl" style="background:#047857;color:#ffffff">LysMcre_cre_GDF3_fl_fl</span></td><td class="st-cell st-inferred" style="--st-a:34%" role="button" tabindex="0" data-key="biosample" data-value="B5" data-basis="inferred" data-source="GSM8414376" data-note="no text read ties this library&#x27;s material to another&#x27;s" data-passages="" data-passages-title="rests on" data-against="">B5</td><td class="st-cell st-inferred" style="--st-a:23%" role="button" tabindex="0" data-key="donor" data-value="D5" data-basis="inferred · p 0.79" data-source="GSM8414376" data-note="Jev judged each library to come from its own individual" data-passages="" data-passages-title="rests on" data-against="">D5</td></tr><tr data-smp><th class="font-mono">GSM8414377</th><td class="st-fcell" role="button" tabindex="0" data-key="age" data-value="Old · level old" data-basis="inferred · p 1" data-source="GSM8414377" data-note="Jev picked it from the values the writer listed" data-passages="1" data-passages-title="rests on" data-against=""><span class="st-lvl" style="background:#b45309;color:#ffffff">old</span></td><td class="st-fcell" role="button" tabindex="0" data-key="genotype" data-value="LysMcre/cre; GDF3 fl/fl · level LysMcre_cre_GDF3_fl_fl" data-basis="quoted · p 1" data-source="GSM8414377" data-note="" data-passages="5" data-passages-title="quoted from" data-against=""><span class="st-lvl" style="background:#047857;color:#ffffff">LysMcre_cre_GDF3_fl_fl</span></td><td class="st-cell st-inferred" style="--st-a:34%" role="button" tabindex="0" data-key="biosample" data-value="B6" data-basis="inferred" data-source="GSM8414377" data-note="no text read ties this library&#x27;s material to another&#x27;s" data-passages="" data-passages-title="rests on" data-against="">B6</td><td class="st-cell st-inferred" style="--st-a:23%" role="button" tabindex="0" data-key="donor" data-value="D6" data-basis="inferred · p 0.79" data-source="GSM8414377" data-note="Jev judged each library to come from its own individual" data-passages="" data-passages-title="rests on" data-against="">D6</td></tr></tbody></table></div></div><div data-topic-pane="3"><h3 class="sf-sub-h">Treatment &amp; time: 0 of 3 labels vary</h3><p class="m-0 mb-2 flex flex-wrap items-center gap-1 text-sm"><span class="text-faint">Same for all 9:</span><span class="st-cell st-quoted st-inh" style="--st-a:32%" role="button" tabindex="0" data-key="treatment" data-value="LPS (CHEBI:16412)" data-basis="quoted · p 0.97 · from shared" data-source="all 9 samples" data-note="" data-passages="11" data-passages-title="quoted from" data-against=""><b>treatment</b> LPS</span><span class="st-cell st-quoted st-inh" style="--st-a:33%" role="button" tabindex="0" data-key="dose" data-value="0.1mg/kg" data-basis="quoted · p 0.98 · from shared" data-source="all 9 samples" data-note="" data-passages="11" data-passages-title="quoted from" data-against=""><b>dose</b> 0.1mg/kg</span><span class="st-cell st-quoted st-inh" style="--st-a:33%" role="button" tabindex="0" data-key="duration" data-value="4 hours" data-basis="quoted · p 0.98 · from shared" data-source="all 9 samples" data-note="" data-passages="11" data-passages-title="quoted from" data-against=""><b>duration</b> 4 hours</span></p><p class="sf-empty">No label in this topic varies between samples.</p></div></section></div></section></main>
+<footer class="sf-page mt-6 border-t border-line py-6 text-xs text-dim">seqforge report v2026.11.8 · 2026-11-27 21:03 · a deterministic view of <span class="font-mono">GSE272899/</span>. The files it reads hold the exhaustive detail; this page is the glance layer.</footer>
+<script type="application/json" id="seqforge-report-data">{"report_version":"2026.11.8","generated_at":"2026-11-27 21:03","workspaces":[],"study":{"study":"GSE272899","path":".","reason":"Code kept GEO Series GSE272899; Jev judged each other record kept here to be from the same research.","records":[{"id":"GSE272899","kind":"series","kept":true,"drawn":true,"title":"GDF3 promotes adipose tissue macrophage-mediated inflammation via altered chromatin accessibility during aging","backing":"inferred","reason":"code: the study starts from GSE272899","reason_passages":[],"p":null,"superseries":null,"passages":[{"number":2,"source":"GSE272899 · Series_summary","quote":"young control, old control and old mKO mice","hidden_chars":0}]},{"id":"pmid:39386655","kind":"paper","kept":true,"drawn":true,"title":"GDF3 promotes adipose tissue macrophage-mediated inflammation via altered chromatin accessibility during aging.","backing":null,"reason":null,"reason_passages":[],"p":null,"superseries":null,"passages":[{"number":10,"source":"pmid:39386655 · abstract","quote":"during endotoxemia","hidden_chars":0}]}],"graph":{"series":{"shown":1,"hidden":0},"paper":{"shown":1,"hidden":0}},"has_reading":true,"reading_hash":"331fa0829970fef099a9809889abe5d70de62336c5fe1176028e4581494973fd","passages":[{"number":1,"source":"each_sample · Sample_treatment_protocol_ch1","quote":"Young mice were defined as 4 months old and old mice were defined as 21 to 24 months old.","hidden_chars":9},{"number":2,"source":"GSE272899 · Series_summary","quote":"young control, old control and old mKO mice","hidden_chars":0},{"number":3,"source":"GSM8414372, GSM8414373, GSM8414375, GSM8414376, GSM8414377 · Sample_characteristics_ch1","quote":"genotype: LysMcre/cre","hidden_chars":0},{"number":4,"source":"GSM8414374 · Sample_characteristics_ch1","quote":"genotype: GDF3 fl/fl","hidden_chars":0},{"number":5,"source":"GSM8414375, GSM8414376, GSM8414377 · Sample_characteristics_ch1","quote":"genotype: LysMcre/cre; GDF3 fl/fl","hidden_chars":0},{"number":6,"source":"GSM8414378, GSM8414379, GSM8414380 · Sample_characteristics_ch1","quote":"genotype: GDF3 fl/-","hidden_chars":0},{"number":7,"source":"each_sample · Sample_library_strategy","quote":"ATAC-seq","hidden_chars":0},{"number":8,"source":"each_sample · Sample_characteristics_ch1","quote":"tissue: Visceral white adipose tissue","hidden_chars":0},{"number":9,"source":"each_sample · Sample_characteristics_ch1","quote":"cell type: Sorted adipose tissue macrophages","hidden_chars":0},{"number":10,"source":"pmid:39386655 · abstract","quote":"during endotoxemia","hidden_chars":0},{"number":11,"source":"each_sample · Sample_treatment_protocol_ch1","quote":"intraperitoneally injected with 0.1mg/kg LPS 4 hours prior to the endpoint.","hidden_chars":0},{"number":12,"source":"each_sample · Sample_organism_ch1","quote":"Mus musculus","hidden_chars":0}],"factors":[{"label":"age","levels":["young","old"],"baseline":"young","ordered":false,"p":0.98},{"label":"genotype","levels":["LysMcre_cre","GDF3_fl_fl","LysMcre_cre_GDF3_fl_fl","GDF3_fl_minus"],"baseline":"LysMcre_cre","ordered":false,"p":0.95}],"samples":[{"sample":"GSM8414378","biosample_accession":"SAMN42766550","compiled_in":[],"cells":{"species":{"value":"Mus musculus","hidden_chars":0,"term":["NCBITaxon:10090"],"level":null,"backing":"quoted","note":null,"p":null,"inherited":true,"passages":[12],"against":[]},"assay":{"value":"ATAC-seq","hidden_chars":0,"term":["EFO:0007045"],"level":null,"backing":"quoted","note":null,"p":1.0,"inherited":true,"passages":[7],"against":[]},"target":{"value":null,"hidden_chars":0,"term":[],"level":null,"backing":"na","note":"ATAC-seq has no antibody pull-down.","p":1.0,"inherited":true,"passages":[],"against":[]},"control_type":{"value":null,"hidden_chars":0,"term":[],"level":null,"backing":"na","note":"All libraries are ATAC-seq, not background controls.","p":0.98,"inherited":true,"passages":[],"against":[]},"sex":{"value":null,"hidden_chars":0,"term":[],"level":null,"backing":"unknown","note":"No sample record or paper states sex.","p":0.98,"inherited":true,"passages":[],"against":[]},"development_stage":{"value":"adult","hidden_chars":0,"term":["MmusDv:0000110"],"level":null,"backing":"inferred","note":"Mice aged 4 to 24 months are adult.","p":1.0,"inherited":true,"passages":[1],"against":[]},"tissue":{"value":"Visceral white adipose tissue","hidden_chars":0,"term":[],"level":null,"backing":"quoted","note":null,"p":1.0,"inherited":true,"passages":[8],"against":[]},"cell_type":{"value":"Sorted adipose tissue macrophages","hidden_chars":0,"term":["CL:0002477"],"level":null,"backing":"quoted","note":null,"p":1.0,"inherited":true,"passages":[9],"against":[]},"cell_line":{"value":null,"hidden_chars":0,"term":[],"level":null,"backing":"na","note":"Primary sorted macrophages, not a cell line.","p":1.0,"inherited":true,"passages":[],"against":[]},"disease":{"value":"endotoxemia","hidden_chars":0,"term":["MONDO:1014849"],"level":null,"backing":"quoted","note":null,"p":0.98,"inherited":true,"passages":[10],"against":[]},"strain":{"value":null,"hidden_chars":0,"term":[],"level":null,"backing":"unknown","note":"No record states the mouse strain.","p":0.99,"inherited":true,"passages":[],"against":[]},"treatment":{"value":"LPS","hidden_chars":0,"term":["CHEBI:16412"],"level":null,"backing":"quoted","note":null,"p":0.97,"inherited":true,"passages":[11],"against":[]},"dose":{"value":"0.1mg/kg","hidden_chars":0,"term":[],"level":null,"backing":"quoted","note":null,"p":0.98,"inherited":true,"passages":[11],"against":[]},"duration":{"value":"4 hours","hidden_chars":0,"term":[],"level":null,"backing":"quoted","note":null,"p":0.98,"inherited":true,"passages":[11],"against":[]},"biosample":{"value":"B7","hidden_chars":0,"term":[],"level":null,"backing":"inferred","note":"no text read ties this library's material to another's","p":null,"inherited":false,"passages":[],"against":[]},"donor":{"value":"D7","hidden_chars":0,"term":[],"level":null,"backing":"inferred","note":"Jev judged each library to come from its own individual","p":0.79,"inherited":false,"passages":[],"against":[]},"age":{"value":"Young","hidden_chars":0,"term":[],"level":"young","backing":"inferred","note":"Jev picked it from the values the writer listed","p":1.0,"inherited":false,"passages":[1],"against":[]},"genotype":{"value":"GDF3 fl/-","hidden_chars":0,"term":[],"level":"GDF3_fl_minus","backing":"quoted","note":null,"p":1.0,"inherited":false,"passages":[6],"against":[]}}},{"sample":"GSM8414379","biosample_accession":"SAMN42766549","compiled_in":[],"cells":{"species":{"value":"Mus musculus","hidden_chars":0,"term":["NCBITaxon:10090"],"level":null,"backing":"quoted","note":null,"p":null,"inherited":true,"passages":[12],"against":[]},"assay":{"value":"ATAC-seq","hidden_chars":0,"term":["EFO:0007045"],"level":null,"backing":"quoted","note":null,"p":1.0,"inherited":true,"passages":[7],"against":[]},"target":{"value":null,"hidden_chars":0,"term":[],"level":null,"backing":"na","note":"ATAC-seq has no antibody pull-down.","p":1.0,"inherited":true,"passages":[],"against":[]},"control_type":{"value":null,"hidden_chars":0,"term":[],"level":null,"backing":"na","note":"All libraries are ATAC-seq, not background controls.","p":0.98,"inherited":true,"passages":[],"against":[]},"sex":{"value":null,"hidden_chars":0,"term":[],"level":null,"backing":"unknown","note":"No sample record or paper states sex.","p":0.98,"inherited":true,"passages":[],"against":[]},"development_stage":{"value":"adult","hidden_chars":0,"term":["MmusDv:0000110"],"level":null,"backing":"inferred","note":"Mice aged 4 to 24 months are adult.","p":1.0,"inherited":true,"passages":[1],"against":[]},"tissue":{"value":"Visceral white adipose tissue","hidden_chars":0,"term":[],"level":null,"backing":"quoted","note":null,"p":1.0,"inherited":true,"passages":[8],"against":[]},"cell_type":{"value":"Sorted adipose tissue macrophages","hidden_chars":0,"term":["CL:0002477"],"level":null,"backing":"quoted","note":null,"p":1.0,"inherited":true,"passages":[9],"against":[]},"cell_line":{"value":null,"hidden_chars":0,"term":[],"level":null,"backing":"na","note":"Primary sorted macrophages, not a cell line.","p":1.0,"inherited":true,"passages":[],"against":[]},"disease":{"value":"endotoxemia","hidden_chars":0,"term":["MONDO:1014849"],"level":null,"backing":"quoted","note":null,"p":0.98,"inherited":true,"passages":[10],"against":[]},"strain":{"value":null,"hidden_chars":0,"term":[],"level":null,"backing":"unknown","note":"No record states the mouse strain.","p":0.99,"inherited":true,"passages":[],"against":[]},"treatment":{"value":"LPS","hidden_chars":0,"term":["CHEBI:16412"],"level":null,"backing":"quoted","note":null,"p":0.97,"inherited":true,"passages":[11],"against":[]},"dose":{"value":"0.1mg/kg","hidden_chars":0,"term":[],"level":null,"backing":"quoted","note":null,"p":0.98,"inherited":true,"passages":[11],"against":[]},"duration":{"value":"4 hours","hidden_chars":0,"term":[],"level":null,"backing":"quoted","note":null,"p":0.98,"inherited":true,"passages":[11],"against":[]},"biosample":{"value":"B8","hidden_chars":0,"term":[],"level":null,"backing":"inferred","note":"no text read ties this library's material to another's","p":null,"inherited":false,"passages":[],"against":[]},"donor":{"value":"D8","hidden_chars":0,"term":[],"level":null,"backing":"inferred","note":"Jev judged each library to come from its own individual","p":0.79,"inherited":false,"passages":[],"against":[]},"age":{"value":"Young","hidden_chars":0,"term":[],"level":"young","backing":"inferred","note":"Jev picked it from the values the writer listed","p":1.0,"inherited":false,"passages":[1],"against":[]},"genotype":{"value":"GDF3 fl/-","hidden_chars":0,"term":[],"level":"GDF3_fl_minus","backing":"quoted","note":null,"p":1.0,"inherited":false,"passages":[6],"against":[]}}},{"sample":"GSM8414380","biosample_accession":"SAMN42766548","compiled_in":[],"cells":{"species":{"value":"Mus musculus","hidden_chars":0,"term":["NCBITaxon:10090"],"level":null,"backing":"quoted","note":null,"p":null,"inherited":true,"passages":[12],"against":[]},"assay":{"value":"ATAC-seq","hidden_chars":0,"term":["EFO:0007045"],"level":null,"backing":"quoted","note":null,"p":1.0,"inherited":true,"passages":[7],"against":[]},"target":{"value":null,"hidden_chars":0,"term":[],"level":null,"backing":"na","note":"ATAC-seq has no antibody pull-down.","p":1.0,"inherited":true,"passages":[],"against":[]},"control_type":{"value":null,"hidden_chars":0,"term":[],"level":null,"backing":"na","note":"All libraries are ATAC-seq, not background controls.","p":0.98,"inherited":true,"passages":[],"against":[]},"sex":{"value":null,"hidden_chars":0,"term":[],"level":null,"backing":"unknown","note":"No sample record or paper states sex.","p":0.98,"inherited":true,"passages":[],"against":[]},"development_stage":{"value":"adult","hidden_chars":0,"term":["MmusDv:0000110"],"level":null,"backing":"inferred","note":"Mice aged 4 to 24 months are adult.","p":1.0,"inherited":true,"passages":[1],"against":[]},"tissue":{"value":"Visceral white adipose tissue","hidden_chars":0,"term":[],"level":null,"backing":"quoted","note":null,"p":1.0,"inherited":true,"passages":[8],"against":[]},"cell_type":{"value":"Sorted adipose tissue macrophages","hidden_chars":0,"term":["CL:0002477"],"level":null,"backing":"quoted","note":null,"p":1.0,"inherited":true,"passages":[9],"against":[]},"cell_line":{"value":null,"hidden_chars":0,"term":[],"level":null,"backing":"na","note":"Primary sorted macrophages, not a cell line.","p":1.0,"inherited":true,"passages":[],"against":[]},"disease":{"value":"endotoxemia","hidden_chars":0,"term":["MONDO:1014849"],"level":null,"backing":"quoted","note":null,"p":0.98,"inherited":true,"passages":[10],"against":[]},"strain":{"value":null,"hidden_chars":0,"term":[],"level":null,"backing":"unknown","note":"No record states the mouse strain.","p":0.99,"inherited":true,"passages":[],"against":[]},"treatment":{"value":"LPS","hidden_chars":0,"term":["CHEBI:16412"],"level":null,"backing":"quoted","note":null,"p":0.97,"inherited":true,"passages":[11],"against":[]},"dose":{"value":"0.1mg/kg","hidden_chars":0,"term":[],"level":null,"backing":"quoted","note":null,"p":0.98,"inherited":true,"passages":[11],"against":[]},"duration":{"value":"4 hours","hidden_chars":0,"term":[],"level":null,"backing":"quoted","note":null,"p":0.98,"inherited":true,"passages":[11],"against":[]},"biosample":{"value":"B9","hidden_chars":0,"term":[],"level":null,"backing":"inferred","note":"no text read ties this library's material to another's","p":null,"inherited":false,"passages":[],"against":[]},"donor":{"value":"D9","hidden_chars":0,"term":[],"level":null,"backing":"inferred","note":"Jev judged each library to come from its own individual","p":0.79,"inherited":false,"passages":[],"against":[]},"age":{"value":"Young","hidden_chars":0,"term":[],"level":"young","backing":"inferred","note":"Jev picked it from the values the writer listed","p":1.0,"inherited":false,"passages":[1],"against":[]},"genotype":{"value":"GDF3 fl/-","hidden_chars":0,"term":[],"level":"GDF3_fl_minus","backing":"quoted","note":null,"p":1.0,"inherited":false,"passages":[6],"against":[]}}},{"sample":"GSM8414372","biosample_accession":"SAMN42766556","compiled_in":[],"cells":{"species":{"value":"Mus musculus","hidden_chars":0,"term":["NCBITaxon:10090"],"level":null,"backing":"quoted","note":null,"p":null,"inherited":true,"passages":[12],"against":[]},"assay":{"value":"ATAC-seq","hidden_chars":0,"term":["EFO:0007045"],"level":null,"backing":"quoted","note":null,"p":1.0,"inherited":true,"passages":[7],"against":[]},"target":{"value":null,"hidden_chars":0,"term":[],"level":null,"backing":"na","note":"ATAC-seq has no antibody pull-down.","p":1.0,"inherited":true,"passages":[],"against":[]},"control_type":{"value":null,"hidden_chars":0,"term":[],"level":null,"backing":"na","note":"All libraries are ATAC-seq, not background controls.","p":0.98,"inherited":true,"passages":[],"against":[]},"sex":{"value":null,"hidden_chars":0,"term":[],"level":null,"backing":"unknown","note":"No sample record or paper states sex.","p":0.98,"inherited":true,"passages":[],"against":[]},"development_stage":{"value":"adult","hidden_chars":0,"term":["MmusDv:0000110"],"level":null,"backing":"inferred","note":"Mice aged 4 to 24 months are adult.","p":1.0,"inherited":true,"passages":[1],"against":[]},"tissue":{"value":"Visceral white adipose tissue","hidden_chars":0,"term":[],"level":null,"backing":"quoted","note":null,"p":1.0,"inherited":true,"passages":[8],"against":[]},"cell_type":{"value":"Sorted adipose tissue macrophages","hidden_chars":0,"term":["CL:0002477"],"level":null,"backing":"quoted","note":null,"p":1.0,"inherited":true,"passages":[9],"against":[]},"cell_line":{"value":null,"hidden_chars":0,"term":[],"level":null,"backing":"na","note":"Primary sorted macrophages, not a cell line.","p":1.0,"inherited":true,"passages":[],"against":[]},"disease":{"value":"endotoxemia","hidden_chars":0,"term":["MONDO:1014849"],"level":null,"backing":"quoted","note":null,"p":0.98,"inherited":true,"passages":[10],"against":[]},"strain":{"value":null,"hidden_chars":0,"term":[],"level":null,"backing":"unknown","note":"No record states the mouse strain.","p":0.99,"inherited":true,"passages":[],"against":[]},"treatment":{"value":"LPS","hidden_chars":0,"term":["CHEBI:16412"],"level":null,"backing":"quoted","note":null,"p":0.97,"inherited":true,"passages":[11],"against":[]},"dose":{"value":"0.1mg/kg","hidden_chars":0,"term":[],"level":null,"backing":"quoted","note":null,"p":0.98,"inherited":true,"passages":[11],"against":[]},"duration":{"value":"4 hours","hidden_chars":0,"term":[],"level":null,"backing":"quoted","note":null,"p":0.98,"inherited":true,"passages":[11],"against":[]},"biosample":{"value":"B1","hidden_chars":0,"term":[],"level":null,"backing":"inferred","note":"no text read ties this library's material to another's","p":null,"inherited":false,"passages":[],"against":[]},"donor":{"value":"D1","hidden_chars":0,"term":[],"level":null,"backing":"inferred","note":"Jev judged each library to come from its own individual","p":0.79,"inherited":false,"passages":[],"against":[]},"age":{"value":"Old","hidden_chars":0,"term":[],"level":"old","backing":"inferred","note":"Jev picked it from the values the writer listed","p":1.0,"inherited":false,"passages":[1],"against":[]},"genotype":{"value":"LysMcre/cre","hidden_chars":0,"term":[],"level":"LysMcre_cre","backing":"inferred","note":"Jev picked it from the values the writer listed","p":1.0,"inherited":false,"passages":[3],"against":[]}}},{"sample":"GSM8414373","biosample_accession":"SAMN42766555","compiled_in":[],"cells":{"species":{"value":"Mus musculus","hidden_chars":0,"term":["NCBITaxon:10090"],"level":null,"backing":"quoted","note":null,"p":null,"inherited":true,"passages":[12],"against":[]},"assay":{"value":"ATAC-seq","hidden_chars":0,"term":["EFO:0007045"],"level":null,"backing":"quoted","note":null,"p":1.0,"inherited":true,"passages":[7],"against":[]},"target":{"value":null,"hidden_chars":0,"term":[],"level":null,"backing":"na","note":"ATAC-seq has no antibody pull-down.","p":1.0,"inherited":true,"passages":[],"against":[]},"control_type":{"value":null,"hidden_chars":0,"term":[],"level":null,"backing":"na","note":"All libraries are ATAC-seq, not background controls.","p":0.98,"inherited":true,"passages":[],"against":[]},"sex":{"value":null,"hidden_chars":0,"term":[],"level":null,"backing":"unknown","note":"No sample record or paper states sex.","p":0.98,"inherited":true,"passages":[],"against":[]},"development_stage":{"value":"adult","hidden_chars":0,"term":["MmusDv:0000110"],"level":null,"backing":"inferred","note":"Mice aged 4 to 24 months are adult.","p":1.0,"inherited":true,"passages":[1],"against":[]},"tissue":{"value":"Visceral white adipose tissue","hidden_chars":0,"term":[],"level":null,"backing":"quoted","note":null,"p":1.0,"inherited":true,"passages":[8],"against":[]},"cell_type":{"value":"Sorted adipose tissue macrophages","hidden_chars":0,"term":["CL:0002477"],"level":null,"backing":"quoted","note":null,"p":1.0,"inherited":true,"passages":[9],"against":[]},"cell_line":{"value":null,"hidden_chars":0,"term":[],"level":null,"backing":"na","note":"Primary sorted macrophages, not a cell line.","p":1.0,"inherited":true,"passages":[],"against":[]},"disease":{"value":"endotoxemia","hidden_chars":0,"term":["MONDO:1014849"],"level":null,"backing":"quoted","note":null,"p":0.98,"inherited":true,"passages":[10],"against":[]},"strain":{"value":null,"hidden_chars":0,"term":[],"level":null,"backing":"unknown","note":"No record states the mouse strain.","p":0.99,"inherited":true,"passages":[],"against":[]},"treatment":{"value":"LPS","hidden_chars":0,"term":["CHEBI:16412"],"level":null,"backing":"quoted","note":null,"p":0.97,"inherited":true,"passages":[11],"against":[]},"dose":{"value":"0.1mg/kg","hidden_chars":0,"term":[],"level":null,"backing":"quoted","note":null,"p":0.98,"inherited":true,"passages":[11],"against":[]},"duration":{"value":"4 hours","hidden_chars":0,"term":[],"level":null,"backing":"quoted","note":null,"p":0.98,"inherited":true,"passages":[11],"against":[]},"biosample":{"value":"B2","hidden_chars":0,"term":[],"level":null,"backing":"inferred","note":"no text read ties this library's material to another's","p":null,"inherited":false,"passages":[],"against":[]},"donor":{"value":"D2","hidden_chars":0,"term":[],"level":null,"backing":"inferred","note":"Jev judged each library to come from its own individual","p":0.79,"inherited":false,"passages":[],"against":[]},"age":{"value":"Old","hidden_chars":0,"term":[],"level":"old","backing":"inferred","note":"Jev picked it from the values the writer listed","p":1.0,"inherited":false,"passages":[1],"against":[]},"genotype":{"value":"LysMcre/cre","hidden_chars":0,"term":[],"level":"LysMcre_cre","backing":"inferred","note":"Jev picked it from the values the writer listed","p":1.0,"inherited":false,"passages":[3],"against":[]}}},{"sample":"GSM8414374","biosample_accession":"SAMN42766554","compiled_in":[],"cells":{"species":{"value":"Mus musculus","hidden_chars":0,"term":["NCBITaxon:10090"],"level":null,"backing":"quoted","note":null,"p":null,"inherited":true,"passages":[12],"against":[]},"assay":{"value":"ATAC-seq","hidden_chars":0,"term":["EFO:0007045"],"level":null,"backing":"quoted","note":null,"p":1.0,"inherited":true,"passages":[7],"against":[]},"target":{"value":null,"hidden_chars":0,"term":[],"level":null,"backing":"na","note":"ATAC-seq has no antibody pull-down.","p":1.0,"inherited":true,"passages":[],"against":[]},"control_type":{"value":null,"hidden_chars":0,"term":[],"level":null,"backing":"na","note":"All libraries are ATAC-seq, not background controls.","p":0.98,"inherited":true,"passages":[],"against":[]},"sex":{"value":null,"hidden_chars":0,"term":[],"level":null,"backing":"unknown","note":"No sample record or paper states sex.","p":0.98,"inherited":true,"passages":[],"against":[]},"development_stage":{"value":"adult","hidden_chars":0,"term":["MmusDv:0000110"],"level":null,"backing":"inferred","note":"Mice aged 4 to 24 months are adult.","p":1.0,"inherited":true,"passages":[1],"against":[]},"tissue":{"value":"Visceral white adipose tissue","hidden_chars":0,"term":[],"level":null,"backing":"quoted","note":null,"p":1.0,"inherited":true,"passages":[8],"against":[]},"cell_type":{"value":"Sorted adipose tissue macrophages","hidden_chars":0,"term":["CL:0002477"],"level":null,"backing":"quoted","note":null,"p":1.0,"inherited":true,"passages":[9],"against":[]},"cell_line":{"value":null,"hidden_chars":0,"term":[],"level":null,"backing":"na","note":"Primary sorted macrophages, not a cell line.","p":1.0,"inherited":true,"passages":[],"against":[]},"disease":{"value":"endotoxemia","hidden_chars":0,"term":["MONDO:1014849"],"level":null,"backing":"quoted","note":null,"p":0.98,"inherited":true,"passages":[10],"against":[]},"strain":{"value":null,"hidden_chars":0,"term":[],"level":null,"backing":"unknown","note":"No record states the mouse strain.","p":0.99,"inherited":true,"passages":[],"against":[]},"treatment":{"value":"LPS","hidden_chars":0,"term":["CHEBI:16412"],"level":null,"backing":"quoted","note":null,"p":0.97,"inherited":true,"passages":[11],"against":[]},"dose":{"value":"0.1mg/kg","hidden_chars":0,"term":[],"level":null,"backing":"quoted","note":null,"p":0.98,"inherited":true,"passages":[11],"against":[]},"duration":{"value":"4 hours","hidden_chars":0,"term":[],"level":null,"backing":"quoted","note":null,"p":0.98,"inherited":true,"passages":[11],"against":[]},"biosample":{"value":"B3","hidden_chars":0,"term":[],"level":null,"backing":"inferred","note":"no text read ties this library's material to another's","p":null,"inherited":false,"passages":[],"against":[]},"donor":{"value":"D3","hidden_chars":0,"term":[],"level":null,"backing":"inferred","note":"Jev judged each library to come from its own individual","p":0.79,"inherited":false,"passages":[],"against":[]},"age":{"value":"Old","hidden_chars":0,"term":[],"level":"old","backing":"inferred","note":"Jev picked it from the values the writer listed","p":1.0,"inherited":false,"passages":[1],"against":[]},"genotype":{"value":"GDF3 fl/fl","hidden_chars":0,"term":[],"level":"GDF3_fl_fl","backing":"quoted","note":null,"p":1.0,"inherited":false,"passages":[4],"against":[]}}},{"sample":"GSM8414375","biosample_accession":"SAMN42766553","compiled_in":[],"cells":{"species":{"value":"Mus musculus","hidden_chars":0,"term":["NCBITaxon:10090"],"level":null,"backing":"quoted","note":null,"p":null,"inherited":true,"passages":[12],"against":[]},"assay":{"value":"ATAC-seq","hidden_chars":0,"term":["EFO:0007045"],"level":null,"backing":"quoted","note":null,"p":1.0,"inherited":true,"passages":[7],"against":[]},"target":{"value":null,"hidden_chars":0,"term":[],"level":null,"backing":"na","note":"ATAC-seq has no antibody pull-down.","p":1.0,"inherited":true,"passages":[],"against":[]},"control_type":{"value":null,"hidden_chars":0,"term":[],"level":null,"backing":"na","note":"All libraries are ATAC-seq, not background controls.","p":0.98,"inherited":true,"passages":[],"against":[]},"sex":{"value":null,"hidden_chars":0,"term":[],"level":null,"backing":"unknown","note":"No sample record or paper states sex.","p":0.98,"inherited":true,"passages":[],"against":[]},"development_stage":{"value":"adult","hidden_chars":0,"term":["MmusDv:0000110"],"level":null,"backing":"inferred","note":"Mice aged 4 to 24 months are adult.","p":1.0,"inherited":true,"passages":[1],"against":[]},"tissue":{"value":"Visceral white adipose tissue","hidden_chars":0,"term":[],"level":null,"backing":"quoted","note":null,"p":1.0,"inherited":true,"passages":[8],"against":[]},"cell_type":{"value":"Sorted adipose tissue macrophages","hidden_chars":0,"term":["CL:0002477"],"level":null,"backing":"quoted","note":null,"p":1.0,"inherited":true,"passages":[9],"against":[]},"cell_line":{"value":null,"hidden_chars":0,"term":[],"level":null,"backing":"na","note":"Primary sorted macrophages, not a cell line.","p":1.0,"inherited":true,"passages":[],"against":[]},"disease":{"value":"endotoxemia","hidden_chars":0,"term":["MONDO:1014849"],"level":null,"backing":"quoted","note":null,"p":0.98,"inherited":true,"passages":[10],"against":[]},"strain":{"value":null,"hidden_chars":0,"term":[],"level":null,"backing":"unknown","note":"No record states the mouse strain.","p":0.99,"inherited":true,"passages":[],"against":[]},"treatment":{"value":"LPS","hidden_chars":0,"term":["CHEBI:16412"],"level":null,"backing":"quoted","note":null,"p":0.97,"inherited":true,"passages":[11],"against":[]},"dose":{"value":"0.1mg/kg","hidden_chars":0,"term":[],"level":null,"backing":"quoted","note":null,"p":0.98,"inherited":true,"passages":[11],"against":[]},"duration":{"value":"4 hours","hidden_chars":0,"term":[],"level":null,"backing":"quoted","note":null,"p":0.98,"inherited":true,"passages":[11],"against":[]},"biosample":{"value":"B4","hidden_chars":0,"term":[],"level":null,"backing":"inferred","note":"no text read ties this library's material to another's","p":null,"inherited":false,"passages":[],"against":[]},"donor":{"value":"D4","hidden_chars":0,"term":[],"level":null,"backing":"inferred","note":"Jev judged each library to come from its own individual","p":0.79,"inherited":false,"passages":[],"against":[]},"age":{"value":"Old","hidden_chars":0,"term":[],"level":"old","backing":"inferred","note":"Jev picked it from the values the writer listed","p":1.0,"inherited":false,"passages":[1],"against":[]},"genotype":{"value":"LysMcre/cre; GDF3 fl/fl","hidden_chars":0,"term":[],"level":"LysMcre_cre_GDF3_fl_fl","backing":"quoted","note":null,"p":1.0,"inherited":false,"passages":[5],"against":[]}}},{"sample":"GSM8414376","biosample_accession":"SAMN42766552","compiled_in":[],"cells":{"species":{"value":"Mus musculus","hidden_chars":0,"term":["NCBITaxon:10090"],"level":null,"backing":"quoted","note":null,"p":null,"inherited":true,"passages":[12],"against":[]},"assay":{"value":"ATAC-seq","hidden_chars":0,"term":["EFO:0007045"],"level":null,"backing":"quoted","note":null,"p":1.0,"inherited":true,"passages":[7],"against":[]},"target":{"value":null,"hidden_chars":0,"term":[],"level":null,"backing":"na","note":"ATAC-seq has no antibody pull-down.","p":1.0,"inherited":true,"passages":[],"against":[]},"control_type":{"value":null,"hidden_chars":0,"term":[],"level":null,"backing":"na","note":"All libraries are ATAC-seq, not background controls.","p":0.98,"inherited":true,"passages":[],"against":[]},"sex":{"value":null,"hidden_chars":0,"term":[],"level":null,"backing":"unknown","note":"No sample record or paper states sex.","p":0.98,"inherited":true,"passages":[],"against":[]},"development_stage":{"value":"adult","hidden_chars":0,"term":["MmusDv:0000110"],"level":null,"backing":"inferred","note":"Mice aged 4 to 24 months are adult.","p":1.0,"inherited":true,"passages":[1],"against":[]},"tissue":{"value":"Visceral white adipose tissue","hidden_chars":0,"term":[],"level":null,"backing":"quoted","note":null,"p":1.0,"inherited":true,"passages":[8],"against":[]},"cell_type":{"value":"Sorted adipose tissue macrophages","hidden_chars":0,"term":["CL:0002477"],"level":null,"backing":"quoted","note":null,"p":1.0,"inherited":true,"passages":[9],"against":[]},"cell_line":{"value":null,"hidden_chars":0,"term":[],"level":null,"backing":"na","note":"Primary sorted macrophages, not a cell line.","p":1.0,"inherited":true,"passages":[],"against":[]},"disease":{"value":"endotoxemia","hidden_chars":0,"term":["MONDO:1014849"],"level":null,"backing":"quoted","note":null,"p":0.98,"inherited":true,"passages":[10],"against":[]},"strain":{"value":null,"hidden_chars":0,"term":[],"level":null,"backing":"unknown","note":"No record states the mouse strain.","p":0.99,"inherited":true,"passages":[],"against":[]},"treatment":{"value":"LPS","hidden_chars":0,"term":["CHEBI:16412"],"level":null,"backing":"quoted","note":null,"p":0.97,"inherited":true,"passages":[11],"against":[]},"dose":{"value":"0.1mg/kg","hidden_chars":0,"term":[],"level":null,"backing":"quoted","note":null,"p":0.98,"inherited":true,"passages":[11],"against":[]},"duration":{"value":"4 hours","hidden_chars":0,"term":[],"level":null,"backing":"quoted","note":null,"p":0.98,"inherited":true,"passages":[11],"against":[]},"biosample":{"value":"B5","hidden_chars":0,"term":[],"level":null,"backing":"inferred","note":"no text read ties this library's material to another's","p":null,"inherited":false,"passages":[],"against":[]},"donor":{"value":"D5","hidden_chars":0,"term":[],"level":null,"backing":"inferred","note":"Jev judged each library to come from its own individual","p":0.79,"inherited":false,"passages":[],"against":[]},"age":{"value":"Old","hidden_chars":0,"term":[],"level":"old","backing":"inferred","note":"Jev picked it from the values the writer listed","p":1.0,"inherited":false,"passages":[1],"against":[]},"genotype":{"value":"LysMcre/cre; GDF3 fl/fl","hidden_chars":0,"term":[],"level":"LysMcre_cre_GDF3_fl_fl","backing":"quoted","note":null,"p":1.0,"inherited":false,"passages":[5],"against":[]}}},{"sample":"GSM8414377","biosample_accession":"SAMN42766551","compiled_in":[],"cells":{"species":{"value":"Mus musculus","hidden_chars":0,"term":["NCBITaxon:10090"],"level":null,"backing":"quoted","note":null,"p":null,"inherited":true,"passages":[12],"against":[]},"assay":{"value":"ATAC-seq","hidden_chars":0,"term":["EFO:0007045"],"level":null,"backing":"quoted","note":null,"p":1.0,"inherited":true,"passages":[7],"against":[]},"target":{"value":null,"hidden_chars":0,"term":[],"level":null,"backing":"na","note":"ATAC-seq has no antibody pull-down.","p":1.0,"inherited":true,"passages":[],"against":[]},"control_type":{"value":null,"hidden_chars":0,"term":[],"level":null,"backing":"na","note":"All libraries are ATAC-seq, not background controls.","p":0.98,"inherited":true,"passages":[],"against":[]},"sex":{"value":null,"hidden_chars":0,"term":[],"level":null,"backing":"unknown","note":"No sample record or paper states sex.","p":0.98,"inherited":true,"passages":[],"against":[]},"development_stage":{"value":"adult","hidden_chars":0,"term":["MmusDv:0000110"],"level":null,"backing":"inferred","note":"Mice aged 4 to 24 months are adult.","p":1.0,"inherited":true,"passages":[1],"against":[]},"tissue":{"value":"Visceral white adipose tissue","hidden_chars":0,"term":[],"level":null,"backing":"quoted","note":null,"p":1.0,"inherited":true,"passages":[8],"against":[]},"cell_type":{"value":"Sorted adipose tissue macrophages","hidden_chars":0,"term":["CL:0002477"],"level":null,"backing":"quoted","note":null,"p":1.0,"inherited":true,"passages":[9],"against":[]},"cell_line":{"value":null,"hidden_chars":0,"term":[],"level":null,"backing":"na","note":"Primary sorted macrophages, not a cell line.","p":1.0,"inherited":true,"passages":[],"against":[]},"disease":{"value":"endotoxemia","hidden_chars":0,"term":["MONDO:1014849"],"level":null,"backing":"quoted","note":null,"p":0.98,"inherited":true,"passages":[10],"against":[]},"strain":{"value":null,"hidden_chars":0,"term":[],"level":null,"backing":"unknown","note":"No record states the mouse strain.","p":0.99,"inherited":true,"passages":[],"against":[]},"treatment":{"value":"LPS","hidden_chars":0,"term":["CHEBI:16412"],"level":null,"backing":"quoted","note":null,"p":0.97,"inherited":true,"passages":[11],"against":[]},"dose":{"value":"0.1mg/kg","hidden_chars":0,"term":[],"level":null,"backing":"quoted","note":null,"p":0.98,"inherited":true,"passages":[11],"against":[]},"duration":{"value":"4 hours","hidden_chars":0,"term":[],"level":null,"backing":"quoted","note":null,"p":0.98,"inherited":true,"passages":[11],"against":[]},"biosample":{"value":"B6","hidden_chars":0,"term":[],"level":null,"backing":"inferred","note":"no text read ties this library's material to another's","p":null,"inherited":false,"passages":[],"against":[]},"donor":{"value":"D6","hidden_chars":0,"term":[],"level":null,"backing":"inferred","note":"Jev judged each library to come from its own individual","p":0.79,"inherited":false,"passages":[],"against":[]},"age":{"value":"Old","hidden_chars":0,"term":[],"level":"old","backing":"inferred","note":"Jev picked it from the values the writer listed","p":1.0,"inherited":false,"passages":[1],"against":[]},"genotype":{"value":"LysMcre/cre; GDF3 fl/fl","hidden_chars":0,"term":[],"level":"LysMcre_cre_GDF3_fl_fl","backing":"quoted","note":null,"p":1.0,"inherited":false,"passages":[5],"against":[]}}}],"design":{"kind":"cross","rows":["young","old"],"columns":["LysMcre_cre","GDF3_fl_fl","LysMcre_cre_GDF3_fl_fl","GDF3_fl_minus"],"groups":[{"levels":["young","LysMcre_cre"],"counts":[]},{"levels":["young","GDF3_fl_fl"],"counts":[]},{"levels":["young","LysMcre_cre_GDF3_fl_fl"],"counts":[]},{"levels":["young","GDF3_fl_minus"],"counts":[{"assay":null,"samples":["GSM8414378","GSM8414379","GSM8414380"]}]},{"levels":["old","LysMcre_cre"],"counts":[{"assay":null,"samples":["GSM8414372","GSM8414373"]}]},{"levels":["old","GDF3_fl_fl"],"counts":[{"assay":null,"samples":["GSM8414374"]}]},{"levels":["old","LysMcre_cre_GDF3_fl_fl"],"counts":[{"assay":null,"samples":["GSM8414375","GSM8414376","GSM8414377"]}]},{"levels":["old","GDF3_fl_minus"],"counts":[]}],"assays":[],"cross_columns":null,"cut":null},"topics":[{"topic":"Assay","labels":["assay","target","control_type"],"varying":[],"same":[{"label":"assay","cell":{"value":"ATAC-seq","hidden_chars":0,"term":["EFO:0007045"],"level":null,"backing":"quoted","note":null,"p":1.0,"inherited":true,"passages":[7],"against":[]}},{"label":"target","cell":{"value":null,"hidden_chars":0,"term":[],"level":null,"backing":"na","note":"ATAC-seq has no antibody pull-down.","p":1.0,"inherited":true,"passages":[],"against":[]}},{"label":"control_type","cell":{"value":null,"hidden_chars":0,"term":[],"level":null,"backing":"na","note":"All libraries are ATAC-seq, not background controls.","p":0.98,"inherited":true,"passages":[],"against":[]}}],"rows":[],"folded":0,"cut":{"shown":0,"hidden":0}},{"topic":"Organism","labels":["species","sex","development_stage","strain"],"varying":[],"same":[{"label":"species","cell":{"value":"Mus musculus","hidden_chars":0,"term":["NCBITaxon:10090"],"level":null,"backing":"quoted","note":null,"p":null,"inherited":true,"passages":[12],"against":[]}},{"label":"sex","cell":{"value":null,"hidden_chars":0,"term":[],"level":null,"backing":"unknown","note":"No sample record or paper states sex.","p":0.98,"inherited":true,"passages":[],"against":[]}},{"label":"development_stage","cell":{"value":"adult","hidden_chars":0,"term":["MmusDv:0000110"],"level":null,"backing":"inferred","note":"Mice aged 4 to 24 months are adult.","p":1.0,"inherited":true,"passages":[1],"against":[]}},{"label":"strain","cell":{"value":null,"hidden_chars":0,"term":[],"level":null,"backing":"unknown","note":"No record states the mouse strain.","p":0.99,"inherited":true,"passages":[],"against":[]}}],"rows":[],"folded":0,"cut":{"shown":0,"hidden":0}},{"topic":"Material","labels":["biosample","donor","tissue","cell_type","cell_line","disease"],"varying":["biosample","donor"],"same":[{"label":"tissue","cell":{"value":"Visceral white adipose tissue","hidden_chars":0,"term":[],"level":null,"backing":"quoted","note":null,"p":1.0,"inherited":true,"passages":[8],"against":[]}},{"label":"cell_type","cell":{"value":"Sorted adipose tissue macrophages","hidden_chars":0,"term":["CL:0002477"],"level":null,"backing":"quoted","note":null,"p":1.0,"inherited":true,"passages":[9],"against":[]}},{"label":"cell_line","cell":{"value":null,"hidden_chars":0,"term":[],"level":null,"backing":"na","note":"Primary sorted macrophages, not a cell line.","p":1.0,"inherited":true,"passages":[],"against":[]}},{"label":"disease","cell":{"value":"endotoxemia","hidden_chars":0,"term":["MONDO:1014849"],"level":null,"backing":"quoted","note":null,"p":0.98,"inherited":true,"passages":[10],"against":[]}}],"rows":[["GSM8414378"],["GSM8414379"],["GSM8414380"],["GSM8414372"],["GSM8414373"],["GSM8414374"],["GSM8414375"],["GSM8414376"],["GSM8414377"]],"folded":0,"cut":{"shown":9,"hidden":0}},{"topic":"Treatment & time","labels":["treatment","dose","duration"],"varying":[],"same":[{"label":"treatment","cell":{"value":"LPS","hidden_chars":0,"term":["CHEBI:16412"],"level":null,"backing":"quoted","note":null,"p":0.97,"inherited":true,"passages":[11],"against":[]}},{"label":"dose","cell":{"value":"0.1mg/kg","hidden_chars":0,"term":[],"level":null,"backing":"quoted","note":null,"p":0.98,"inherited":true,"passages":[11],"against":[]}},{"label":"duration","cell":{"value":"4 hours","hidden_chars":0,"term":[],"level":null,"backing":"quoted","note":null,"p":0.98,"inherited":true,"passages":[11],"against":[]}}],"rows":[],"folded":0,"cut":{"shown":0,"hidden":0}}]},"warnings":[]}</script>
+<script>/* seqforge report — one self-contained script, inlined at render.
+ *
+ * Drives the tab shell, the assay switcher, the light/dark toggle, the sample-row drawers, the paging
+ * and sorting of the two sample grids, and the click-to-pin provenance popover. No network, no
+ * framework — just a few DOM handlers. The Flow tab is plain HTML cards laid out by CSS, so there is
+ * no diagram engine to load.
+ */
+(function () {
+  "use strict";
+
+  var root = document.documentElement;
+
+  // ---- theme -------------------------------------------------------------------------------------
+  function currentTheme() {
+    var explicit = root.getAttribute("data-theme");
+    if (explicit) return explicit;
+    return window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches
+      ? "dark"
+      : "light";
+  }
+
+  function applyTheme(theme) {
+    root.setAttribute("data-theme", theme);
+    try { localStorage.setItem("seqforge-report-theme", theme); } catch (e) {}
+    var btn = document.getElementById("theme-toggle");
+    if (btn) btn.textContent = theme === "dark" ? "☀️" : "☽";
+  }
+
+  function initTheme() {
+    var stored = null;
+    try { stored = localStorage.getItem("seqforge-report-theme"); } catch (e) {}
+    if (stored) root.setAttribute("data-theme", stored);
+    var btn = document.getElementById("theme-toggle");
+    if (btn) {
+      btn.textContent = currentTheme() === "dark" ? "☀️" : "☽";
+      btn.addEventListener("click", function () {
+        applyTheme(currentTheme() === "dark" ? "light" : "dark");
+      });
+    }
+  }
+
+  // ---- tabs + assay switch ----------------------------------------------------------------------
+  var state = { assay: 0, tab: "overview" };
+
+  function sync() {
+    var sections = document.querySelectorAll("section.assay");
+    sections.forEach(function (sec, i) {
+      sec.style.display = i === state.assay ? "" : "none";
+      if (i !== state.assay) return;
+      sec.querySelectorAll(".pane").forEach(function (p) {
+        p.classList.toggle("active", p.getAttribute("data-tab") === state.tab);
+      });
+    });
+    // The Study tab belongs to no assay, so the assay switcher leaves it alone.
+    document.querySelectorAll("[data-study] .pane").forEach(function (p) {
+      p.classList.toggle("active", p.getAttribute("data-tab") === state.tab);
+    });
+    document.querySelectorAll(".tab").forEach(function (t) {
+      t.classList.toggle("active", t.getAttribute("data-tab") === state.tab);
+    });
+  }
+
+  function initTabs() {
+    // The page opens on the tab the markup marks active: Overview when there is a compile, Study
+    // when the page is a study's alone.
+    var opening = document.querySelector(".tab.active");
+    if (opening) state.tab = opening.getAttribute("data-tab");
+    document.querySelectorAll(".tab").forEach(function (t) {
+      t.addEventListener("click", function () {
+        state.tab = t.getAttribute("data-tab");
+        sync();
+      });
+    });
+    var sel = document.getElementById("assay-select");
+    if (sel) {
+      sel.addEventListener("change", function () {
+        state.assay = parseInt(sel.value, 10) || 0;
+        sync();
+      });
+    }
+    sync();
+  }
+
+  // ---- sample row expand/collapse ---------------------------------------------------------------
+  // The whole first cell is the target (a big, easy click area), not just the little caret.
+  function initRowToggles() {
+    document.querySelectorAll(".smp-toggle").forEach(function (cell) {
+      function toggle() {
+        var target = document.getElementById(cell.getAttribute("data-target"));
+        if (!target) return;
+        var open = target.hasAttribute("hidden");
+        if (open) target.removeAttribute("hidden");
+        else target.setAttribute("hidden", "");
+        cell.setAttribute("aria-expanded", open ? "true" : "false");
+        var caret = cell.querySelector(".smp-caret");
+        if (caret) caret.textContent = open ? "▾" : "▸";
+      }
+      cell.addEventListener("click", toggle);
+      cell.addEventListener("keydown", function (e) {
+        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggle(); }
+      });
+    });
+  }
+
+  // ---- sample grids: paging and sorting ---------------------------------------------------------
+  // A plate of ninety-six samples was five thousand pixels of table, and a reader who wanted sample 40
+  // scrolled past thirty-nine to reach it; the Results grid on the in-house aging plate is 784 rows
+  // deep. So a grid shows one page of rows at a time, and lets a reader put the rows they want on the
+  // first page by sorting a column.
+  //
+  // ONE controller owns both, per <tbody>, because they are two halves of one answer: a sort decides
+  // the order of every row and paging decides which slice of that order shows. Two handlers could not
+  // agree on it — a pager that had grouped the rows once, at load, would go on slicing an order the
+  // table had stopped being in, and the symptom would be a page of rows that are not the ones the
+  // header says are showing.
+  //
+  // It HIDES, it never drops: every row is in the HTML whatever page is showing, so the file is as
+  // complete offline as it was, "Rows: All" is one click, and a browser find that lands on a hidden
+  // row still has the row to land on once the reader shows it. Both controls are `hidden` in the
+  // markup and unhidden here, so a page opened without this script is the page as it always was.
+
+  // Digit-aware, because the plate's ids are `day3_CF_1`, `day11_N2_16_2`, ... and a plain string sort
+  // reads `day11` as less than `day3`. That IS the arrival order the reader is sorting to escape, so a
+  // sort that reproduced it would be a control that does nothing on the one table it was built for.
+  var NATURAL =
+    window.Intl && Intl.Collator
+      ? new Intl.Collator(undefined, { numeric: true }).compare
+      : function (a, b) { return a < b ? -1 : a > b ? 1 : 0; };
+
+  // The one `data-sort-col` that is not an index into a row's payload — see `_SORT_BY_ID`.
+  var SORT_BY_ID = "id";
+
+  // One sample is a PAIR of rows — the summary and its files drawer — and only the first carries
+  // `data-smp`. Grouping as "a marked row plus everything after it until the next" means the two move
+  // together, which is what lets a sort reorder SAMPLES rather than rows, and what lets the pager
+  // page them without ever counting rows.
+  function groupsOf(body) {
+    var groups = [];
+    [].forEach.call(body.rows, function (tr) {
+      if (tr.hasAttribute("data-smp")) groups.push([tr]);
+      else if (groups.length) groups[groups.length - 1].push(tr);
+    });
+    return groups;
+  }
+
+  function initGrid(body) {
+    // The order the page arrived in, kept for the whole session: it is what the third click of a
+    // column restores, and every sort is computed FROM it rather than from the last sort, so the
+    // same column and direction always produce the same table.
+    var arrival = groupsOf(body);
+    if (!arrival.length) return;
+    var order = arrival;
+
+    var bar = body.id ? document.querySelector('[data-pager="' + body.id + '"]') : null;
+    var table = body.closest("table");
+    var carets = table ? [].slice.call(table.querySelectorAll("[data-sort-col]")) : [];
+    if (!bar && !carets.length) return;
+
+    var status = bar && bar.querySelector("[data-pager-status]");
+    var nav = bar && bar.querySelector("[data-pager-nav]");
+    var at = bar && bar.querySelector("[data-pager-at]");
+    var picker = bar && bar.querySelector("[data-pager-size]");
+    var steps = bar ? [].slice.call(bar.querySelectorAll("[data-pager-step]")) : [];
+    var page = 0;
+
+    function perPage() {
+      var n = parseInt(picker.value, 10);
+      return n > 0 ? n : order.length; // "All" is 0 in the markup, and every row here
+    }
+
+    // A table under one page renders no bar at all, and still sorts — so paging is a branch here
+    // rather than the reason this function runs.
+    function apply() {
+      if (bar) {
+        var per = perPage();
+        var pages = Math.ceil(order.length / per);
+        page = Math.min(Math.max(page, 0), pages - 1);
+        var first = page * per;
+        var last = Math.min(first + per, order.length);
+        order.forEach(function (rows, i) {
+          var off = i < first || i >= last;
+          rows.forEach(function (tr) { tr.classList.toggle("smp-off", off); });
+        });
+        // `.smp-off` and not the `hidden` attribute: `hidden` is the drawer's own state on the second
+        // row of every pair, and one attribute meaning two things would close a reader's open drawer
+        // every time they paged past it and back.
+        // A Study-tab sample table counts rows, since a row there can hold several samples.
+        status.textContent =
+          "Showing " + (first + 1) + "–" + last + " of " + order.length + " " +
+          (bar.getAttribute("data-pager-unit") || "samples");
+        at.textContent = "Page " + (page + 1) + " of " + pages;
+        nav.hidden = pages < 2; // "Page 1 of 1" beside two dead arrows says nothing
+        steps.forEach(function (btn) {
+          var to = page + parseInt(btn.getAttribute("data-pager-step"), 10);
+          btn.disabled = to < 0 || to >= pages;
+        });
+      }
+      closeProvenance(); // it is pinned beside a cell that may not be on this page any more
+    }
+
+    // The top of the table, landed under the sticky band rather than beneath it: a reader who
+    // pressed Next at the bottom of one page is asking for the top of the next, and one who just
+    // sorted a column is asking for whatever is now at the top of it. The band's height is MEASURED
+    // and never assumed — the whole reason the header and the tab bar are one sticky element is that
+    // no number for it can be written down and stay true.
+    function toTop() {
+      var region = body.closest(".sf-scroll-x") || body;
+      var band = document.querySelector("[data-sticky-band]");
+      var top =
+        region.getBoundingClientRect().top +
+        window.scrollY -
+        (band ? band.getBoundingClientRect().height : 0) -
+        8;
+      window.scrollTo(0, Math.max(0, top));
+    }
+
+    // The key rides on the <tr>: one `data-sort` holding this row's RAW values in the order its cells
+    // were emitted, comma-separated, empty where the sample has a gap. The rendered text cannot stand
+    // in for it — a count reaches the cell as `207.9M`, and the precision a sort needs is gone by
+    // then — and the sticky column has no slot at all, because an identifier is not a number.
+    function keyOf(group, col) {
+      var first = group[0];
+      if (col === SORT_BY_ID) {
+        // The sticky cell IS the identifier and nothing else, so the key is simply its text: there
+        // is no slot to read, because an identifier is not one of the row payload's numbers.
+        return first.cells[0].textContent.trim();
+      }
+      var slot = (first.getAttribute("data-sort") || "").split(",")[col];
+      return slot ? parseFloat(slot) : NaN;
+    }
+
+    // A gap goes to the END in both directions. A sample that never reported a metric does not hold
+    // the largest value in that column, and it does not hold the smallest one either.
+    function isGap(k) { return typeof k === "number" && isNaN(k); }
+
+    function sortedBy(col, dir) {
+      var keyed = arrival.map(function (g, i) { return { g: g, i: i, k: keyOf(g, col) }; });
+      keyed.sort(function (a, b) {
+        if (isGap(a.k) || isGap(b.k)) {
+          return isGap(a.k) && isGap(b.k) ? a.i - b.i : isGap(a.k) ? 1 : -1;
+        }
+        var c = typeof a.k === "string" ? NATURAL(a.k, b.k) : a.k - b.k;
+        return c ? c * dir : a.i - b.i; // ties keep arrival order, so one click is one table
+      });
+      return keyed.map(function (e) { return e.g; });
+    }
+
+    // Three glyphs for three states, and `aria-sort` on the <th> for the same three: a column header
+    // that announced itself as a button would have stopped being a column header, so the state is on
+    // the header and the control beside the label.
+    function mark(btn, state) {
+      var th = btn.closest("th");
+      if (th) {
+        th.setAttribute(
+          "aria-sort",
+          state < 0 ? "descending" : state > 0 ? "ascending" : "none"
+        );
+      }
+      btn.textContent = state < 0 ? "▾" : state > 0 ? "▴" : "⇅";
+    }
+
+    var sortState = 0; // -1 descending, 1 ascending, 0 the order the page arrived in
+    var sortCaret = null;
+
+    carets.forEach(function (btn) {
+      btn.hidden = false;
+      btn.addEventListener("click", function () {
+        // none → descending → ascending → none, and the third click is the way back. Descending
+        // first because on a table of metrics the question is nearly always who is highest. One
+        // column at a time: a second sort clears the first, because two live sorts is a rule no
+        // reader can recover off the page.
+        sortState = btn === sortCaret ? (sortState < 0 ? 1 : 0) : -1;
+        sortCaret = sortState ? btn : null;
+        carets.forEach(function (other) { mark(other, other === sortCaret ? sortState : 0); });
+
+        // EVERY row is sorted and the pager then re-slices — never the visible page, which would
+        // sort twenty-five rows and call it the top of the plate.
+        order = sortState ? sortedBy(btn.getAttribute("data-sort-col"), sortState) : arrival;
+        var frag = document.createDocumentFragment();
+        order.forEach(function (rows) {
+          rows.forEach(function (tr) { frag.appendChild(tr); });
+        });
+        body.appendChild(frag); // one reflow, and appending a row already here MOVES it
+
+        page = 0; // the reader asked who is highest, and the answer is on the first page
+        apply();
+        // Only where the grid pages: a table short enough to render no bar is already showing the
+        // reader every row, and there is nowhere for the top to be. The pager's own two calls need
+        // no such guard — an arrow only exists on a grid that has a bar to draw it.
+        if (bar) toTop();
+      });
+    });
+
+    if (bar) {
+      steps.forEach(function (btn) {
+        btn.addEventListener("click", function () {
+          page += parseInt(btn.getAttribute("data-pager-step"), 10);
+          apply();
+          toTop();
+        });
+      });
+      picker.addEventListener("change", function () {
+        page = 0; // 25→100 keeps the rows you were looking at; anything else lands you nowhere
+        apply();
+      });
+      bar.hidden = false;
+    }
+    apply();
+  }
+
+  // A grid reaches this from either end — it has a pager, or it has sort carets, or both — so both
+  // ways in are collected and deduplicated rather than wiring one <tbody> twice.
+  function initSampleGrids() {
+    var bodies = [];
+    function want(body) { if (body && bodies.indexOf(body) < 0) bodies.push(body); }
+    document.querySelectorAll("[data-pager]").forEach(function (bar) {
+      want(document.getElementById(bar.getAttribute("data-pager")));
+    });
+    document.querySelectorAll("[data-sort-col]").forEach(function (btn) {
+      var table = btn.closest("table");
+      want(table && table.tBodies.length ? table.tBodies[0] : null);
+    });
+    bodies.forEach(initGrid);
+  }
+
+  // ---- provenance popover -----------------------------------------------------------------------
+  // A native title="" tooltip is transient and can't be selected or copied. Instead, a click pins a
+  // small card next to the cell with the provenance as real, selectable text plus a Copy button. It
+  // lives at the top of <body> (position:fixed) so a table's horizontal scroll never clips it.
+  // Two kinds of cell opt in, and they are the two places this page has a sentence worth copying: an
+  // evidence-matrix cell that was forbidden or never scored (.mx-cell) carries WHY, which used to be a
+  // title="" a reader could neither select nor keep open; and a Results metric COLUMN HEADER
+  // (.metric-head) carries what the number means — on the header, not the cell, because the hint
+  // describes the metric and is stored once per column instead of once per sample.
+  // A third kind joined them with the Study tab: a sample table's cell (.st-cell, and .st-fcell for
+  // a factor's), which carries how its claim is backed and opens the passages behind it.
+  var CELL_SEL = ".mx-cell, .metric-head, .st-cell, .st-fcell";
+
+  // The reading's passages by number, read once from the page's own embedded report.json. A study
+  // cell names its passages by number so that each quote is in the page once, not once per sample.
+  var studyPassages = null;
+  function passagesOf(numbers) {
+    if (studyPassages === null) {
+      studyPassages = {};
+      var block = document.getElementById("seqforge-report-data");
+      try {
+        var study = block ? JSON.parse(block.textContent).study : null;
+        ((study && study.passages) || []).forEach(function (p) { studyPassages[p.number] = p; });
+      } catch (e) {}
+    }
+    return (numbers || "").split(",").filter(Boolean).map(function (n) {
+      return studyPassages[n] || { number: n, source: "", quote: "passage " + n + " is missing" };
+    });
+  }
+
+  // The one handle out of the popover's closure. Turning a sample table's page can take the cell a
+  // popover is pinned beside off the page, and a card left floating beside nothing is worse than no
+  // card; `initProvPopover` assigns the real closer over this the moment it runs.
+  var closeProvenance = function () {};
+
+  // Whether a cell has anything to say. Formerly `!cell.classList.contains("empty")`, which made a
+  // presentation class into a behaviour switch: an empty attribute cell had to keep wearing `.empty`
+  // or it would have opened a popover with nothing in it. The real condition was always "does this
+  // cell carry provenance", and `data-key` is where provenance starts — so a cell opts IN by carrying
+  // data, and no styling decision can turn the popover on or off by accident.
+  function hasProvenance(cell) {
+    return !!(cell && cell.getAttribute("data-key"));
+  }
+
+  function initProvPopover() {
+    var pop = null;
+    var openCell = null;
+
+    function close() {
+      if (pop) { pop.remove(); pop = null; }
+      if (openCell) { openCell.removeAttribute("aria-expanded"); openCell = null; }
+    }
+    closeProvenance = close;
+
+    function fallbackCopy(text) {
+      var ta = document.createElement("textarea");
+      ta.value = text;
+      ta.style.position = "fixed";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      try { document.execCommand("copy"); } catch (e) {}
+      ta.remove();
+    }
+
+    function copyText(text, btn) {
+      var flash = function () {
+        var prev = btn.textContent;
+        btn.textContent = "Copied ✓";
+        setTimeout(function () { btn.textContent = prev; }, 1200);
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(flash, function () { fallbackCopy(text); flash(); });
+      } else {
+        fallbackCopy(text);
+        flash();
+      }
+    }
+
+    function el(cls, text) {
+      var d = document.createElement("div");
+      d.className = cls;
+      if (text) d.textContent = text;
+      return d;
+    }
+
+    function openFor(cell) {
+      close();
+      var key = cell.getAttribute("data-key") || "";
+      var value = cell.getAttribute("data-value") || "";
+      var basis = cell.getAttribute("data-basis") || "";
+      var source = cell.getAttribute("data-source") || "";
+      var quote = cell.getAttribute("data-quote") || "";
+
+      pop = document.createElement("div");
+      pop.className = "prov-pop";
+      var head = el("pp-head", key + (value ? ": " + value : ""));
+      var basisLine = el("pp-basis", basis + (source ? " · " + source : ""));
+      pop.appendChild(head);
+      pop.appendChild(basisLine);
+      if (quote) {
+        var q = document.createElement("blockquote");
+        q.className = "pp-quote";
+        q.textContent = quote;
+        pop.appendChild(q);
+      }
+      // A study cell: how its claim was worked out, then the passages it is quoted from or rests
+      // on, then any that speak against it. Every value is set as text, never as markup.
+      var note = cell.getAttribute("data-note") || "";
+      if (note) pop.appendChild(el("mt-2", note));
+      var copied = [];
+      function passages(numbers, title) {
+        var found = passagesOf(numbers);
+        if (!found.length) return;
+        pop.appendChild(el("pp-basis mt-3", title));
+        found.forEach(function (p) {
+          var b = document.createElement("blockquote");
+          b.className = "pp-quote";
+          b.appendChild(el("text-xs not-italic text-faint", "[" + p.number + "] " + p.source));
+          b.appendChild(document.createTextNode(p.quote));
+          pop.appendChild(b);
+          copied.push("[" + p.number + "] " + p.source + ": “" + p.quote + "”");
+        });
+      }
+      passages(cell.getAttribute("data-passages"), cell.getAttribute("data-passages-title") || "");
+      passages(cell.getAttribute("data-against"), "against");
+      var bar = el("pp-bar");
+      var copyBtn = document.createElement("button");
+      copyBtn.className = "pp-copy";
+      copyBtn.type = "button";
+      copyBtn.textContent = "Copy";
+      copyBtn.addEventListener("click", function (e) {
+        e.stopPropagation();
+        var text = head.textContent + "\n" + basisLine.textContent + (quote ? "\n“" + quote + "”" : "");
+        if (note) text += "\n" + note;
+        if (copied.length) text += "\n" + copied.join("\n");
+        copyText(text, copyBtn);
+      });
+      bar.appendChild(copyBtn);
+      pop.appendChild(bar);
+      document.body.appendChild(pop);
+      position(cell);
+      openCell = cell;
+      cell.setAttribute("aria-expanded", "true");
+    }
+
+    function position(cell) {
+      var r = cell.getBoundingClientRect();
+      pop.style.visibility = "hidden";
+      pop.style.left = "0px";
+      pop.style.top = "0px";
+      var pw = pop.offsetWidth;
+      var ph = pop.offsetHeight;
+      var left = Math.max(8, Math.min(r.left, window.innerWidth - pw - 12));
+      var top = r.bottom + 6;
+      if (top + ph > window.innerHeight - 8) top = Math.max(8, r.top - ph - 6);
+      pop.style.left = left + "px";
+      pop.style.top = top + "px";
+      pop.style.visibility = "visible";
+    }
+
+    function cellOf(node) {
+      return node && node.closest ? node.closest(CELL_SEL) : null;
+    }
+
+    document.addEventListener("click", function (e) {
+      if (pop && e.target.closest && e.target.closest(".prov-pop")) return; // clicks inside stay open
+      var cell = cellOf(e.target);
+      if (hasProvenance(cell)) {
+        if (cell === openCell) { close(); return; } // toggle off
+        openFor(cell);
+        e.stopPropagation();
+      } else {
+        close();
+      }
+    });
+
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape") { close(); return; }
+      var active = document.activeElement;
+      if ((e.key === "Enter" || e.key === " ") && active && active.matches && active.matches(CELL_SEL) && hasProvenance(active)) {
+        e.preventDefault();
+        if (active === openCell) close();
+        else openFor(active);
+      }
+    });
+
+    window.addEventListener("scroll", close, true);
+    window.addEventListener("resize", close);
+  }
+
+  // ---- hover cards ------------------------------------------------------------------------------
+  // A card shows below the box that names it, or above it when there is no room below, and never
+  // past the window's edge. The bounds graph and the Study tab's counts both place theirs here.
+  function showCard(node, tip) {
+    tip.hidden = false;
+    var r = node.getBoundingClientRect();
+    var left = Math.max(8, Math.min(r.left, window.innerWidth - tip.offsetWidth - 12));
+    var top = r.bottom + 6;
+    if (top + tip.offsetHeight > window.innerHeight - 8) {
+      top = Math.max(8, r.top - tip.offsetHeight - 6);
+    }
+    tip.style.left = left + "px";
+    tip.style.top = top + "px";
+  }
+
+  // ---- the bounds graph's hover cards -----------------------------------------------------------
+  // Each record's box names its card by id. The card is rendered in the page, every value escaped,
+  // and hidden; it shows while the pointer or the keyboard focus is on the box, below it, or above
+  // it when there is no room below. A click, or Enter, pins it open, and a pinned card shows each
+  // quote cut at the cap in full; a second click unpins it.
+  function initBoundsGraph() {
+    document.querySelectorAll("[data-bounds-node]").forEach(function (node) {
+      var tip = document.getElementById(node.getAttribute("data-bounds-node"));
+      if (!tip) return;
+      var pinned = false;
+      function full(on) {
+        tip.querySelectorAll("[data-cut]").forEach(function (s) { s.hidden = on; });
+        tip.querySelectorAll("[data-full]").forEach(function (s) { s.hidden = !on; });
+      }
+      function pin() {
+        pinned = !pinned;
+        full(pinned);
+        if (pinned) show();
+        else hide();
+      }
+      function show() { showCard(node, tip); }
+      function hide() { if (!pinned) tip.hidden = true; }
+      node.addEventListener("mouseenter", show);
+      node.addEventListener("mouseleave", hide);
+      node.addEventListener("focusin", show);
+      node.addEventListener("focusout", hide);
+      node.addEventListener("click", pin);
+      node.addEventListener("keydown", function (e) {
+        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); pin(); }
+      });
+    });
+  }
+
+  // ---- "show all" past a cap --------------------------------------------------------------------
+  // A section past its cap marks the rows after it, and its line names the section by id. The
+  // line is rendered hidden: without this script every row shows. With it, the marked rows hide
+  // until the line's button shows them all.
+  function initShowAll() {
+    document.querySelectorAll("[data-show-all]").forEach(function (line) {
+      var scope = document.getElementById(line.getAttribute("data-show-all"));
+      if (!scope) return;
+      var rest = scope.querySelectorAll("[data-over-cap]");
+      rest.forEach(function (row) { row.hidden = true; });
+      line.hidden = false;
+      var btn = line.querySelector("button");
+      if (btn) {
+        btn.addEventListener("click", function () {
+          rest.forEach(function (row) { row.hidden = false; });
+          line.hidden = true;
+        });
+      }
+    });
+  }
+
+  // ---- the design table's counts and the sample tables' topics ----------------------------------
+  // A count names its card by id, as a graph record does, and the card shows while the pointer or
+  // the focus is on the count. The topic bar is rendered hidden: without this script every topic's
+  // table shows, one under the other, and with it one at a time.
+  function initStudyTables() {
+    document.querySelectorAll("[data-hover-card]").forEach(function (node) {
+      var tip = document.getElementById(node.getAttribute("data-hover-card"));
+      if (!tip) return;
+      function show() { showCard(node, tip); }
+      function hide() { tip.hidden = true; }
+      node.addEventListener("mouseenter", show);
+      node.addEventListener("mouseleave", hide);
+      node.addEventListener("focusin", show);
+      node.addEventListener("focusout", hide);
+    });
+    document.querySelectorAll("[data-topic-tabs]").forEach(function (bar) {
+      var scope = bar.parentNode;
+      var tabs = bar.querySelectorAll("[data-topic-tab]");
+      function pick(at) {
+        tabs.forEach(function (t) {
+          t.classList.toggle("active", t.getAttribute("data-topic-tab") === at);
+        });
+        scope.querySelectorAll("[data-topic-pane]").forEach(function (p) {
+          p.hidden = p.getAttribute("data-topic-pane") !== at;
+        });
+        closeProvenance(); // a card pinned beside a table that is no longer showing
+      }
+      tabs.forEach(function (t) {
+        t.addEventListener("click", function () { pick(t.getAttribute("data-topic-tab")); });
+      });
+      bar.hidden = false;
+      pick("0");
+    });
+  }
+
+  // ---- boot --------------------------------------------------------------------------------------
+  // The Flow tab is plain HTML cards (CSS handles the responsive layout), so there is no diagram
+  // engine to drive here — the shell is a few DOM handlers and nothing loads off the network.
+  function boot() {
+    initTheme();
+    initTabs();
+    initRowToggles();
+    initProvPopover(); // before the grids: it is what gives them a popover to close
+    initSampleGrids();
+    initBoundsGraph();
+    initStudyTables();
+    initShowAll();
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", boot);
+  } else {
+    boot();
+  }
+})();
+</script>
+</body>
+</html>

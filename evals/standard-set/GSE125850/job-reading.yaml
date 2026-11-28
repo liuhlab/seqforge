@@ -11,7 +11,7 @@ read_detail: The records of GSE125850 and their 12 sequenced samples; the full t
 ontology_snapshot:
   source: 'liulab-data ontology store: efo-3.96.0, mmusdv-2025-01-23, mondo-2026-11-03, ncbitaxon-2026-11-26,
     uberon-2026-11-05'
-  date: 2026-11-26
+  date: 2026-11-28
 passages:
   1:
     record: GSE125850
@@ -209,6 +209,7 @@ shared:
     p: 1.0
 samples:
   GSM3583145:
+    biosample_accession: SAMN10841158
     biosample:
       id: B1
       inferred: Jev judged the tie the writer listed between this library and another
@@ -255,6 +256,7 @@ samples:
       - 11
       p: 0.98
   GSM3583146:
+    biosample_accession: SAMN10841186
     biosample:
       id: B1
       inferred: Jev judged the tie the writer listed between this library and another
@@ -301,6 +303,7 @@ samples:
       - 11
       p: 0.97
   GSM3583147:
+    biosample_accession: SAMN10841185
     biosample:
       id: B2
       inferred: Jev judged the tie the writer listed between this library and another
@@ -347,6 +350,7 @@ samples:
       - 13
       p: 0.98
   GSM3583148:
+    biosample_accession: SAMN10841184
     biosample:
       id: B2
       inferred: Jev judged the tie the writer listed between this library and another
@@ -395,6 +399,7 @@ samples:
       - 13
       p: 0.98
   GSM3583149:
+    biosample_accession: SAMN10841183
     biosample:
       id: B3
       inferred: Jev judged the tie the writer listed between this library and another
@@ -441,6 +446,7 @@ samples:
       - 11
       p: 0.57
   GSM3583150:
+    biosample_accession: SAMN10841182
     biosample:
       id: B3
       inferred: Jev judged the tie the writer listed between this library and another
@@ -493,6 +499,7 @@ samples:
       unknown: what was read does not say its replicate
       p: 0.58
   GSM3583151:
+    biosample_accession: SAMN10841181
     biosample:
       id: B4
       inferred: Jev judged the tie the writer listed between this library and another
@@ -539,6 +546,7 @@ samples:
       - 13
       p: 0.56
   GSM3583152:
+    biosample_accession: SAMN10841180
     biosample:
       id: B4
       inferred: Jev judged the tie the writer listed between this library and another
@@ -593,6 +601,7 @@ samples:
       unknown: what was read does not say its replicate
       p: 0.61
   GSM3583153:
+    biosample_accession: SAMN10841179
     biosample:
       id: B5
       inferred: Jev judged the tie the writer listed between this library and another
@@ -646,6 +655,7 @@ samples:
       - 11
       p: 0.57
   GSM3583154:
+    biosample_accession: SAMN10841178
     biosample:
       id: B5
       inferred: Jev judged the tie the writer listed between this library and another
@@ -701,6 +711,7 @@ samples:
       - 11
       p: 0.4
   GSM3583155:
+    biosample_accession: SAMN10841177
     biosample:
       id: B6
       inferred: Jev judged the tie the writer listed between this library and another
@@ -754,6 +765,7 @@ samples:
       - 13
       p: 0.49
   GSM3583156:
+    biosample_accession: SAMN10841176
     biosample:
       id: B6
       inferred: Jev judged the tie the writer listed between this library and another

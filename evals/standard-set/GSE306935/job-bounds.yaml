@@ -20,3 +20,10 @@ left_out:
   p: 0.96
 reason: Code kept GEO Series GSE306935; Jev judged each other record kept here to be from the same research.
 passages: {}
+titles:
+  GSE143476: Aging induces aberrant state transition kinetics in murine muscle stem cells
+  GSE306935: The Integrated Stress Response Pathway Improves Aged Murine Muscle Stem Cell Activation and
+    in vivo Regeneration
+  pmid:32198156: Aging induces aberrant state transition kinetics in murine muscle stem cells.
+  pmid:41256688: The Integrated Stress Response Pathway Improves Aged Murine Muscle Stem Cell Activation
+    and in vivo Regeneration.

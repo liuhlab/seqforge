@@ -10,7 +10,7 @@ read:
 read_detail: The records of GSE106105 and their 11 sequenced samples; the full text of pmid:28891792.
 ontology_snapshot:
   source: 'liulab-data ontology store: chebi-257, efo-3.96.0, ncbitaxon-2026-11-26, pato-2026-10-01, uberon-2026-11-05'
-  date: 2026-11-26
+  date: 2026-11-28
 passages:
   1:
     record: GSE106105
@@ -221,6 +221,7 @@ shared:
     p: 0.98
 samples:
   GSM2829781:
+    biosample_accession: SAMN07830097
     biosample:
       id: B1
       inferred: no text read ties this library's material to another's
@@ -272,6 +273,7 @@ samples:
       - 18
       p: 0.8
   GSM2829782:
+    biosample_accession: SAMN07830096
     biosample:
       id: B2
       inferred: no text read ties this library's material to another's
@@ -323,6 +325,7 @@ samples:
       - 18
       p: 0.8
   GSM2829783:
+    biosample_accession: SAMN07830095
     biosample:
       id: B3
       inferred: no text read ties this library's material to another's
@@ -374,6 +377,7 @@ samples:
       - 18
       p: 0.82
   GSM2829784:
+    biosample_accession: SAMN07830094
     biosample:
       id: B4
       inferred: no text read ties this library's material to another's
@@ -425,6 +429,7 @@ samples:
       - 18
       p: 0.79
   GSM2829785:
+    biosample_accession: SAMN07830093
     biosample:
       id: B5
       inferred: no text read ties this library's material to another's
@@ -467,6 +472,7 @@ samples:
       na: no treatment
       p: 1.0
   GSM2829786:
+    biosample_accession: SAMN07830092
     biosample:
       id: B6
       inferred: no text read ties this library's material to another's
@@ -518,6 +524,7 @@ samples:
       - 18
       p: 0.82
   GSM2829787:
+    biosample_accession: SAMN07830091
     biosample:
       id: B7
       inferred: no text read ties this library's material to another's
@@ -560,6 +567,7 @@ samples:
       na: no treatment
       p: 1.0
   GSM2829788:
+    biosample_accession: SAMN07830090
     biosample:
       id: B8
       inferred: no text read ties this library's material to another's
@@ -605,6 +613,7 @@ samples:
       - 20
       p: 0.77
   GSM2829789:
+    biosample_accession: SAMN07830089
     biosample:
       id: B9
       inferred: no text read ties this library's material to another's
@@ -643,6 +652,7 @@ samples:
       na: no treatment
       p: 0.99
   GSM2829790:
+    biosample_accession: SAMN07830088
     biosample:
       id: B10
       inferred: no text read ties this library's material to another's
@@ -688,6 +698,7 @@ samples:
       - 20
       p: 0.75
   GSM2829791:
+    biosample_accession: SAMN07830087
     biosample:
       id: B11
       inferred: no text read ties this library's material to another's

@@ -12,3 +12,8 @@ papers:
 left_out: []
 reason: Code kept GEO Series GSE335500; Jev judged each other record kept here to be from the same research.
 passages: {}
+titles:
+  GSE335500: APOE3 and APOE4 human astrocytes differentially modulate Alzheimer's disease pathology and
+    microglial responses in chimeric mice
+  pmid:42570239: APOE3 and APOE4 human astrocytes differentially modulate Alzheimer's disease pathology
+    and microglial responses in chimeric mice.

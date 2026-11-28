@@ -11,7 +11,7 @@ read_detail: The records of GSE274290, GSE274291 and their 7 sequenced samples; 
 ontology_snapshot:
   source: 'liulab-data ontology store: cl-2026-11-13, efo-3.96.0, ncbitaxon-2026-11-26, pato-2026-10-01,
     wbbt-2025-08-19, wbls-2026-04-16'
-  date: 2026-11-26
+  date: 2026-11-28
 passages:
   1:
     record: GSM8446960
@@ -164,6 +164,7 @@ shared:
     p: 0.97
 samples:
   GSM8446960:
+    biosample_accession: SAMN43079677
     biosample:
       id: B1
       inferred: no text read ties this library's material to another's
@@ -206,6 +207,7 @@ samples:
       unknown: scRNA-seq sample has no biological replicate label
       p: 0.92
   GSM8446961:
+    biosample_accession: SAMN43080004
     biosample:
       id: B2
       inferred: no text read ties this library's material to another's
@@ -245,6 +247,7 @@ samples:
       - 14
       p: 1.0
   GSM8446962:
+    biosample_accession: SAMN43080003
     biosample:
       id: B3
       inferred: no text read ties this library's material to another's
@@ -284,6 +287,7 @@ samples:
       - 15
       p: 0.99
   GSM8446963:
+    biosample_accession: SAMN43080002
     biosample:
       id: B4
       inferred: no text read ties this library's material to another's
@@ -323,6 +327,7 @@ samples:
       - 16
       p: 1.0
   GSM8446964:
+    biosample_accession: SAMN43080001
     biosample:
       id: B5
       inferred: no text read ties this library's material to another's
@@ -362,6 +367,7 @@ samples:
       - 14
       p: 0.95
   GSM8446965:
+    biosample_accession: SAMN43080000
     biosample:
       id: B6
       inferred: no text read ties this library's material to another's
@@ -401,6 +407,7 @@ samples:
       - 15
       p: 0.94
   GSM8446966:
+    biosample_accession: SAMN43079999
     biosample:
       id: B7
       inferred: no text read ties this library's material to another's

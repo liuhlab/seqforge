@@ -12,3 +12,7 @@ papers:
 left_out: []
 reason: Code kept GEO Series GSE114951; Jev judged each other record kept here to be from the same research.
 passages: {}
+titles:
+  GSE114951: Comparison of WT to atfs-1(null) & WT to atfs-1(et18) in C. elegans by deep sequencing
+  pmid:33473112: UPRmt scales mitochondrial network expansion with protein synthesis via mitochondrial
+    import in Caenorhabditis elegans.

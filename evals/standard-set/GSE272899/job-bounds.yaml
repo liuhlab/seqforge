@@ -12,3 +12,8 @@ papers:
 left_out: []
 reason: Code kept GEO Series GSE272899; Jev judged each other record kept here to be from the same research.
 passages: {}
+titles:
+  GSE272899: GDF3 promotes adipose tissue macrophage-mediated inflammation via altered chromatin accessibility
+    during aging
+  pmid:39386655: GDF3 promotes adipose tissue macrophage-mediated inflammation via altered chromatin accessibility
+    during aging.

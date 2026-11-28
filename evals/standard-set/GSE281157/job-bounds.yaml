@@ -12,3 +12,8 @@ papers:
 left_out: []
 reason: Code kept GEO Series GSE281157; Jev judged each other record kept here to be from the same research.
 passages: {}
+titles:
+  GSE281157: mRNA-seq analysis of Caenorhabditis elegans wild type N2, daf-16(mu86), daf-18(ok480) and
+    daf-16(mu86); daf-18(ok480) starved L1 larvae
+  pmid:40199585: DAF-18/PTEN protects LIN-35/Rb from CLP-1/CAPN-mediated cleavage to promote starvation
+    resistance.
