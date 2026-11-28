@@ -12,3 +12,8 @@ papers:
 left_out: []
 reason: Code kept GEO Series GSE182981; Jev judged each other record kept here to be from the same research.
 passages: {}
+titles:
+  GSE182981: Next Generation Sequencing Facilitates Quantitative Analysis of Wild Type animal fed normal
+    and high glucose diets at different age
+  pmid:36261415: The unfolded protein response reverses the effects of glucose on lifespan in chemically-sterilized
+    C. elegans.

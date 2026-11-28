@@ -12,3 +12,6 @@ papers:
 left_out: []
 reason: Code kept GEO Series GSE256266; Jev judged each other record kept here to be from the same research.
 passages: {}
+titles:
+  GSE256266: The complete molecular atlas of adult C. elegans glia across sexes
+  pmid:40527319: Molecular profiling of adult C. elegans glia across sexes by single-nuclear RNA-seq.

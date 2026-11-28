@@ -19,3 +19,8 @@ left_out:
 reason: Code kept the Series under SuperSeries GSE117724; Jev judged each other record kept here to be
   from the same research.
 passages: {}
+titles:
+  GSE117700: The nuclear hormone receptor NHR-86 controls anti-pathogen responses in C. elegans [RNA-seq]
+  GSE117719: The nuclear hormone receptor NHR-86 controls anti-pathogen responses in C. elegans [ChIP-seq]
+  GSE117724: The nuclear hormone receptor NHR-86 controls anti-pathogen responses in C. elegans
+  pmid:30668573: The nuclear hormone receptor NHR-86 controls anti-pathogen responses in C. elegans.

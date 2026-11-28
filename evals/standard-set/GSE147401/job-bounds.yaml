@@ -20,3 +20,12 @@ left_out:
   p: 0.96
 reason: Code kept GEO Series GSE147401; Jev judged each other record kept here to be from the same research.
 passages: {}
+titles:
+  GSE107190: The germline-specific factor OEF-1 facilitates coordinated progression through germ cell
+    development in C. elegans
+  GSE147401: The zinc-finger protein OEF-1 stabilizes patterns of activating and silencing modifications
+    in the C. elegans germ line
+  pmid:29167199: The Germline-Specific Factor OEF-1 Facilitates Coordinated Progression Through Germ Cell
+    Development in Caenorhabditis elegans.
+  pmid:34519784: The zinc-finger protein OEF-1 stabilizes histone modification patterns and promotes efficient
+    splicing in the Caenorhabditis elegans germline.

@@ -11,7 +11,7 @@ read_detail: The records of GSE234962 and their 4 sequenced samples; the full te
 ontology_snapshot:
   source: 'liulab-data ontology store: cl-2026-11-13, efo-3.96.0, ncbitaxon-2026-11-26, pato-2026-10-01,
     wbbt-2025-08-19'
-  date: 2026-11-26
+  date: 2026-11-28
 passages:
   1:
     record: GSE234962
@@ -159,6 +159,7 @@ shared:
     p: 0.94
 samples:
   GSM7486857:
+    biosample_accession: SAMN35739868
     biosample:
       id: B1
       inferred: no text read ties this library's material to another's
@@ -180,6 +181,7 @@ samples:
       - 11
       p: 1.0
   GSM7486858:
+    biosample_accession: SAMN35739867
     biosample:
       id: B2
       inferred: no text read ties this library's material to another's
@@ -201,6 +203,7 @@ samples:
       - 12
       p: 1.0
   GSM7486859:
+    biosample_accession: SAMN35739866
     biosample:
       id: B3
       inferred: no text read ties this library's material to another's
@@ -222,6 +225,7 @@ samples:
       - 11
       p: 0.97
   GSM7486860:
+    biosample_accession: SAMN35739865
     biosample:
       id: B4
       inferred: no text read ties this library's material to another's

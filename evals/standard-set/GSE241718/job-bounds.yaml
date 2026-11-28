@@ -16,3 +16,10 @@ papers:
 left_out: []
 reason: Code kept GEO Series GSE241718; Jev judged each other record kept here to be from the same research.
 passages: {}
+titles:
+  GSE241275: Dynamic analysis of mononuclear transcription profiles of fat in different parts of mice
+    during aging
+  GSE241718: Dynamic analysis of mononuclear transcription profiles of fat in different parts of mice
+    during aging
+  pmid:38997312: Dynamics of single-nuclei transcriptomic profiling of adipose tissue from diverse anatomical
+    locations during mouse aging process.

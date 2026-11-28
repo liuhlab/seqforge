@@ -16,3 +16,7 @@ left_out:
   p: 0.85
 reason: Code kept GEO Series GSE132886; Jev judged each other record kept here to be from the same research.
 passages: {}
+titles:
+  GSE132886: Identification of genes associated with endometrial cell aging.
+  pmid:33258951: Identification of genes associated with endometrial cell ageing.
+  pmid:39010112: Endometrial senescence is mediated by interleukin 17 receptor B signaling.

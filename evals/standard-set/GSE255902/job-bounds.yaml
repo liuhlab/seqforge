@@ -16,3 +16,7 @@ papers:
 left_out: []
 reason: Code kept GEO Series GSE255902; Jev judged each other record kept here to be from the same research.
 passages: {}
+titles:
+  GSE255902: Human iPSC 4R tauopathy model uncovers modifiers of tau propagation [bulk RNA-seq]
+  GSE255904: Human iPSC 4R tauopathy model uncovers modifiers of tau propagation [scRNA-seq]
+  pmid:38582079: Human iPSC 4R tauopathy model uncovers modifiers of tau propagation.

@@ -12,3 +12,7 @@ papers:
 left_out: []
 reason: Code kept GEO Series GSE288182; Jev judged each other record kept here to be from the same research.
 passages: {}
+titles:
+  GSE288182: Local brain reprogramming mitigates Alzheimer's disease and associated bone loss
+  pmid:42210397: Epigenetic brain reprogramming rejuvenates neuro-immune circuits to reverse Alzheimer's
+    disease pathology and systemic bone loss.

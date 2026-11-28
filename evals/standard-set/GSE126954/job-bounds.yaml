@@ -12,3 +12,6 @@ papers:
 left_out: []
 reason: Code kept GEO Series GSE126954; Jev judged each other record kept here to be from the same research.
 passages: {}
+titles:
+  GSE126954: A lineage-resolved molecular atlas of C. elegans embryogenesis at single cell resolution
+  pmid:31488706: A lineage-resolved molecular atlas of C. elegans embryogenesis at single-cell resolution.

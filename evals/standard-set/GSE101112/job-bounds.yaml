@@ -20,3 +20,10 @@ left_out:
   p: 0.91
 reason: Code kept GEO Series GSE101112; Jev judged each other record kept here to be from the same research.
 passages: {}
+titles:
+  GSE101112: Whole transcriptome analysis of brain hippocampal tissue from SAMP8 mice and rat primary
+    neurons treated with the Alzheimer's disease drug candidates CMS121 and J147
+  pmid:31742554: Elevating acetyl-CoA levels reduces aspects of brain aging.
+  pmid:32884834: Targeting of intracellular Ca2+ stores as a therapeutic strategy against age-related
+    neurotoxicities.
+  pmid:33294943: SUMMER, a shiny utility for metabolomics and multiomics exploratory research.

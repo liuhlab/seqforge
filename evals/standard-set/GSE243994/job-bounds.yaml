@@ -12,3 +12,8 @@ papers:
 left_out: []
 reason: Code kept GEO Series GSE243994; Jev judged each other record kept here to be from the same research.
 passages: {}
+titles:
+  GSE243994: DOS-3 mediates cell-non-autonomous DAF-16/FOXO activity in antagonizing age-related loss
+    of C. elegans germline stem
+  pmid:38851828: DOS-3 mediates cell-non-autonomous DAF-16/FOXO activity in antagonizing age-related loss
+    of C. elegans germline stem/progenitor cells.

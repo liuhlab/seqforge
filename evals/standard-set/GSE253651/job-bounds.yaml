@@ -12,3 +12,6 @@ papers:
 left_out: []
 reason: Code kept GEO Series GSE253651; Jev judged each other record kept here to be from the same research.
 passages: {}
+titles:
+  GSE253651: Transcriptomic profiling of cardiac resident macrophages upon high-fat diet or with aging
+  pmid:38763956: Transcriptomic profiling and regulatory pathways of cardiac resident macrophages in aging.

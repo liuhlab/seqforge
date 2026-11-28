@@ -12,3 +12,6 @@ papers:
 left_out: []
 reason: Code kept GEO Series GSE77720; Jev judged each other record kept here to be from the same research.
 passages: {}
+titles:
+  GSE77720: C9orf72 BAC Transgenic Mice Display Typical Pathologic Features of ALS/FTD
+  pmid:26637796: C9orf72 BAC Transgenic Mice Display Typical Pathologic Features of ALS/FTD.

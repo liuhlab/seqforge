@@ -24,3 +24,9 @@ left_out:
   p: 0.96
 reason: Code kept GEO Series GSE254687; Jev judged each other record kept here to be from the same research.
 passages: {}
+titles:
+  GSE115571: Single-cell transcriptomics reveals distinct microglia signatures under inflammation
+  GSE254687: PARK7/DJ-1 deficiency modulates microglial activation in response to LPS-induced inflammation
+  GSE256105: PARK7/DJ-1 deficiency impairs microglial activation in response to LPS-induced inflammation
+  pmid:30206190: Single-cell transcriptomics reveals distinct inflammation-induced microglia signatures.
+  pmid:39014482: PARK7/DJ-1 deficiency impairs microglial activation in response to LPS-induced inflammation.

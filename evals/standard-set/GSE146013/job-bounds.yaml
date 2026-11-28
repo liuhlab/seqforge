@@ -12,3 +12,6 @@ papers:
 left_out: []
 reason: Code kept GEO Series GSE146013; Jev judged each other record kept here to be from the same research.
 passages: {}
+titles:
+  GSE146013: MicroRNA alterations in a mouse model of prion disease
+  pmid:32549330: MicroRNA Alterations in a Tg501 Mouse Model of Prion Disease.

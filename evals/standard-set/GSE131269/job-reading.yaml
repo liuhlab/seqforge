@@ -10,7 +10,7 @@ read:
 read_detail: The records of GSE131269 and their 24 sequenced samples; the full text of pmid:32494643.
 ontology_snapshot:
   source: 'liulab-data ontology store: efo-3.96.0, ncbitaxon-2026-11-26, pato-2026-10-01, wbbt-2025-08-19'
-  date: 2026-11-26
+  date: 2026-11-28
 passages:
   1:
     record: GSE131269
@@ -196,6 +196,7 @@ shared:
     p: 0.78
 samples:
   GSM3768276:
+    biosample_accession: SAMN11654355
     biosample:
       id: B1
       inferred: no text read ties this library's material to another's
@@ -229,6 +230,7 @@ samples:
       na: no treatment
       p: 0.72
   GSM3768277:
+    biosample_accession: SAMN11654354
     biosample:
       id: B2
       inferred: no text read ties this library's material to another's
@@ -262,6 +264,7 @@ samples:
       na: no treatment
       p: 0.75
   GSM3768278:
+    biosample_accession: SAMN11654353
     biosample:
       id: B3
       inferred: no text read ties this library's material to another's
@@ -295,6 +298,7 @@ samples:
       na: no treatment
       p: 0.8
   GSM3768279:
+    biosample_accession: SAMN11654332
     biosample:
       id: B4
       inferred: no text read ties this library's material to another's
@@ -332,6 +336,7 @@ samples:
       - 11
       p: 1.0
   GSM3768280:
+    biosample_accession: SAMN11654352
     biosample:
       id: B5
       inferred: no text read ties this library's material to another's
@@ -369,6 +374,7 @@ samples:
       - 11
       p: 1.0
   GSM3768281:
+    biosample_accession: SAMN11654351
     biosample:
       id: B6
       inferred: no text read ties this library's material to another's
@@ -406,6 +412,7 @@ samples:
       - 11
       p: 1.0
   GSM3768282:
+    biosample_accession: SAMN11654350
     biosample:
       id: B7
       inferred: no text read ties this library's material to another's
@@ -439,6 +446,7 @@ samples:
       na: no treatment
       p: 0.82
   GSM3768283:
+    biosample_accession: SAMN11654349
     biosample:
       id: B8
       inferred: no text read ties this library's material to another's
@@ -472,6 +480,7 @@ samples:
       na: no treatment
       p: 0.8
   GSM3768284:
+    biosample_accession: SAMN11654348
     biosample:
       id: B9
       inferred: no text read ties this library's material to another's
@@ -505,6 +514,7 @@ samples:
       na: no treatment
       p: 0.84
   GSM3768285:
+    biosample_accession: SAMN11654347
     biosample:
       id: B10
       inferred: no text read ties this library's material to another's
@@ -542,6 +552,7 @@ samples:
       - 11
       p: 0.99
   GSM3768286:
+    biosample_accession: SAMN11654346
     biosample:
       id: B11
       inferred: no text read ties this library's material to another's
@@ -579,6 +590,7 @@ samples:
       - 11
       p: 0.99
   GSM3768287:
+    biosample_accession: SAMN11654345
     biosample:
       id: B12
       inferred: no text read ties this library's material to another's
@@ -616,6 +628,7 @@ samples:
       - 11
       p: 1.0
   GSM3768288:
+    biosample_accession: SAMN11654344
     biosample:
       id: B13
       inferred: no text read ties this library's material to another's
@@ -649,6 +662,7 @@ samples:
       na: no treatment
       p: 0.73
   GSM3768289:
+    biosample_accession: SAMN11654343
     biosample:
       id: B14
       inferred: no text read ties this library's material to another's
@@ -682,6 +696,7 @@ samples:
       na: no treatment
       p: 0.73
   GSM3768290:
+    biosample_accession: SAMN11654342
     biosample:
       id: B15
       inferred: no text read ties this library's material to another's
@@ -715,6 +730,7 @@ samples:
       na: no treatment
       p: 0.73
   GSM3768291:
+    biosample_accession: SAMN11654341
     biosample:
       id: B16
       inferred: no text read ties this library's material to another's
@@ -752,6 +768,7 @@ samples:
       - 11
       p: 0.99
   GSM3768292:
+    biosample_accession: SAMN11654340
     biosample:
       id: B17
       inferred: no text read ties this library's material to another's
@@ -789,6 +806,7 @@ samples:
       - 11
       p: 0.99
   GSM3768293:
+    biosample_accession: SAMN11654339
     biosample:
       id: B18
       inferred: no text read ties this library's material to another's
@@ -826,6 +844,7 @@ samples:
       - 11
       p: 1.0
   GSM3768294:
+    biosample_accession: SAMN11654338
     biosample:
       id: B19
       inferred: no text read ties this library's material to another's
@@ -859,6 +878,7 @@ samples:
       na: no treatment
       p: 0.79
   GSM3768295:
+    biosample_accession: SAMN11654337
     biosample:
       id: B20
       inferred: no text read ties this library's material to another's
@@ -892,6 +912,7 @@ samples:
       na: no treatment
       p: 0.79
   GSM3768296:
+    biosample_accession: SAMN11654336
     biosample:
       id: B21
       inferred: no text read ties this library's material to another's
@@ -925,6 +946,7 @@ samples:
       na: no treatment
       p: 0.82
   GSM3768297:
+    biosample_accession: SAMN11654335
     biosample:
       id: B22
       inferred: no text read ties this library's material to another's
@@ -962,6 +984,7 @@ samples:
       - 11
       p: 0.99
   GSM3768298:
+    biosample_accession: SAMN11654334
     biosample:
       id: B23
       inferred: no text read ties this library's material to another's
@@ -999,6 +1022,7 @@ samples:
       - 11
       p: 0.99
   GSM3768299:
+    biosample_accession: SAMN11654333
     biosample:
       id: B24
       inferred: no text read ties this library's material to another's

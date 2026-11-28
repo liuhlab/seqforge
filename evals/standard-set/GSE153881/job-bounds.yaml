@@ -12,3 +12,6 @@ papers:
 left_out: []
 reason: Code kept GEO Series GSE153881; Jev judged each other record kept here to be from the same research.
 passages: {}
+titles:
+  GSE153881: Mitochondrial RNA in Alzheimer’s Disease Circulating Extracellular Vesicles
+  pmid:33304899: Mitochondrial RNA in Alzheimer's Disease Circulating Extracellular Vesicles.

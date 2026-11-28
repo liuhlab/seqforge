@@ -28,3 +28,15 @@ left_out:
   p: 0.93
 reason: Code kept GEO Series GSE234962; Jev judged each other record kept here to be from the same research.
 passages: {}
+titles:
+  GSE234962: A molecular atlas of adult C. elegans motor neurons reveals ancient diversity delineated
+    by conserved transcription factor codes
+  GSE314726: Intrinsic and non-cell autonomous roles for a neurodevelopmental syndrome-linked transcription
+    factor
+  pmid:38421866: A molecular atlas of adult C. elegans motor neurons reveals ancient diversity delineated
+    by conserved transcription factor codes.
+  pmid:41390837: Cell type-specific functions of the PBAF chromatin-remodeling complex in neuronal diversification.
+  pmid:41509263: Intrinsic and non-cell autonomous roles for a neurodevelopmental syndrome-linked transcription
+    factor.
+  pmid:42711312: Intrinsic and non-cell-autonomous roles for the neurodevelopmental syndrome-linked transcription
+    factor UNC-3/EBF.

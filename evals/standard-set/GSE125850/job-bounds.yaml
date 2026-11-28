@@ -12,3 +12,6 @@ papers:
 left_out: []
 reason: Code kept GEO Series GSE125850; Jev judged each other record kept here to be from the same research.
 passages: {}
+titles:
+  GSE125850: Inhibition of EHMT1/2 rescues synaptic and cognitive functions for Alzheimer's disease
+  pmid:30668640: Inhibition of EHMT1/2 rescues synaptic and cognitive functions for Alzheimer's disease.

@@ -16,3 +16,10 @@ papers:
 left_out: []
 reason: Code kept GEO Series GSE274290; Jev judged each other record kept here to be from the same research.
 passages: {}
+titles:
+  GSE274290: Spatiotemporal single-cell architecture of gene expression in the Caenorhabditis elegans
+    germ cells [scRNA-seq]
+  GSE274291: Spatiotemporal single-cell architecture of gene expression in the Caenorhabditis elegans
+    germ cells [smRNA-seq]
+  pmid:40097379: Spatiotemporal single-cell architecture of gene expression in the Caenorhabditis elegans
+    germ cells.
