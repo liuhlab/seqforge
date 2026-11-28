@@ -1,5 +1,5 @@
 site_name: seqforge
-site_description: A compiler from FASTQ + unstructured metadata to a validated manifest and a runnable pipeline.
+site_description: Reads sequencing studies and their files, and writes down what they are, from the bounds of a study to a pipeline you submit.
 site_url: https://liuhlab.github.io/seqforge/
 repo_url: https://github.com/liuhlab/seqforge
 repo_name: liuhlab/seqforge
@@ -42,36 +42,39 @@ extra_css:
 plugins:
   - search
 
-# Concepts sits last on purpose: it is the "why it is shaped this way" layer, and a first-time
-# reader should reach the commands before the reasoning.
+# The reader is someone shown the site who does not know the code: the examples come right after the
+# home page, the concept pages next, and every command detail sits in Reference at the end.
 nav:
   - Home: index.md
-  - Getting started: getting-started.md
-  - Tutorials:
-      - Compiling with Claude: tutorials/with-claude.md
-      - Compiling Step-by-step: tutorials/step-by-step.md
-      - Adding a technology: tutorials/adding-a-technology.md
-  - The study workflow: study-workflow.md
-  - Files from the hand work: hand-work-files.md
-  - Passes: passes.md
-  - File formats:
-      - The bounds file: formats/bounds.md
-      - The reading file: formats/reading.md
-  - Concepts:
-      - The two artifacts: concepts/artifacts.md
-      - How a dataset is identified: concepts/identifying.md
-      - When it refuses: concepts/refusal.md
-  # "Supported assays" is nested one level under the section on purpose: with `navigation.sections`
+  - Example reports: examples/index.md
+  - How it works:
+      - Understanding a study: how-it-works/study.md
+      - From FASTQ files to a pipeline: how-it-works/compiler.md
+      - Why you can trust the output: how-it-works/trust.md
+  - Use it:
+      - Getting started: getting-started.md
+      - Read your own studies: guides/read-studies.md
+      - Compile with Claude: tutorials/with-claude.md
+      - Compile step by step: tutorials/step-by-step.md
+      - Add a technology: tutorials/adding-a-technology.md
+  # "Supported assays" is nested under the knowledge base on purpose: with `navigation.sections`
   # only the TOP level renders expanded, so the assay list stays folded behind a collapsible toggle
   # and the sidebar does not grow a long flat list.
-  - Knowledge base:
-      - Overview: kb/index.md
-      - Supported assays:
-          - 10x Chromium 3' v3 & v3.1: kb/10x-3p-gex-v3.md
-          - 10x Chromium 3' v2: kb/10x-3p-gex-v2.md
-          - BD Rhapsody WTA: kb/bd-rhapsody-wta.md
-          - SPLiT-seq: kb/splitseq.md
-          - Bulk RNA-seq: kb/bulk-rnaseq.md
+  - Reference:
+      - Commands: reference/commands.md
+      - Passes: passes.md
+      - The study workflow in detail: study-workflow.md
+      - The bounds file: formats/bounds.md
+      - The reading file: formats/reading.md
+      - Files from the hand work: hand-work-files.md
+      - Knowledge base:
+          - Overview: kb/index.md
+          - Supported assays:
+              - 10x Chromium 3' v3 & v3.1: kb/10x-3p-gex-v3.md
+              - 10x Chromium 3' v2: kb/10x-3p-gex-v2.md
+              - BD Rhapsody WTA: kb/bd-rhapsody-wta.md
+              - SPLiT-seq: kb/splitseq.md
+              - Bulk RNA-seq: kb/bulk-rnaseq.md
 
 # Three trees stay in the repo and OUT of the site, deliberately; this site is the human layer on top
 # of them. The argument is ADR-0045 — cited by number, because a record moves between directories

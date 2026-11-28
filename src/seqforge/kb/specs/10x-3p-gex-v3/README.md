@@ -1,60 +1,57 @@
 # 10x Chromium Single Cell 3' Gene Expression v3 (and v3.1)
 
-Droplet single-cell RNA-seq — the current-generation 3' kit. Every droplet holds one gel bead, which
-tags all of a cell's transcripts with the same **cell barcode** and each mRNA molecule with a unique
-**UMI**.
+Droplet single-cell RNA-seq with 10x Genomics' third-generation 3' kit. Each droplet holds one gel
+bead. The bead tags every transcript of its cell with the same **cell barcode**, and each mRNA
+molecule with its own **UMI** (unique molecular identifier, a random tag that lets you count
+molecules rather than reads).
 
-This page covers **both v3 and v3.1**. To a sequencer they are the same library, and seqforge
-processes them identically — see [v3 vs v3.1](#v3-vs-v31) below.
+This page covers both v3 and v3.1. To a sequencer they are the same library, and seqforge processes
+them the same way. See [v3 vs v3.1](#v3-vs-v31) below.
 
 ## How it's read
 
-| read | length | what it holds |
+| Read | Length | What it holds |
 | --- | --- | --- |
-| **R1** | 28 bp | a 16 bp **cell barcode** + a 12 bp **UMI** |
-| **R2** | open-ended | the **cDNA** (the transcript itself), read sense to the mRNA |
+| **R1** | 28 bp | a 16 bp cell barcode, then a 12 bp UMI |
+| **R2** | any length | the cDNA (the transcript itself), read in the same direction as the mRNA |
 
-The cell barcode is drawn from 10x's `3M-february-2018` list (~6.8 million barcodes). Index reads
-(I1/I2) may or may not be present; seqforge doesn't need them.
+The cell barcodes come from 10x's `3M-february-2018` list, about 6.8 million barcodes. Index reads
+(I1, I2) may be present or not. seqforge does not need them.
 
-Names you'll see in the wild: "10x 3' v3", "Chromium 3' v3", "SC3Pv3", "single cell 3-prime v3",
-"Next GEM 3' v3.1". Papers often write only "10x 3' v3" for a v3.1 run, or name the kit and not the
-version — which changes nothing, as the next section explains.
+Names you'll see in papers and records: "10x 3' v3", "Chromium 3' v3", "SC3Pv3", "single cell
+3-prime v3", "Next GEM 3' v3.1". A paper often writes "10x 3' v3" for a v3.1 run, or names the kit
+without a version. That changes nothing, as the next section explains.
 
 ## v3 vs v3.1
 
-They are **identical to seqforge**: same read layout, same barcode list, same alignment settings. No
-probe can tell them apart from the reads, and none needs to — so seqforge records both names and asks
-you nothing. v3.1 exists as its own knowledge-base entry only so that "these two really are
-identical" is something the test suite re-checks on every build, rather than a claim sitting in a
-comment.
+To seqforge the two are identical: the same read layout, the same barcode list, the same alignment
+settings. No check on the reads can tell them apart, and none needs to. So seqforge records both
+names and asks you nothing. v3.1 has its own knowledge-base entry only so that the test suite checks
+on every build that the two really are identical.
 
-## How seqforge tells it apart from other chemistries
+## How seqforge tells it from other kits
 
-- **v2** — a 16 bp barcode + a **10** bp UMI makes a **26 bp** R1 (vs v3's 28 bp), on a different
-  list. The 2 bp length difference alone separates them.
-- **Multiome (ARC), GEM-X 3' v4 and 5' v3** all produce the same 28 bp / 16+12 layout. Four
-  chemistries, one geometry, told apart pairwise by **which of four barcode lists hits** — each
-  carries its own. Geometry narrows to the cohort; the list picks the member. 5' v3 does read the
-  cDNA in the opposite direction, but no probe can see that; its own `3M-5pgex-jan-2023` list is what
-  actually settles it.
-- **The 5' kit geometry genuinely cannot reach is one generation back.** 5' v1/v2 is a **26 bp** read
-  drawn from 3' **v2**'s whitelist, so *that* pair shares layout and list alike and is the only
-  read-undecidable one in this knowledge base — settled by metadata or a trial alignment, never by
-  bytes. It is a claim about a version pairing, not about "5'", and it does not apply here.
+- **3' v2** has a 10 bp UMI, so its R1 is 26 bp, not 28 bp. When R1 is the canonical length, that
+  2 bp difference settles it. When R1 was sequenced long (100 bp or more), both kits accept it, and
+  the barcode list decides: v2 uses a different list.
+- **Multiome gene expression, GEM-X 3' v4 and GEM-X 5' v3** all have the same 28 bp layout, with a
+  16 bp barcode and a 12 bp UMI. Each uses its own barcode list, so seqforge checks which list the
+  barcodes hit. The read layout narrows the choice to these four, and the list picks one. 5' v3 also
+  reads the cDNA in the other direction, but the reads cannot show that. Its list is what settles it.
+- **The pair the reads cannot settle is one generation back**: 3' v2 against 5' v1 and v2. It does
+  not involve v3. See the [3' v2 page](10x-3p-gex-v2.md).
 
-## Gotchas
+## What goes wrong
 
-- **The barcode read can go missing on SRA.** `fasterq-dump` without `--include-technical` drops the
-  28 bp R1; seqforge blocks rather than inventing a barcode read from a filename. Re-fetch with
-  `--include-technical`, or pull the submitter's original files.
-- **A pre-trimmed upload** (R1 no longer a single fixed length) shifts the barcode offsets — seqforge
+- **The barcode read can go missing on SRA.** `fasterq-dump` without `--include-technical` drops
+  the 28 bp R1. seqforge then stops rather than inventing a barcode read from a file name. Fetch the
+  data again with `--include-technical`, or download the submitter's original files.
+- **A pre-trimmed upload** no longer has R1 at one fixed length, which moves the barcode. seqforge
   refuses rather than reading the barcode from the wrong place.
-- SRA rewrites read-name headers, so seqforge never trusts them when grouping files into samples.
+- **SRA rewrites read names**, so seqforge never uses them to group files into samples.
 
 ## References
 
-Read structure cross-checked against
-**[scg_lib_structs — 10x Chromium 3'](https://teichlab.github.io/scg_lib_structs/methods_html/10xChromium3.html)**
-(Teichmann Lab, CC-BY). The exact, machine-readable definition seqforge uses lives in each entry's
-`spec.yaml`.
+The read structure is checked against
+[scg_lib_structs: 10x Chromium 3'](https://teichlab.github.io/scg_lib_structs/methods_html/10xChromium3.html)
+(Teichmann Lab, CC-BY). The exact definition seqforge runs is each entry's `spec.yaml`.

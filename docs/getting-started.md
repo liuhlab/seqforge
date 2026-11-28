@@ -1,96 +1,146 @@
 # Getting started
 
-## The easiest way: ask Claude
+seqforge does two jobs, and you can use either one alone:
 
-You don't have to run seqforge yourself. It ships a set of skills for
-[Claude Code](https://claude.com/claude-code), so you can describe your data in plain words and let
-Claude drive the compiler — figuring out the technology, which file is which, and how to turn it into
-a runnable pipeline.
+- **Read a set of studies.** You give it a list of GEO Series (GEO is the Gene Expression Omnibus,
+  the public archive of sequencing studies). For each study it writes which Series and papers
+  belong to it, and what each sample was.
+- **Compile a dataset.** You give it FASTQ files (the raw reads off a sequencer) and any notes or
+  papers about them. It writes down what the data is and gives you a pipeline that turns the reads
+  into count tables.
+
+This page installs seqforge, checks that it works, and says what each job needs.
+
+## Install it
+
+seqforge needs Python 3.13 or newer. Pick one of the two ways to install it.
+
+**Inside the lab, from a clone.** [pixi](https://pixi.sh) is the tool that builds the lab's
+software environments. It also installs the two lab packages that seqforge reads from:
+`liulab-genome` (genomes and their annotation files) and `liulab-data` (the lab's local copy of
+archive records, papers and ontologies).
 
 ```bash
 git clone https://github.com/liuhlab/seqforge
 cd seqforge
 pixi install
-pixi run install-skills      # teach Claude how to drive seqforge
 ```
 
-Then open Claude Code in the folder with your data and just say what you have:
+In the clone, put `pixi run` in front of each command on this site, or run `pixi shell` once to
+open a shell that has `seqforge` on its path.
 
-> Compile the single-cell RNA-seq data in `./data` with seqforge. It's accession PRJNA1027859, and
-> the paper is `./info/paper.pdf`. Align against the ce11 genome, annotation WS298.
-
-Claude hands you back a **manifest** (what your data is) and a **Snakefile** (the pipeline that
-processes it). You don't need to know the chemistry, which file holds the barcodes, or what any flag
-means — that's exactly what seqforge recovers from the files themselves. The full walkthrough,
-including what to do when Claude stops and asks a question, is in
-[Compiling with Claude](tutorials/with-claude.md).
-
-One thing worth knowing up front: reading a paper or sample sheet uses a language model, through the
-lab's model gateway. Open a tunnel to it and set `LABLLM_GATEWAY` to its local address
-([Reach the lab gateway](https://liuhlab.github.io/liulab-llms/reach-the-gateway/)
-says how); you need no provider key. If you have no prose to read, you can skip that and stay fully
-offline.
-
-## Running it yourself
-
-If you'd rather drive it directly — or you're batching thousands of datasets in a script — seqforge
-is a plain command-line tool. Every command prints JSON and reports what happened through its **exit
-code**. There is no `--json` flag; JSON is simply what comes out.
+**Anywhere, from PyPI.** PyPI is the public index of Python packages.
 
 ```bash
-# 1. what do the bytes say?
-pixi run -- seqforge probe reads/*.fastq.gz
-
-# 2. which technology is this, and how confident are we?
-pixi run -- seqforge resolve score reads/*.fastq.gz
-
-# 3. (optional) what does the archive DECLARE about it?
-pixi run -- seqforge io records PRJNA1027859
-
-# 4. write down what the data IS  (immutable, content-addressed)
-#    --accession fetches the records and joins them to your files, so each file
-#    lands in its archive sample. Without one you still get a manifest -- samples
-#    grouped by run. Most data has no accession.
-pixi run -- seqforge manifest fill reads/*.fastq.gz --accession PRJNA1027859
-pixi run -- seqforge manifest validate seqforge/manifest.yaml
-
-# 5. write down what you want DONE with it  (one of many)
-pixi run -- seqforge processing new seqforge/manifest.yaml \
-    --assembly ce11 --annotation WS298 --out seqforge/processing.yaml
-
-# 6. compile the two into something runnable
-pixi run -- seqforge compose seqforge/manifest.yaml --processing seqforge/processing.yaml
+pip install seqforge
 ```
 
-Steps 4 and 5 are separate on purpose — see [The two artifacts](concepts/artifacts.md).
+That gives you the `seqforge` command. Reading studies and compiling against a real genome also
+need the two lab packages, which are not on PyPI:
 
-Artifacts land under `seqforge/` in the working directory — visibly, because they are the point.
-`manifest fill` writes `seqforge/manifest.yaml` only once it validates clean; if it doesn't, you get
-`seqforge/manifest.draft.yaml` instead, and exactly one of the two exists.
+```bash
+pip install "liulab-genome @ git+https://github.com/liuhlab/liulab-genome.git" \
+            "liulab-data   @ git+https://github.com/liuhlab/liulab-data.git"
+```
 
-For the whole thing on a real dataset, one command at a time with real output, see the
-[step-by-step tutorial](tutorials/step-by-step.md).
+## Check that it works
 
-!!! tip "The data doesn't have to be local"
-    seqforge can fingerprint a FASTQ straight from a URL without ever downloading it —
-    `seqforge io probe-remote <url>` reads a small bounded slice over HTTP and identifies the library
-    from that. Everything about identifying the data works the same whether the bytes are on your disk
-    or on a remote server.
+These three commands need no network, no model and no data of your own.
 
-## Exit codes are the API
+```bash
+seqforge version
+seqforge kb list
+seqforge kb roundtrip 10x-3p-gex-v3
+```
 
-| code | meaning | what to do |
+`seqforge version` prints the version number. `seqforge kb list` prints one line for each
+sequencing technology seqforge knows, such as `10x-3p-gex-v3` and `smartseq3`. `seqforge kb
+roundtrip` makes fake reads for one technology, reads them back, and prints JSON that lists each
+check it ran. Look for `"passed": true` near the top.
+
+## Let Claude run it (optional)
+
+seqforge ships skills for [Claude Code](https://claude.com/claude-code), an AI assistant that runs
+in your terminal. A skill tells Claude which `seqforge` commands to run for a task. To install them
+for your user, run this in the clone:
+
+```bash
+pixi run install-skills
+```
+
+Then you can ask Claude in plain words, for example "read the studies in this folder" or "compile
+the FASTQ files in `./data`".
+
+## What each job needs
+
+| Job | What goes in | What it needs |
 | --- | --- | --- |
-| `0` | fine | carry on |
-| `1` | an error | it broke; read the message |
-| `2` | you used it wrong | check the arguments |
-| `3` | **blocked** | the data can't be processed as-is. The blocker names a remedy |
-| `4` | **needs a human** | a real ambiguity. Answer it and re-run |
+| Read studies | A list of GEO Series | The lab's model gateway, and `liulab-data` with its record store, paper store and ontology store |
+| Compile a dataset | FASTQ files, and optionally an accession and a paper | The model gateway only to read a paper or notes. `liulab-genome` for the genome. A cluster to run the pipeline |
 
-`3` and `4` are the point of the tool, not an inconvenience. See
-[When it refuses](concepts/refusal.md).
+Here is what each of those is.
 
----
+- **The lab's model gateway** is the lab's server for language models. seqforge sends every model
+  question through it, so you need no account with a model provider. Open a tunnel to it and set
+  `$LABLLM_GATEWAY` to the tunnel's local address.
+  [Reach the lab gateway](https://github.com/liuhlab/liulab-llms/blob/main/docs/reach-the-gateway.md) says how.
+- **The record store** is `liulab-data`'s local copy of GEO and SRA records (SRA is the Sequence
+  Read Archive, where the reads themselves are kept). `$LABDATA_STORE` points at it. The paper
+  store (`$LABDATA_PAPERS`) holds the papers, and the ontology store (`$LABDATA_ONTOLOGIES`) holds
+  the term lists that a reading names each tissue, cell type and condition from.
+- **A cluster** is a shared computer with many processors. The compiled pipeline runs the aligner
+  there. seqforge writes the pipeline but never starts it: you submit it.
 
-**Next:** [Compiling with Claude](tutorials/with-claude.md), or browse the
-[supported assays](kb/index.md).
+## Read a set of studies
+
+One command reads a folder of studies under a spending limit in dollars:
+
+```bash
+seqforge study run --studies <folder> --ceiling-usd 2
+```
+
+A first run over 50 small studies cost about $1.55. The guide
+[Read your own studies](guides/read-studies.md) sets up the folder, explains the three ways a study
+can end, and makes a report for each study. To see the output first, open the
+[example reports](examples/index.md).
+
+## Compile a dataset
+
+One command takes FASTQ files to a pipeline:
+
+```bash
+seqforge run reads/*.fastq.gz --accession PRJNA1027859 --doc paper.pdf \
+    --assembly ce11 --annotation WS298
+```
+
+The genome is the one choice you must make. `--assembly` names it by its UCSC id, and
+`--annotation` names the gene annotation file registered for it. The accession and the paper are
+optional, and `--no-llm` skips the model, so nothing reaches the gateway.
+
+seqforge writes everything under `seqforge/` in the current folder. `seqforge/manifest.yaml`
+records what the data is. The pipeline is a `Snakefile` under `seqforge/pipeline/`, which you
+submit to the cluster with Snakemake (a tool that runs a pipeline step by step). Add
+`--study <folder>/<ID>` to copy a study's reading into the sample table.
+
+Two tutorials walk the whole path:
+
+- [Compile with Claude](tutorials/with-claude.md): describe your data and let Claude run the
+  commands.
+- [Compile step by step](tutorials/step-by-step.md): run each command yourself and look at what
+  it wrote.
+
+## Exit codes
+
+Most commands print one JSON object, and every command reports its result through its exit code.
+A script can act on the code alone.
+
+| Code | Meaning | What to do |
+| --- | --- | --- |
+| `0` | It worked | Go on |
+| `1` | Something broke, such as a download that failed | Read the message |
+| `2` | It could not start: a wrong option, or a missing gateway or store | Fix what the message names |
+| `3` | Blocked or stopped: the data cannot go on as it is, or a pass reached its spending limit | Read the reason. A stopped pass resumes when you run it again |
+| `4` | A person must decide: two sources disagree | Answer the question and run it again |
+
+Codes 3 and 4 are seqforge refusing to guess. [Commands](reference/commands.md) lists every command
+and what each one needs.
