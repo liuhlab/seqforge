@@ -54,7 +54,7 @@ nav:
   - Use it:
       - Getting started: getting-started.md
       - Read your own studies: guides/read-studies.md
-      - Compile with Claude: tutorials/with-claude.md
+      - Compile with a coding agent: tutorials/with-agent.md
       - Compile step by step: tutorials/step-by-step.md
       - Add a technology: tutorials/adding-a-technology.md
   # "Supported assays" is nested under the knowledge base on purpose: with `navigation.sections`

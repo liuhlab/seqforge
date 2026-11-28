@@ -7,7 +7,7 @@ sequencing files and what you know about them, and the program is a Snakemake wo
 a job.
 
 This page explains what happens on the way. To do it yourself, see
-[Compile step by step](../tutorials/step-by-step.md) or [Compile with Claude](../tutorials/with-claude.md).
+[Compile step by step](../tutorials/step-by-step.md) or [Compile with a coding agent](../tutorials/with-agent.md).
 Each command's options are in the [command reference](../reference/commands.md).
 
 ## What goes in

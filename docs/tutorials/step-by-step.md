@@ -6,7 +6,7 @@ per sample. seqforge does not run that pipeline for you. It writes files, and th
 pipeline.
 
 If you only want the result, `seqforge run` does every step in one command. It comes first below.
-[Compile with Claude](with-claude.md) lets an assistant run the commands for you.
+[Compile with a coding agent](with-agent.md) lets an AI assistant run the commands for you.
 
 ## The dataset
 

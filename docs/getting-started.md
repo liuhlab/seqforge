@@ -58,17 +58,17 @@ sequencing technology seqforge knows, such as `10x-3p-gex-v3` and `smartseq3`. `
 roundtrip` makes fake reads for one technology, reads them back, and prints JSON that lists each
 check it ran. Look for `"passed": true` near the top.
 
-## Let Claude run it (optional)
+## Let a coding agent run it (optional)
 
-seqforge ships skills for [Claude Code](https://claude.com/claude-code), an AI assistant that runs
-in your terminal. A skill tells Claude which `seqforge` commands to run for a task. To install them
-for your user, run this in the clone:
+seqforge ships skills for coding agents, the AI assistants that run commands in your terminal. A
+skill tells the agent which `seqforge` commands to run for a task. To install them for your user,
+run this in the clone:
 
 ```bash
-pixi run install-skills
+pixi run install-skills --target all
 ```
 
-Then you can ask Claude in plain words, for example "read the studies in this folder" or "compile
+Then you can ask the agent in plain words, for example "read the studies in this folder" or "compile
 the FASTQ files in `./data`".
 
 ## What each job needs
@@ -124,8 +124,8 @@ submit to the cluster with Snakemake (a tool that runs a pipeline step by step).
 
 Two tutorials walk the whole path:
 
-- [Compile with Claude](tutorials/with-claude.md): describe your data and let Claude run the
-  commands.
+- [Compile with a coding agent](tutorials/with-agent.md): describe your data and let the agent
+  run the commands.
 - [Compile step by step](tutorials/step-by-step.md): run each command yourself and look at what
   it wrote.
 
