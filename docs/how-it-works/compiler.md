@@ -15,7 +15,7 @@ Each command's options are in the [command reference](../reference/commands.md).
 | Input | Needed? | What it is for |
 | --- | --- | --- |
 | FASTQ files (`.fastq.gz`) | Yes | The bytes decide what kind of library this is. |
-| The genome | Yes | A genome assembly by its UCSC id, such as `ce11`, and a named gene annotation. This is the one choice with no safe default, so seqforge asks for it. |
+| The genome | Yes | A genome assembly by its UCSC id (the assembly's name in the UCSC Genome Browser), such as `ce11`, and a named gene annotation. This is the one choice with no safe default, so seqforge asks for it. |
 | An archive accession | No | The archive's records for each sample, such as an SRA project. Most sequencing data never had one. |
 | Papers and notes | No | A paper (`.pdf`, `.txt` or `.md`) or a supplementary `.xlsx` table. A model reads it for claims about the library. You can skip this step and use no model at all. |
 | Instructions | No | A document written for seqforge, such as "count introns too". Only this kind of document can change what to do with the data. |
@@ -93,8 +93,7 @@ Answers are tried in order of cost, and seqforge climbs only as far as it has to
 | 3 | One barcode list: do these barcodes appear in the vendor's list of real barcodes? | Strong. |
 | 7 | A person | Asked only when two technologies tie and would process the reads differently. |
 
-The gap between 3 and 7 leaves room for more checks later. Today, a tie that survives step 3 and
-would change the output goes to a person as a question. A tie that would not change the output,
+A tie that survives step 3 and would change the output goes to a person as a question. A tie that would not change the output,
 such as 10x 3' v3 against v3.1, records both names and asks nothing.
 
 The prose sits at the bottom on purpose. A paper that says "10x v3" turns an open search into a

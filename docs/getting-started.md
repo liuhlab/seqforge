@@ -99,7 +99,7 @@ One command reads a folder of studies under a spending limit in dollars:
 seqforge study run --studies <folder> --ceiling-usd 2
 ```
 
-A first run over 50 small studies cost about $1.55. The guide
+A first run costs a few cents a study. The guide
 [Read your own studies](guides/read-studies.md) sets up the folder, explains the three ways a study
 can end, and makes a report for each study. To see the output first, open the
 [example reports](examples/index.md).
@@ -113,7 +113,7 @@ seqforge run reads/*.fastq.gz --accession PRJNA1027859 --doc paper.pdf \
     --assembly ce11 --annotation WS298
 ```
 
-The genome is the one choice you must make. `--assembly` names it by its UCSC id, and
+The genome is the one choice you must make. `--assembly` names it by its UCSC id (the assembly's name in the UCSC Genome Browser), and
 `--annotation` names the gene annotation file registered for it. The accession and the paper are
 optional, and `--no-llm` skips the model, so nothing reaches the gateway.
 
@@ -131,16 +131,8 @@ Two tutorials walk the whole path:
 
 ## Exit codes
 
-Most commands print one JSON object, and every command reports its result through its exit code.
-A script can act on the code alone.
-
-| Code | Meaning | What to do |
-| --- | --- | --- |
-| `0` | It worked | Go on |
-| `1` | Something broke, such as a download that failed | Read the message |
-| `2` | It could not start: a wrong option, or a missing gateway or store | Fix what the message names |
-| `3` | Blocked or stopped: the data cannot go on as it is, or a pass reached its spending limit | Read the reason. A stopped pass resumes when you run it again |
-| `4` | A person must decide: two sources disagree | Answer the question and run it again |
-
-Codes 3 and 4 are seqforge refusing to guess. [Commands](reference/commands.md) lists every command
-and what each one needs.
+Most commands print one JSON object, and every command reports its result through its exit code,
+so a script can act on the code alone. `0` means it worked. `3` and `4` are seqforge refusing to
+guess: `3` means blocked or stopped, and `4` means a person must decide.
+[Commands](reference/commands.md#exit-codes) lists every code, and every command with what it
+needs.

@@ -80,21 +80,15 @@ printed. The first step that fails stops the run.
 
 ### What a run costs
 
-These numbers come from a run of the 50 studies of the standard set, the lab's fixed list of small
-GEO studies, on 2026-11-27. The bounding job asks Jev, a model that answers yes-or-no and
-multiple-choice questions with a probability. The reading job asks Jev and a writer model, DeepSeek
-Flash, which lists each study's factors and values. To use another model for one of these roles,
-pass `--model`.
+The bounding job asks Jev, a model that answers yes-or-no and multiple-choice questions with a
+probability. The reading job asks Jev and a writer model, DeepSeek Flash, which lists each study's
+factors and values. To use another model for one of these roles, pass `--model`.
 
-| Job | Settled | Unsettled | Refused | First run of the 50 |
-| --- | --- | --- | --- | --- |
-| Bounding | 47 | 3 | 0 | $0.0104 |
-| Reading | 38 | 12 | 0 | $1.537, about 3 cents a study |
-
-A first reading of the 50, with nothing in the cache, took about 22 minutes at four studies at
-once (`--units-at-once 4`; the default is 32). The gateway keeps every answer, so the run of
-2026-11-27 replayed them all and paid $0.00. The full measurement is in the
-[dated note on this run](https://github.com/liuhlab/seqforge/blob/main/docs/research/study-chain-on-the-50-2026-11-27.md).
+A first run costs a few cents a study, nearly all of it for the reading. The gateway keeps every
+answer, so a rerun of the same studies pays nothing. How many studies a run can take at once is
+`--units-at-once` (32 by default). Each run of the standard set, the lab's fixed list of 50 small
+GEO studies, is measured in a dated note with its cost and time; the latest is
+[the study chain on the 50 studies](https://github.com/liuhlab/seqforge/blob/main/docs/research/study-chain-on-the-50-2026-11-27.md).
 
 ## Read how each study ended
 
@@ -103,7 +97,7 @@ Each job ends each study in one of three ways.
 | Ending | What it means | File written |
 | --- | --- | --- |
 | Settled | Every check passed. | Yes |
-| Unsettled | The file passed its checks, but Jev was asked a question twice, in two forms, and the two answers did not agree. A person or a stronger model should look at it | Yes |
+| Unsettled | The file passed its checks, but Jev was asked a question twice, in two forms, and the two answers did not agree, or Jev left a question unanswered. A person or a stronger model should look at it | Yes |
 | Refused | The job could not give an answer it could check. The reason says why, such as a group of more than 50 linked Series, or a writer answer that could not be used twice | No |
 
 For bounding, Jev is asked about each record twice: as written, and negated. For reading, Jev is

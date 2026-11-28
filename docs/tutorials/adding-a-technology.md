@@ -57,8 +57,9 @@ Look up every value. Write none from memory.
   A remembered term id is usually plausible and wrong.
 - **The read structure, linkers and positions.** Take them from the primary paper's oligo tables or
   from [scg_lib_structs](https://teichlab.github.io/scg_lib_structs/), and name the kit version.
-  SPLiT-seq's first-round barcode sits at bases 86 to 93 in the original method and at 78 to 85 in
-  its commercial descendant. A remembered position can be either.
+  SPLiT-seq's first-round barcode sits at bases 87 to 94 of the barcode read, counting from 1, in
+  the original method, and eight bases earlier in its commercial descendant. A remembered position
+  can be either.
 - **The strand.** Derive it from the oligo orientation and record the derivation in a comment. A
   wrong strand leaves most reads uncounted while the aligner exits with no error.
 - **The aligner's barcode positions.** Leave them out. seqforge computes them from the element

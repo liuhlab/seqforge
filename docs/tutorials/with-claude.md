@@ -85,7 +85,7 @@ seqforge makes one choice only you can make: the genome. A wrong genome still al
 count matrix, and exits with no error, so nothing downstream catches it. seqforge has no default,
 and Claude asks you if you did not say. Give two names:
 
-- the **assembly**, a UCSC genome id such as `ce11` or `hg38` (`--assembly`);
+- the **assembly**, a UCSC genome id (the assembly's name in the UCSC Genome Browser) such as `ce11` or `hg38` (`--assembly`);
 - the **annotation**, the name of a gene annotation (GTF file) registered with the lab's genome
   package, such as `WS298` (`--annotation`).
 
@@ -94,16 +94,17 @@ barcodes are, and the strand.
 
 ## When Claude stops and asks
 
-seqforge refuses rather than guesses. Each command ends with an exit code, and two of them mean
-"stop":
+seqforge refuses rather than guesses. Each command ends with an exit code, and two of them, `3`
+and `4`, mean "stop". [Commands](../reference/commands.md#exit-codes) says what each code means.
+This is what Claude does on each:
 
-| Exit code | Meaning | What Claude does |
-| --- | --- | --- |
-| 0 | Done | Goes on to the next step |
-| 1 | An error: a bug, a file problem, or a model reply it cannot use | Reports it |
-| 2 | A command it cannot run: a bad option, no gateway address, or a missing genome | Fixes the command, or asks you for what is missing |
-| 3 | Blocked: something in the data stops the compile | Stops and shows you the remedy seqforge printed |
-| 4 | Needs a person: two sources disagree, or the bytes cannot settle a question | Stops and asks you |
+| Exit code | What Claude does |
+| --- | --- |
+| 0 | Goes on to the next step |
+| 1 | Reports the error |
+| 2 | Fixes the command, or asks you for what is missing |
+| 3 | Stops and shows you the remedy seqforge printed |
+| 4 | Stops and asks you |
 
 For codes 3 and 4, Claude reports seqforge's own words and does not work around them. Retrying with
 other options would turn a correct refusal into a wrong manifest. An open question is also written

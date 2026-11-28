@@ -9,7 +9,8 @@ The **Needs** column names what a command uses beyond your own files:
   `--ceiling-usd`.
 - **Stores**: `liulab-data`'s record store (`$LABDATA_STORE`), paper store (`$LABDATA_PAPERS`) and
   ontology store (`$LABDATA_ONTOLOGIES`).
-- **Network**: the public archives (NCBI, ENA) or a web address.
+- **Network**: the public archives (NCBI, the US archive, and ENA, the European one) or a web
+  address.
 - **Genome**: `liulab-genome`, for the genome and its gene annotation.
 - **Cluster**: a step the compiled pipeline runs on the cluster, next to the aligner. You do not
   run it by hand.
@@ -113,7 +114,7 @@ The Snakefile calls these after alignment. Each needs the cluster.
 | `seqforge io qc-bundle` | Bundle one sample's statistics and logs into one file |
 | `seqforge io fragments` | Sort, compress and index the fragments file of an ATAC library (open chromatin) |
 | `seqforge io fragments-qc` | Summarize a fragments file |
-| `seqforge io cram` | Store the aligned reads as a CRAM file, a smaller form of a BAM file |
+| `seqforge io cram` | Store the aligned reads as a CRAM file, a smaller form of a BAM file, the standard file of aligned reads |
 | `seqforge io umi-extract` | Move a plate assay's UMI, the molecule tag, out of the first read |
 | `seqforge io umi-count` | Count every cell of a plate into one `.h5ad` file |
 | `seqforge io split-chimera` | Split reads aligned to two genomes at once into one file per genome |
@@ -123,7 +124,8 @@ The Snakefile calls these after alignment. Each needs the cluster.
 | Command | What it does | Needs |
 | --- | --- | --- |
 | `seqforge version` | Print the version | |
-| `seqforge schema` | Print the JSON Schema of every file format | |
+| `seqforge schema list` | List every file format whose JSON Schema can be printed | |
+| `seqforge schema export` | Print the JSON Schema of one file format, or of every one | |
 | `seqforge eval list` | List the cases of the test collection, with what each should give | |
 | `seqforge eval plan` | Say what a run with models would ask and cost, with nothing spent | |
 | `seqforge eval run` | Run the test collection and report how often seqforge was right | Gateway with `--llm` |

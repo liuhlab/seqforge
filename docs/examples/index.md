@@ -51,8 +51,8 @@ Both jobs settled it: each question asked twice got the same answer both times.
 
 ATAC-seq (a method that maps the open, readable parts of the genome) of macrophages sorted from
 mouse fat tissue. The mice were young or old, and carried one of four genotypes around the gene
-GDF3, among them a knockout in myeloid cells, the blood-cell family that macrophages belong to. Every mouse got the same LPS dose, a bacterial
-toxin, for 4 hours. The reading records that dose as a shared label and not as a factor, since all
+GDF3, among them a knockout in myeloid cells, the blood-cell family that macrophages belong to.
+Every mouse got the same dose of LPS, a bacterial toxin, for 4 hours. The reading records that dose as a shared label and not as a factor, since all
 samples got it. Quotes come from the GEO records and the paper's PubMed abstract.
 
 Both jobs settled it.
@@ -64,9 +64,9 @@ Both jobs settled it.
 Bone marrow and brain cells from 12-month-old female mice, some carrying 5xFAD, a model of
 Alzheimer's disease. The reading found four factors: genotype, disease, tissue and cell type. Some
 of the 20 samples are not RNA at all. They are tag libraries read beside the RNA, which mark each
-cell's mouse or its surface proteins, and the reading lists them as assays of their own (CMO, HTO
-and ADT). Quotes come from the GEO records and
-the paper's PubMed abstract.
+cell's mouse or its surface proteins, and the reading lists them as assays of their own: CMO and
+HTO (tags that mark which mouse a cell came from) and ADT (antibody tags that count surface
+proteins). Quotes come from the GEO records and the paper's PubMed abstract.
 
 The reading job left it **unsettled**. Each question is asked twice, the second time with the
 options in reverse order. Here the two answers differed on two points: whether treatment was
@@ -85,8 +85,8 @@ All three were made on 2026-11-27, from a run over the whole standard set, with:
   probability, in both jobs, and DeepSeek Flash as the reading job's writer;
 - ontology terms from the dated snapshots each reading names in its `ontology_snapshot` field.
 
-The run cost nothing, because every answer was already in the model gateway's cache. A first run
-of all 50 studies costs about $1.55, or about 3 cents a study.
+The run cost nothing, because every answer was already in the model gateway's cache. The
+[dated note on that run](https://github.com/liuhlab/seqforge/blob/main/docs/research/study-chain-on-the-50-2026-11-27.md) gives what a first run costs and how each of the 50 ended.
 
 ## Make one yourself
 

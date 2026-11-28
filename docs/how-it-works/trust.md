@@ -8,14 +8,9 @@ rules behind that, and then says plainly what seqforge does not promise.
 ## It refuses rather than guesses
 
 A refusal is an exit code, the number a command returns when it ends, not a line in a log that
-nobody reads. A script or a person can act on it.
-
-| Exit | What it means |
-| --- | --- |
-| 0 | Done. There may be warnings to read, but nothing stopped. |
-| 2 | The command could not use its setup, such as an option that names no known technology. |
-| 3 | Blocked. Something is wrong with the data itself, or the run reached its spending limit. |
-| 4 | A question. Only a person can settle it. Answer it and the compile goes on. |
+nobody reads. A script or a person can act on it. Two codes are refusals: `3`, blocked, when
+something is wrong with the data itself, and `4`, a question that only a person can settle.
+[Commands](../reference/commands.md#exit-codes) lists every code.
 
 ```mermaid
 flowchart TD
@@ -39,7 +34,8 @@ gives a normal-looking result, and an ordinary pipeline exits 0 on all of them.
   seqforge checks whether most reads of a fixed-length read have left that length, and refuses the
   file if they have.
 - **Counting only exons on nuclei.** Nuclei are full of unspliced RNA that sits in introns. Count
-  only exons and you throw it away: 40.7% of one nuclear library, in a measurement on this project.
+  only exons and you throw it away: 40.7% of one nuclear library, in
+  [a measurement on this project](https://github.com/liuhlab/seqforge/blob/main/docs/research/e2e-gate-runs.md).
   The bytes of a nuclear library look the same as those of a whole-cell one. So for a droplet
   single-cell library, seqforge counts five ways in one pass, and you choose later.
 - **The wrong genome.** A worm library against the human genome barely maps, which is loud. The same
@@ -115,7 +111,7 @@ whichever comes first. It never reads a whole FASTQ file.
 
 ## The same answer on any machine
 
-- **No machine paths.** The manifest names the genome by its UCSC id and a registered annotation
+- **No machine paths.** The manifest names the genome by its UCSC id (the assembly's name in the UCSC Genome Browser) and a registered annotation
   name, the software by a named environment, and each file by its address. It means the same thing
   on your laptop and on a cluster.
 - **Named by its hash.** The manifest is named by a hash of what it says about the data. A new

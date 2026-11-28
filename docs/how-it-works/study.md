@@ -77,7 +77,7 @@ backed, and `p`, the chance it is right:
 | --- | --- |
 | `quoted` | A passage in a record or a paper says so. The claim lists the passage numbers. |
 | `inferred` | No passage says so directly. The claim says how the value was reached. |
-| `unknown` | No answer. The claim carries a note and no probability. |
+| `unknown` | What was read does not say. The claim carries a short note, and its `p` is the chance that the sources really do not say. |
 | `na` | The label does not apply, such as a dose in a study with no treatment. Reading only. |
 
 A claim is `quoted` only after two checks pass. First, code finds the quote in its source. In a
@@ -118,7 +118,7 @@ sample's other labels are asked once.
 | --- | --- | --- |
 | Settled | Jev's two answers agree on every record. | The two askings agree on every factor, baseline and level. |
 | Unsettled | The two answers disagree on at least one record. | The two askings disagree on at least one of those questions, or one went unanswered. |
-| Refused | The linked group holds more than 50 Series, Jev gives no answer about a record, or the file fails its format check. | The writer's answer cannot be used after one retry, or the file fails its format check. |
+| Refused | The linked group holds more than 50 Series, Jev gives no answer about a record, or the file fails its format check. | The writer's answer cannot be used after one retry, the study has no sequenced sample, the writer lists more than 25 values for one label, or the file fails its format check. |
 
 A refused study gets no file. A settled or unsettled study gets a file that passes its format
 check. The ending is kept in the job's record of the run, not in the file, and the report does not
@@ -131,16 +131,9 @@ Every run takes a spending limit in dollars and stops when it reaches it. A mode
 kept in the cache of the lab's model gateway, so a re-run of the same studies replays from it at
 no cost.
 
-On the 50 studies of the standard set, measured on 2026-11-27:
-
-| Job | Settled | Unsettled | Refused | A first run costs |
-| --- | --- | --- | --- | --- |
-| Bounding | 47 | 3 | 0 | $0.0104 for the 50 |
-| Reading | 38 | 12 | 0 | $1.537 for the 50, about 3 cents a study |
-
-Every answer that day came from the cache, so the run paid nothing. A reading with nothing in the
-cache took about 22 minutes at four studies at once, on 2026-11-24. The method and the full
-numbers are in the dated note
+On the 50 studies of the standard set, a first run costs a few cents a study, nearly all of it
+for the reading. Each run of the 50 is measured in a dated note under `docs/research/`, with its
+cost and how each study ended; the latest is
 [the study chain on the 50 studies](https://github.com/liuhlab/seqforge/blob/main/docs/research/study-chain-on-the-50-2026-11-27.md).
 
 ## What it does not do

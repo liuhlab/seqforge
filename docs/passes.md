@@ -20,7 +20,8 @@ seqforge has two kinds. Both work on a folder of study folders.
 | `study-reading` | Reads what each sequenced sample of one study is. See [read the study](study-workflow.md#3-read-the-study). | `writer`: `deepseek/deepseek-flash`, thinking on; `jev`: `typesafe/jev-1.14.0` |
 
 Jev is a model that answers yes-or-no and multiple-choice questions with a probability. A model's
-**role** is the job it does in a kind, such as `writer` or `jev`.
+**role** is the name a kind gives to each model it asks, such as `writer` or `jev`; it is the name
+before the `=` in `--model`.
 
 ## What a pass needs
 

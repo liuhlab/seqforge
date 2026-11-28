@@ -145,7 +145,7 @@ from commands that are now retired. A small model drafted each study's bounds in
 `<ID>/draft.yaml`. The `standard-set judge` command asked a large model about one draft, and wrote
 `<ID>/verdict.yaml`, `<ID>/bounds.yaml` and `<ID>/study.yaml`.
 
-`seqforge standard-set list` is the one verb left. It prints one JSON object per study, from its
+`seqforge standard-set list` is the one command left. It prints one JSON object per study, from its
 study file and its bounds file. [Files from the hand work](hand-work-files.md) says what each file
 holds.
 
@@ -251,9 +251,9 @@ starts. The store keeps each vocabulary's snapshot fixed until the pass ends. If
 be opened, `pass start` exits 2 and says why. It never reads a study with no search.
 
 - The species id is the record's own taxonomy id.
-- `healthy` is `PATO:0000461`.
+- `healthy` is `PATO:0000461`, from PATO, the ontology of traits and qualities.
 - A `development_stage` of `adult` is the species' adult stage, found by its whole name. For the
-  mouse, that is MmusDv's `mature stage`.
+  mouse, that is `mature stage` in MmusDv, the ontology of mouse life stages.
 - Every other id comes from a search of the store: up to 10 candidates, whole-text matches first.
   Jev picks one or none, and a term is written only when Jev's pick has a probability of 0.8 or
   more.
@@ -347,7 +347,7 @@ cannot write the standard set's `job-bounds.yaml` and `job-reading.yaml`. Use st
 `--name` for those.
 
 It prints one JSON object: the folder, the ceiling, `spent_usd`, and `steps`, with each step's
-verb, its exit code and its own output.
+command (`verb`), its exit code (`exit`) and its own output.
 
 | Exit | When |
 | --- | --- |
@@ -359,10 +359,9 @@ The first step that does not finish stops the chain, and its exit code is the co
 resume, run the same command again from the same folder. Every study already answered replays from
 the gateway's cache at no cost. A file already written is kept.
 
-On the 50 studies of the standard set, a first run cost $0.0104 for bounding and $1.537 for
-reading, about 3 cents a study. Reading took about 22 minutes at four studies at once. The
-[note on the run of 2026-11-27](https://github.com/liuhlab/seqforge/blob/main/docs/research/study-chain-on-the-50-2026-11-27.md)
-gives the method and how each study ended.
+Each run of the standard set is measured in a dated note under `docs/research/`: what it cost,
+how long it took and how each study ended. The latest is the
+[note on the run of 2026-11-27](https://github.com/liuhlab/seqforge/blob/main/docs/research/study-chain-on-the-50-2026-11-27.md).
 
 ## After the chain
 

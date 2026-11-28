@@ -12,7 +12,7 @@ read seqforge's answer when it tells you what your data is.
 
 These are the technologies seqforge can compile today, from `seqforge kb list`. A barcode read is
 the read that carries the cell barcode and the UMI (unique molecular identifier, a random tag on
-each molecule). A barcode list is the published set of barcodes a kit can contain.
+each molecule). A barcode list is the published set of barcodes a chemistry can contain.
 
 ### Droplet single-cell RNA-seq from 10x Genomics
 
@@ -30,7 +30,7 @@ each molecule). A barcode list is the published set of barcodes a kit can contai
 
 | Assay | Entry | How seqforge tells it apart |
 | --- | --- | --- |
-| [BD Rhapsody WTA, original bead](bd-rhapsody-wta.md) | `bd-rhapsody-wta` | Two fixed linker sequences at fixed places in the barcode read, and three barcode lists |
+| [BD Rhapsody WTA (whole transcriptome), original bead](bd-rhapsody-wta.md) | `bd-rhapsody-wta` | Two fixed linker sequences at fixed places in the barcode read, and three barcode lists |
 | [BD Rhapsody WTA, Enhanced bead](bd-rhapsody-wta.md#enhanced-beads-2022) | `bd-rhapsody-wta-enhanced-v1`, `bd-rhapsody-wta-enhanced-v2` | Two short linkers after a 0 to 3 bp insert. The barcode lists tell the 96-label bead from the 384-label bead |
 | [SPLiT-seq](splitseq.md) | `splitseq` | Two fixed 30 bp linkers in the barcode read, and three barcode lists, one per round |
 | Smart-seq3 | `smartseq3` | One cell per file pair. Some reads start with an 11 bp tag, then an 8 bp UMI |
@@ -50,18 +50,18 @@ seqforge reads a bounded head of each file, 2,000 reads by default, and checks t
 first. The number of reads and their lengths come first. Fixed sequences such as linkers come next.
 Barcode-list matches come last.
 
-- **A family narrows to its members.** Related kits form a family. The 10x 3' family is one loose
+- **A family narrows to its members.** Related chemistries form a family. The 10x 3' family is one loose
   pattern: a 16 bp barcode at the start of a 26 to 28 bp read. seqforge first places the data in the
-  family, then picks the exact kit by read length and barcode list. So a vague mention in a paper,
-  such as "10x 3'", still ends in an exact kit chosen from the bytes.
-- **Two kits processed the same way are both recorded.** 10x 3' v3 and v3.1 look the same in the
+  family, then picks the exact chemistry by read length and barcode list. So a vague mention in a paper,
+  such as "10x 3'", still ends in an exact chemistry chosen from the bytes.
+- **Two chemistries processed the same way are both recorded.** 10x 3' v3 and v3.1 look the same in the
   reads and are aligned with the same settings. seqforge records both names and asks nothing.
-- **Two kits processed differently must be told apart.** Usually the barcode list settles it. When
+- **Two chemistries processed differently must be told apart.** Usually the barcode list settles it. When
   nothing in the reads can, as for 10x 3' v2 against 5' v1 and v2, seqforge turns to the paper or
   the archive record. If those do not settle it, it stops and asks you (exit code 4) rather than
   guessing.
 
-A paper's claim about the kit is only a hint. It can break a tie the bytes cannot. If the paper and
+A paper's claim about the chemistry is only a hint. It can break a tie the bytes cannot. If the paper and
 the bytes disagree, seqforge asks you.
 
 ## How an entry is aligned

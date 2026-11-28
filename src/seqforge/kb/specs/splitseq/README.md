@@ -29,7 +29,7 @@ preparation adds. The compiled pipeline clips SPLiT-seq's own version of it, whi
 
 As for BD Rhapsody, the two fixed linker sequences at known places are the signature, and each round
 barcode matches its own list. The exact positions matter. The original 2018 chemistry puts the round
-1 barcode at bases 87 to 94 of Read 2, while Parse's chemistry puts it eight bases earlier. A position
+1 barcode at bases 87 to 94 of Read 2, counting from 1, while Parse's chemistry puts it eight bases earlier. A position
 copied from the wrong source silently misses. seqforge takes the original layout from the paper's own
 oligo table, and real data from the paper (GEO series GSE110823) confirms it.
 

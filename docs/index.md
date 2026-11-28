@@ -83,7 +83,7 @@ accession (the archive's id for the biological sample). The manifest does not ch
   passage that code finds again, word for word, in the record or paper. A claim with no such
   passage is marked inferred.
 - **Each question is asked twice.** The second time, the options come in reverse order. If the two
-  answers differ, the study is marked unsettled, and nothing is guessed.
+  answers differ, the study is marked unsettled, so you know which answers to check.
 - **The bytes decide the technology.** A paper that names a kit is a hint. The reads in the files
   decide, and when the two disagree, seqforge stops and says so.
 - **It refuses rather than guesses.** A refusal is an exit code with a reason and a suggested fix,
@@ -95,10 +95,11 @@ accession (the archive's id for the biological sample). The manifest does not ch
 
 ## Where it stands
 
-On the **standard set**, 50 GEO studies picked to cover many designs, the latest run drew 47 of the
-50 bounds without a disagreement and settled 38 of the 50 readings. It refused none. A first run
-over all 50 costs about $1.55 in model calls, or about 3 cents a study. Nothing on this site scores
-those readings against a person's answers: measuring accuracy is a separate effort.
+The study chain is built and run on the **standard set**, 50 GEO studies picked to cover many
+designs. Most of them settle, and a first run costs a few cents a study in model calls. The
+[dated note on the latest run](https://github.com/liuhlab/seqforge/blob/main/docs/research/study-chain-on-the-50-2026-11-27.md)
+gives the counts and the cost. Nothing on this site scores those readings against a person's
+answers: measuring accuracy is a separate effort.
 
 ## What it does not do
 

@@ -61,7 +61,7 @@ stops at the first refusal and prints one JSON summary. Its `snakefile` field is
 pipeline. It writes everything under `seqforge/` in the current folder; `-C <folder>` picks another
 workspace.
 
-- The genome is the one option with no default. `--assembly` is a UCSC genome id. `--annotation`
+- The genome is the one option with no default. `--assembly` is a UCSC genome id (the assembly's name in the UCSC Genome Browser). `--annotation`
   is the name of a gene annotation registered with the lab's genome package. A wrong genome still
   aligns and exits with no error, so seqforge does not guess.
 - `--doc` names a paper or a sample sheet to read. Give it once per document. Reading uses the
