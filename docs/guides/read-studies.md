@@ -145,8 +145,9 @@ seqforge study check-reading <folder>/<ID>/reading.yaml
 
 Each prints `valid` and a list of `problems`, each naming a field and the reason. The exit code is
 0 for a valid file, 3 for a file with problems, and 2 for a file it cannot read. `check-reading`
-needs `liulab-data` installed, because its term lists decide whether each ontology id is real. It
-checks the file alone, so it does not look the quotes up in their records. The format pages list
+needs `liulab-data` installed, because it checks that each ontology id comes from the vocabulary
+its label uses, such as `UBERON:` for a tissue. It does not look the term itself up, and it checks
+the file alone, so it does not look the quotes up in their records either. The format pages list
 every field: [the bounds file](../formats/bounds.md) and [the reading file](../formats/reading.md).
 
 ## Make a report for a study
