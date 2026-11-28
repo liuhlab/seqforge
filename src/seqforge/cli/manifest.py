@@ -68,7 +68,7 @@ def manifest_fill(
     assertions: Path | None = typer.Option(
         None,
         "--assertions",
-        help="Span-verified assertions from `harvest extract` (seqforge/assertions.json): the "
+        help="Span-verified assertions from `harvest extract` (seqforge/logs/assertions.json): the "
         "chemistry hint, and the check that a staged document describes these reads. Without this, "
         "prose contributes nothing.",
     ),
